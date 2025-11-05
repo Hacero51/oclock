@@ -15,8 +15,7 @@ import {
   Download,
   Settings,
   Database,
-  Filter,
-  Calendar
+  Filter
 } from "lucide-react";
 import {
   Select,
@@ -26,61 +25,49 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
-// Datos de ejemplo mejorados con fechas reales
+// Datos de ejemplo - sin campo fechaRegistro
 const empleadosEjemplo = [
   {
     id: 1,
     nombre: "SANDRA MILENA BERNAL P...",
-    tiempo: "SÁBADO, 1",
-    tipo: "Hoy",
-    metodo: "Huella",
-    fecha: new Date(),
-    fechaRegistro: new Date()
+    tiempo: "SÁBADO, 1 enero del 2025 08:00 AM",
+    tipo: "Entrada",
+    metodo: "Huella"
   },
   {
     id: 2,
     nombre: "MAURICIO VERA RINCON",
-    tiempo: "SÁBADO, 1", 
-    tipo: "Últimos 30 días",
-    metodo: "Huella",
-    fecha: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 días atrás
-    fechaRegistro: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
+    tiempo: "MIERCOLES, 5 febrero del 2025 17:00 PM", 
+    tipo: "Salida",
+    metodo: "Huella"
   },
   {
     id: 3,
     nombre: "ALBA ROCIO SOTO SUAREZ",
-    tiempo: "SÁBADO, 1",
-    tipo: "Año Actual",
-    metodo: "Huella",
-    fecha: new Date(new Date().getFullYear(), 5, 15), // 15 de junio del año actual
-    fechaRegistro: new Date(new Date().getFullYear(), 5, 15)
+    tiempo: "DOMINGO, 9 marzo del 2025  09:00 AM",
+    tipo: "Entrada",
+    metodo: "Huella"
   },
   {
     id: 4,
     nombre: "ANILSON RODRIGUEZ CAR...",
-    tiempo: "SÁBADO, 1",
-    tipo: "Últimos 365 días",
-    metodo: "Huella",
-    fecha: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000), // 200 días atrás
-    fechaRegistro: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000)
+    tiempo: "MARTES, 15 abril del 2025 18:00 PM",
+    tipo: "Salida",
+    metodo: "Huella"
   },
   {
     id: 5,
     nombre: "JUAN PÉREZ",
-    tiempo: "SÁBADO, 1 - 08:00 AM",
+    tiempo: "MIERCOLES, 5 noviembre del 2025 08:00 AM    ",
     tipo: "Entrada",
-    metodo: "Huella Digital",
-    fecha: new Date(),
-    fechaRegistro: new Date()
+    metodo: "Huella Digital"
   },
   {
     id: 6,
     nombre: "MARÍA GARCÍA",
-    tiempo: "SÁBADO, 1 - 05:00 PM", 
+    tiempo: "SÁBADO, 1 novimebre del 2025 05:00 PM", 
     tipo: "Salida",
-    metodo: "Tarjeta RFID",
-    fecha: new Date(),
-    fechaRegistro: new Date()
+    metodo: "Tarjeta RFID"
   }
 ];
 
@@ -89,12 +76,9 @@ export default function DispositivoForm({ onClose }) {
   const [dispositivoCreado, setDispositivoCreado] = useState(null);
   const [tipoConexion, setTipoConexion] = useState("red");
   
-  // Estados para los filtros
-  const [filtroRango, setFiltroRango] = useState("hoy");
-  const [fechaDesde, setFechaDesde] = useState("");
-  const [fechaHasta, setFechaHasta] = useState("");
+  // Estados para el filtro de tiempo
+  const [filtroTiempo, setFiltroTiempo] = useState("todos");
   const [empleadosFiltrados, setEmpleadosFiltrados] = useState(empleadosEjemplo);
-  const [mostrandoResultados, setMostrandoResultados] = useState(empleadosEjemplo.length);
 
   const {
     register,
@@ -124,83 +108,49 @@ export default function DispositivoForm({ onClose }) {
     }
   });
 
-  // Función para aplicar filtros
-  const aplicarFiltros = () => {
-    let filtrados = [...empleadosEjemplo];
+  // Función para simular filtrado por tiempo (sin usar datos de la tabla)
+  const aplicarFiltroTiempo = () => {
+    // En un caso real, aquí harías una llamada a la API con el filtro seleccionado
+    // Por ahora, simulamos que algunos filtros devuelven menos resultados
     
-    // Aplicar filtro por rango predefinido
-    if (filtroRango === "hoy") {
-      const hoy = new Date();
-      filtrados = filtrados.filter(emp => 
-        emp.fecha.toDateString() === hoy.toDateString()
-      );
-    } else if (filtroRango === "ultimos-7") {
-      const hace7Dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      filtrados = filtrados.filter(emp => emp.fecha >= hace7Dias);
-    } else if (filtroRango === "ultimos-30") {
-      const hace30Dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      filtrados = filtrados.filter(emp => emp.fecha >= hace30Dias);
-    } else if (filtroRango === "ultimos-60") {
-      const hace60Dias = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-      filtrados = filtrados.filter(emp => emp.fecha >= hace60Dias);
-    } else if (filtroRango === "mes-actual") {
-      const ahora = new Date();
-      const primerDiaMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
-      const ultimoDiaMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0);
-      filtrados = filtrados.filter(emp => 
-        emp.fecha >= primerDiaMes && emp.fecha <= ultimoDiaMes
-      );
-    } else if (filtroRango === "año-actual") {
-      const ahora = new Date();
-      const primerDiaAño = new Date(ahora.getFullYear(), 0, 1);
-      const ultimoDiaAño = new Date(ahora.getFullYear(), 11, 31);
-      filtrados = filtrados.filter(emp => 
-        emp.fecha >= primerDiaAño && emp.fecha <= ultimoDiaAño
-      );
-    } else if (filtroRango === "ultimos-365") {
-      const hace365Dias = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
-      filtrados = filtrados.filter(emp => emp.fecha >= hace365Dias);
+    switch (filtroTiempo) {
+      case "hoy":
+        // Simular que solo hay 3 registros para "Hoy"
+        setEmpleadosFiltrados(empleadosEjemplo.slice(0, 3));
+        break;
+      
+      case "mes-actual":
+        // Simular que hay 4 registros para "Mes Actual"
+        setEmpleadosFiltrados(empleadosEjemplo.slice(0, 4));
+        break;
+      
+      case "ultimos-7":
+        // Simular que hay 2 registros para "Últimos 7 días"
+        setEmpleadosFiltrados(empleadosEjemplo.slice(0, 2));
+        break;
+      
+      case "ultimos-30":
+        // Simular que hay 5 registros para "Últimos 30 días"
+        setEmpleadosFiltrados(empleadosEjemplo.slice(0, 5));
+        break;
+      
+      case "año-actual":
+        // Simular que hay todos los registros para "Año Actual"
+        setEmpleadosFiltrados(empleadosEjemplo);
+        break;
+      
+      case "todos":
+      default:
+        // Mostrar todos los registros
+        setEmpleadosFiltrados(empleadosEjemplo);
+        break;
     }
-    
-    // Aplicar filtro por fechas personalizadas
-    if (fechaDesde) {
-      const desde = new Date(fechaDesde);
-      filtrados = filtrados.filter(emp => emp.fecha >= desde);
-    }
-    
-    if (fechaHasta) {
-      const hasta = new Date(fechaHasta);
-      hasta.setHours(23, 59, 59, 999); // Incluir todo el día
-      filtrados = filtrados.filter(emp => emp.fecha <= hasta);
-    }
-    
-    setEmpleadosFiltrados(filtrados);
-    setMostrandoResultados(filtrados.length);
   };
 
-  // Función para filtro rápido
-  const filtroRapido = (rango) => {
-    setFiltroRango(rango);
-    setFechaDesde("");
-    setFechaHasta("");
-    
-    // Aplicar el filtro automáticamente
-    setTimeout(() => {
-      aplicarFiltros();
-    }, 0);
-  };
-
-  // Aplicar filtros automáticamente cuando cambien las fechas
+  // Aplicar filtro automáticamente cuando cambie
   useEffect(() => {
-    if (fechaDesde || fechaHasta) {
-      aplicarFiltros();
-    }
-  }, [fechaDesde, fechaHasta]);
-
-  // Aplicar filtro inicial
-  useEffect(() => {
-    aplicarFiltros();
-  }, []);
+    aplicarFiltroTiempo();
+  }, [filtroTiempo]);
 
   const onSubmit = async (data) => {
     try {
@@ -225,15 +175,6 @@ export default function DispositivoForm({ onClose }) {
   const handleTipoConexionChange = (value) => {
     setTipoConexion(value);
     setValue("tipoConexion", value);
-  };
-
-  // Función para limpiar filtros
-  const limpiarFiltros = () => {
-    setFiltroRango("hoy");
-    setFechaDesde("");
-    setFechaHasta("");
-    setEmpleadosFiltrados(empleadosEjemplo);
-    setMostrandoResultados(empleadosEjemplo.length);
   };
 
   return (
@@ -452,7 +393,7 @@ export default function DispositivoForm({ onClose }) {
           </form>
         </TabsContent>
 
-        {/* PESTAÑA 2: CAPACIDAD */}
+        {/* PESTAÑA 2: CAPACIDAD - Con filtro corregido */}
         <TabsContent value="capacidad">
           <div className="space-y-6">
             <Card>
@@ -460,182 +401,86 @@ export default function DispositivoForm({ onClose }) {
                 <CardTitle className="text-lg">Capacidad</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
-                    {/* Check In Out y Menu Store */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label className="text-sm">Cantidad Maxima de Usuarios</Label>
-                                    <Input
-                                        id="cantidadMaximaUsuarios"
-                                        type="number"
-                                        {...register("cantidadMaximaUsuarios")}
-                                    />
-                            </div>
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label className="text-sm">Cantidad Maxima de Registros</Label>
-                                    <Input
-                                        id="cantidadMaximaRegistros"
-                                        type="number"
-                                        {...register("cantidadMaximaRegistros")}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                            <div className="space-y-4">   
-                                <div className="space-y-2">
-                                <Label className="text-sm">Cantidad Maxima de Huellas</Label>
-                                        <Input
-                                            id="cantidadMaximaHuellas"
-                                            type="number"
-                                            {...register("cantidadMaximaHuellas")}
-                                        />
-                                </div>
-                                <div className="space-y-2">
-                                <Label className="text-sm">Cantidad Maxima de Rostros</Label>
-                                        <Input
-                                            id="cantidadMaximaRostros"
-                                            type="number"
-                                            {...register("cantidadMaximaRostros")}
-                                        />
-                                </div>
-                            </div>
+                {/* Capacidades Máximas */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm">Cantidad máxima de usuarios</Label>
+                      <Input
+                        id="cantidadMaximaUsuarios"
+                        type="number"
+                        {...register("cantidadMaximaUsuarios")}
+                      />
                     </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">Cantidad máxima de registros</Label>
+                      <Input
+                        id="cantidadMaximaRegistros"
+                        type="number"
+                        {...register("cantidadMaximaRegistros")}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">   
+                    <div className="space-y-2">
+                      <Label className="text-sm">Cantidad máxima de huellas</Label>
+                      <Input
+                        id="cantidadMaximaHuellas"
+                        type="number"
+                        {...register("cantidadMaximaHuellas")}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">Cantidad máxima de rostros</Label>
+                      <Input
+                        id="cantidadMaximaRostros"
+                        type="number"
+                        {...register("cantidadMaximaRostros")}
+                      />
+                    </div>
+                  </div>
+                </div>
 
-                {/* Lista de Empleados con Filtros Avanzados */}
+                {/* Registro de entrada y salida */}
                 <div className="space-y-4">                             
                   <CardHeader className="pb-4">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Users className="w-5 h-5" />
-                      Check In Out
-                    </CardTitle>
+                    <CardTitle className="text-lg">Registro de entrada y salida</CardTitle>
                   </CardHeader>
                   
-                  {/* Filtros de Tiempo Avanzados */}
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  {/* Filtro de Tiempo Simple */}
+                  <div className="bg-gray-50 p-4 rounded-lg border">
                     <div className="flex items-center justify-between mb-3">
                       <Label className="text-sm font-medium flex items-center gap-2">
                         <Filter className="w-4 h-4" />
-                        Filtrar por Rango de Tiempo
+                        Filtrar por Tiempo
                       </Label>
-                      <div className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                        Mostrando {mostrandoResultados} de {empleadosEjemplo.length} registros
+                      <div className="text-xs text-gray-600">
+                        Mostrando {empleadosFiltrados.length} de {empleadosEjemplo.length} registros
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                      <div className="space-y-2">
-                        <Label className="text-xs">Rango Predefinido</Label>
-                        <Select value={filtroRango} onValueChange={setFiltroRango}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <Select value={filtroTiempo} onValueChange={setFiltroTiempo}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar rango" />
+                            <SelectValue placeholder="Seleccionar tiempo" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="todos">Todos los tiempos</SelectItem>
                             <SelectItem value="hoy">Hoy</SelectItem>
+                            <SelectItem value="mes-actual">Mes Actual</SelectItem>
                             <SelectItem value="ultimos-7">Últimos 7 días</SelectItem>
                             <SelectItem value="ultimos-30">Últimos 30 días</SelectItem>
-                            <SelectItem value="ultimos-60">Últimos 60 días</SelectItem>
-                            <SelectItem value="mes-actual">Mes Actual</SelectItem>
                             <SelectItem value="año-actual">Año Actual</SelectItem>
-                            <SelectItem value="ultimos-365">Últimos 365 días</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      
-                      <div className="space-y-2">
-                        <Label className="text-xs flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          Fecha Desde
-                        </Label>
-                        <Input 
-                          type="date" 
-                          value={fechaDesde}
-                          onChange={(e) => setFechaDesde(e.target.value)}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label className="text-xs flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          Fecha Hasta
-                        </Label>
-                        <Input 
-                          type="date" 
-                          value={fechaHasta}
-                          onChange={(e) => setFechaHasta(e.target.value)}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label className="text-xs invisible">Aplicar</Label>
-                        <Button 
-                          onClick={aplicarFiltros}
-                          className="w-full bg-blue-600 hover:bg-blue-700"
-                        >
-                          Aplicar
-                        </Button>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label className="text-xs invisible">Limpiar</Label>
-                        <Button 
-                          onClick={limpiarFiltros}
-                          variant="outline"
-                          className="w-full"
-                        >
-                          Limpiar
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {/* Filtros rápidos */}
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <Button 
-                        variant={filtroRango === "hoy" ? "default" : "outline"}
-                        size="sm" 
-                        className="text-xs"
-                        onClick={() => filtroRapido("hoy")}
-                      >
-                        Hoy
-                      </Button>
-                      <Button 
-                        variant={filtroRango === "ultimos-7" ? "default" : "outline"}
-                        size="sm" 
-                        className="text-xs"
-                        onClick={() => filtroRapido("ultimos-7")}
-                      >
-                        Últimos 7 días
-                      </Button>
-                      <Button 
-                        variant={filtroRango === "ultimos-30" ? "default" : "outline"}
-                        size="sm" 
-                        className="text-xs"
-                        onClick={() => filtroRapido("ultimos-30")}
-                      >
-                        Últimos 30 días
-                      </Button>
-                      <Button 
-                        variant={filtroRango === "mes-actual" ? "default" : "outline"}
-                        size="sm" 
-                        className="text-xs"
-                        onClick={() => filtroRapido("mes-actual")}
-                      >
-                        Mes Actual
-                      </Button>
-                      <Button 
-                        variant={filtroRango === "año-actual" ? "default" : "outline"}
-                        size="sm" 
-                        className="text-xs"
-                        onClick={() => filtroRapido("año-actual")}
-                      >
-                        Año Actual
-                      </Button>
                     </div>
                   </div>
 
+                  {/* Tabla de Empleados */}
                   <Label className="text-sm font-medium">Empleados</Label>
                   <div className="border rounded-lg overflow-hidden">
-                    {/* Encabezados */}
                     <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-gray-100 text-sm font-medium">
                       <div className="col-span-4">Empleado</div>
                       <div className="col-span-3">Tiempo</div>
@@ -643,36 +488,28 @@ export default function DispositivoForm({ onClose }) {
                       <div className="col-span-3">Método verificación</div>
                     </div>
                     
-                    {/* Filas de datos filtradas */}
-                    {empleadosFiltrados.length > 0 ? (
-                      empleadosFiltrados.map((empleado) => (
-                        <div key={empleado.id} className="grid grid-cols-12 gap-2 px-4 py-3 border-t text-sm hover:bg-gray-50 transition-colors">
-                          <div className="col-span-4 font-medium">{empleado.nombre}</div>
-                          <div className="col-span-3 text-gray-600">{empleado.tiempo}</div>
-                          <div className="col-span-2">
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              empleado.tipo === 'Hoy' ? 'bg-green-100 text-green-800' :
-                              empleado.tipo === 'Entrada' ? 'bg-blue-100 text-blue-800' :
-                              empleado.tipo === 'Salida' ? 'bg-orange-100 text-orange-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {empleado.tipo}
-                            </span>
-                          </div>
-                          <div className="col-span-3 text-gray-600">{empleado.metodo}</div>
+                    {empleadosFiltrados.map((empleado) => (
+                      <div key={empleado.id} className="grid grid-cols-12 gap-2 px-4 py-3 border-t text-sm hover:bg-gray-50">
+                        <div className="col-span-4">{empleado.nombre}</div>
+                        <div className="col-span-3">{empleado.tiempo}</div>
+                        <div className="col-span-2">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            empleado.tipo === 'Entrada' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {empleado.tipo}
+                          </span>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        No se encontraron registros con los filtros aplicados
+                        <div className="col-span-3">{empleado.metodo}</div>
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
+
 
         {/* PESTAÑA 3: PARAMETROS */}
         <TabsContent value="parametros">

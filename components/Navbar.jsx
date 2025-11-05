@@ -45,7 +45,6 @@ export default function NavbarSecundario({ onOpenCreate }) {
     { label: "Día Festivo", icon: Calendar, type: "diafestivo" },
     { label: "Dispositivo", icon: Fingerprint, type: "dispositivo" },
     { label: "Horario Fijo", icon: Clock, type: "horariofijo" },
-    { label: "Horario Variable", icon: Clock, type: "horariovariable" },
     { label: "Marcación", icon: BookmarkCheck, type: "marcacion" },
     { label: "Permisos e Incapacidades", icon: BellElectric, type: "permisosIncapacidades" },
     { label: "Registro", icon: FileStack, type: "registro" },

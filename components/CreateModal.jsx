@@ -6,6 +6,8 @@ import CargoForm from "./form/CargoForm";
 import CentroCostoForm from "./form/CentroCostoForm";
 import DiaFestivoForm from "./form/DiaFestivoForm";
 import DispositivoForm from "./form/DispositivoForm";
+import HorarioFijoForm from "./form/HorarioFijoForm";
+import MarcacionForm from "./form/MarcacionForm";
 import TurnoForm from "./form/TurnoForm";
 import HorarioForm from "./form/HorarioForm";
 
@@ -20,6 +22,8 @@ export default function CreateModal({ type, onClose }) {
       case "horario":
       case "centrocosto":
       case "dispositivo":
+      case "horariofijo":
+      case "marcacion":
         return "max-w-4xl h-[80vh]";
       default:
         return "max-w-2xl h-[70vh]";
@@ -33,6 +37,8 @@ export default function CreateModal({ type, onClose }) {
       centrocosto: "Crear Centro de Costo",
       diafestivo: "Crear Día Festivo",
       dispositivo: "Crear Dispositivo",
+      horarofijo: "Crear Horario Fijo",
+      marcacion: "Crear Marcación",
       turno: "Crear Turno",
       horario: "Crear Horario"
     };
@@ -45,6 +51,8 @@ export default function CreateModal({ type, onClose }) {
     centrocosto: <CentroCostoForm onClose={onClose} />,
     diafestivo: <DiaFestivoForm onClose={onClose} />,
     dispositivo: <DispositivoForm onClose={onClose} />,
+    horariofijo: <HorarioFijoForm onClose={onClose} />,
+    marcacion: <MarcacionForm onClose={onClose} />,
     turno: <TurnoForm onClose={onClose} />,
     horario: <HorarioForm onClose={onClose} />,
   };

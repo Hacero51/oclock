@@ -1,21 +1,42 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --background: #000000;
+  --foreground: #1a202c;
+  --primary: #2563eb;      /* Azul vibrante */
+  --primary-dark: #1d4ed8;
+  --secondary: #dc2626;    /* Rojo intenso */
+  --secondary-dark: #b91c1c;
+  --accent: #3b82f6;       /* Azul más claro */
+  --muted: #6b7280;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --success: #059669;
+  --warning: #d97706;
+  --error: #dc2626;
+  --sidebar: #1e40af;      /* Azul oscuro para sidebar */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #f6f7fb;
+    --foreground: #00060c;
+    --primary: #3b82f6;
+    --primary-dark: #2563eb;
+    --secondary: #ef4444;
+    --secondary-dark: #dc2626;
+    --accent: #60a5fa;
+    --muted: #94a3b8;
+    --card: #1e293b;
+    --border: #334155;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #f87171;
+    --sidebar: #1e3a8a;
   }
 }
 
@@ -23,4 +44,156 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Gradientes y efectos de color */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+}
+
+.bg-gradient-secondary {
+  background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+}
+
+.bg-gradient-blue-red {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+}
+
+.border-primary {
+  border-color: var(--primary);
+}
+
+.border-secondary {
+  border-color: var(--secondary);
+}
+
+.text-primary {
+  color: var(--primary);
+}
+
+.text-secondary {
+  color: var(--secondary);
+}
+
+.bg-primary {
+  background-color: var(--primary);
+}
+
+.bg-secondary {
+  background-color: var(--secondary);
+}
+
+/* Componentes personalizados */
+.card-hover {
+  transition: all 0.3s ease;
+  border: 1px solid var(--border);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Botones personalizados */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: 1px solid var(--primary-dark);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-secondary {
+  background: var(--secondary);
+  color: white;
+  border: 1px solid var(--secondary-dark);
+}
+
+.btn-secondary:hover {
+  background: var(--secondary-dark);
+}
+
+.btn-outline-primary {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+}
+
+.btn-outline-primary:hover {
+  background: var(--primary);
+  color: white;
+}
+
+/* Badges de colores */
+.badge-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.badge-secondary {
+  background: var(--secondary);
+  color: white;
+}
+
+/* Tablas con colores */
+.table-primary thead {
+  background: var(--primary);
+  color: white;
+}
+
+.table-secondary thead {
+  background: var(--secondary);
+  color: white;
+}
+
+/* Tabs con colores */
+.tabs-primary .active {
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+}
+
+.tabs-secondary .active {
+  color: var(--secondary);
+  border-bottom: 2px solid var(--secondary);
+}
+
+@keyframes accordion-down {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-accordion-down {
+  animation: accordion-down 0.2s ease-out;
+}
+
+/* Reducir tamaño global de fuente */
+html, body {
+  font-size: 13px;
+}
+
+table {
+  font-size: 12.5px;
+}
+
+aside, nav {
+  font-size: 15px;
+}
+
+h1 {
+  font-size: 1.4rem;
+}
+h2 {
+  font-size: 1.2rem;
+}
+
+.bg-background {
+  background-color: var(--background);
 }

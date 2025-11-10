@@ -5,14 +5,18 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   Building2,
-  Briefcase,
   Clock,
-  Calendar,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  Fingerprint,
+  CalendarSync,
+  CalendarCheck2,
+  Folders,
+  ShieldUser
 } from "lucide-react";
+import path from "path";
 
 const menuItems = [
   {
@@ -26,32 +30,45 @@ const menuItems = [
     ],
   },
   {
-    title: "Departamentos",
-    icon: Briefcase,
-    subItems: [
-      { title: "Lista", path: "/dashboard/departamentos" },
-      { title: "Asignaciones", path: "/dashboard/departamentos/asignaciones" },
-    ],
-  },
-  {
-    title: "Cargos",
-    icon: Briefcase,
-    subItems: [
-      { title: "Perfiles", path: "/dashboard/cargos/perfiles" },
-      { title: "Vacantes", path: "/dashboard/cargos/vacantes" },
-    ],
-  },
-  {
     title: "Turnos",
+    icon: CalendarSync,
+    subItems: [
+      { title: "Turnos", path: "/dashboard/turnos/turnos" },
+      { title: "Horarios", path: "/dashboard/turnos/horarios" },
+    ],
+  },
+  {
+    title: "Asistenia",
+    icon: CalendarCheck2,
+    subItems: [
+      { title: "Registros", path: "/dashboard/asistencia/registros" },
+      { title: "Marcaciones", path: "/dashboard/asistencia/marcaciones" },
+      { title: "Permisos e Incapacidades", path: "/dashboard/asistencia/permisoseincapacidades" },
+    ],
+  },
+  {
+    title: "Dispositivos",
+    icon: Fingerprint,
+    path: "/dashboard/dispositivos",
+  },
+  {
+    title: "Reportes",
     icon: Clock,
     subItems: [
-      { title: "Gestión", path: "/dashboard/turnos" },
-      { title: "Calendario", path: "/dashboard/turnos/calendario" },
+      { title: "Informes", path: "/dashboard/reportes/informes" },
     ],
   },
   {
-    title: "Horarios",
-    icon: Calendar,
+    title: "Maestros",
+    icon: Folders,
+    subItems: [
+      { title: "Asistencia", path: "/dashboard/maestros/asistencia" },
+      { title: "Dias Festivos", path: "/dashboard/maestros/diafestivos" },
+    ],
+  },
+    {
+    title: "Administracion",
+    icon: ShieldUser,
     subItems: [
       { title: "Registros", path: "/dashboard/horarios" },
       { title: "Plantillas", path: "/dashboard/horarios/plantillas" },
@@ -70,15 +87,15 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         ${collapsed ? "w-20" : "w-72"}`}
     >
       {/* Encabezado: logo con fondo blanco para contraste */}
-      <div className={`flex items-center justify-between p-4 border-b border-red-700 ${collapsed ? "px-3" : "px-6"}`}>
-        <div className="flex items-center gap-3">
+      <div className={`flex items-center justify-between p-10 border-b border-red-700 ${collapsed ? "px-3" : "px-6"}`}>
+        <div className="flex items-center gap-2">
           {/* Contenedor blanco para el logo */}
-          <div className="bg-white p-1 rounded-lg shadow-sm">
+          <div className="p-1 rounded-lg shadow-sm">
             <Image 
               src="/logo.png" 
               alt="Logo" 
-              width={collapsed ? 32 : 48} 
-              height={collapsed ? 32 : 48} 
+              width={collapsed ? 60 : 90} 
+              height={collapsed ? 60 : 90} 
               className="rounded"
             />
           </div>
@@ -107,6 +124,20 @@ export default function Sidebar({ collapsed, setCollapsed }) {
           const Icon = item.icon;
           return (
             <div key={item.title} className="mb-1">
+            {item.path ? (
+              // 👉 Si el item tiene path, que sea un Link directo
+              <Link
+                href={item.path}
+                className={`flex items-center justify-between w-full rounded-md px-3 py-3 hover:bg-red-800 transition text-white
+                  ${isOpen ? "bg-red-800 text-white" : ""}`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon size={collapsed ? 20 : 22} className="text-red-200" />
+                  {!collapsed && <span className="font-medium text-white">{item.title}</span>}
+                </div>
+              </Link>
+            ) : (
+              // 👉 Si tiene subItems, se comporta como botón para desplegar
               <button
                 onClick={() => toggleItem(item.title)}
                 className={`flex items-center justify-between w-full rounded-md px-3 py-3 hover:bg-red-800 transition text-white
@@ -116,14 +147,13 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                   <Icon size={collapsed ? 20 : 22} className="text-red-200" />
                   {!collapsed && <span className="font-medium text-white">{item.title}</span>}
                 </div>
-
-                {/* flecha solo si no está colapsado */}
                 {!collapsed && item.subItems && (
                   <div className="text-red-200">
                     {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   </div>
                 )}
               </button>
+            )}
 
               {/* Submenú sólo cuando NO está colapsado */}
               {!collapsed && isOpen && item.subItems && (

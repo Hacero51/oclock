@@ -1,16 +1,16 @@
 "use client";
 
 import { X } from "lucide-react";
-import EmpleadoForm from "./form/create/EmpleadoForm";
-import CargoForm from "./form/create/CargoForm";
-import CentroCostoForm from "./form/create/CentroCostoForm";
-import DiaFestivoForm from "./form/create/DiaFestivoForm";
-import DispositivoForm from "./form/create/DispositivoForm";
-import HorarioFijoForm from "./form/create/HorarioFijoForm";
-import MarcacionForm from "./form/create/MarcacionForm";
-import PermisosEIncaForm from "./form/create/PermisosEIncaForm.jsx";
-import SucursalForm from "./form/create/SucursalForm";
-import TurnoForm from "./form/create/TurnoForm";
+import EmpleadoForm from "./form/update/UpdateEmpleadoForm.jsx";
+import CargoForm from "./form/update/CargoForm.jsx";
+import CentroCostoForm from "./form/update/CentroCostoForm.jsx";
+import DiaFestivoForm from "./form/update/DiaFestivoForm.jsx";
+import DispositivoForm from "./form/update/DispositivoForm.jsx";
+import HorarioFijoForm from "./form/update/HorarioFijoForm.jsx";
+import MarcacionForm from "./form/update/MarcacionForm.jsx";
+import PermisosEIncaForm from "./form/update/PermisosEIncaForm.jsx";
+import SucursalForm from "./form/update/SucursalForm.jsx";
+import TurnoForm from "./form/update/TurnoForm.jsx";
 import { ca } from "zod/v4/locales";
 
 export default function CreateModal({ type, onClose }) {
@@ -64,6 +64,7 @@ export default function CreateModal({ type, onClose }) {
     permisoseinca: <PermisosEIncaForm onClose={onClose} />,
     sucursal: <SucursalForm onClose={onClose} />,
     turno: <TurnoForm onClose={onClose} />,
+    horario: <HorarioForm onClose={onClose} />,
   };
 
   return (

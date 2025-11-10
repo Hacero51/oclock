@@ -21,11 +21,7 @@ import {
   Fingerprint,
   BookmarkCheck,
   BellElectric,
-  FileStack,
-  Handshake,
-  Repeat,
   GitBranch,
-  TableOfContents,
   CalendarSync,
 } from "lucide-react";
 

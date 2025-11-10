@@ -18,7 +18,6 @@ interface Condition {
   field: string;
   operator: string;
   value: string;
-  connector?: "Y" | "O" | "Y no" | "O no";
 }
 
 export function AdvancedFilterDialog({
@@ -31,7 +30,7 @@ export function AdvancedFilterDialog({
   onApply: (filters: Condition[]) => void;
 }) {
   const [conditions, setConditions] = useState<Condition[]>([
-    { id: 1, field: "Departamento", operator: "igual", value: "", connector: "Y" },
+    { id: 1, field: "Departamento", operator: "igual", value: "" },
   ]);
 
   const camposDisponibles = [
@@ -39,24 +38,6 @@ export function AdvancedFilterDialog({
     "Nombre a mostrar", 
     "Documento",
     "Turno Actual",
-    "Número Lector",
-    "Valor Hora"
-  ];
-
-  const operadores = [
-    { value: "igual", label: "Igual" },
-    { value: "contiene", label: "Contiene" },
-    { value: "empieza", label: "Empieza con" },
-    { value: "termina", label: "Termina con" },
-    { value: "mayor", label: "Mayor que" },
-    { value: "menor", label: "Menor que" }
-  ];
-
-  const conectores = [
-    { value: "Y", label: "Y" },
-    { value: "O", label: "O" },
-    { value: "Y no", label: "Y no" },
-    { value: "O no", label: "O no" }
   ];
 
   const handleChange = (id: number, key: keyof Condition, value: string) => {
@@ -72,8 +53,7 @@ export function AdvancedFilterDialog({
         id: Date.now(), 
         field: "Departamento", 
         operator: "igual", 
-        value: "", 
-        connector: "Y" 
+        value: "" 
       },
     ]);
   };
@@ -85,11 +65,10 @@ export function AdvancedFilterDialog({
   };
 
   const clearAll = () => {
-    setConditions([{ id: 1, field: "Departamento", operator: "igual", value: "", connector: "Y" }]);
+    setConditions([{ id: 1, field: "Departamento", operator: "igual", value: "" }]);
   };
 
   const applyFilters = () => {
-    // Filtrar condiciones que tienen valor
     const filtersWithValues = conditions.filter(cond => cond.value.trim() !== "");
     onApply(filtersWithValues);
     onOpenChange(false);
@@ -101,129 +80,124 @@ export function AdvancedFilterDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Editor de Filtros
-            </div>
+          <DialogTitle className="text-lg font-semibold">
+            Editor de Filtros
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-          {conditions.map((cond, index) => (
+        <div className="space-y-4">
+          {conditions.map((cond) => (
             <div
               key={cond.id}
-              className="flex items-center gap-2 border rounded-lg p-3 bg-gray-50/50"
+              className="space-y-3 p-4 border border-gray-200 rounded-lg bg-white"
             >
-              {/* Conector lógico (no mostrar en el primero) */}
-              {index > 0 && (
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">
+                  Filtro {cond.id}
+                </label>
+                {conditions.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeCondition(cond.id)}
+                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Campo */}
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">
+                  Campo
+                </label>
                 <Select
-                  value={cond.connector}
-                  onValueChange={(v) => handleChange(cond.id, "connector", v)}
+                  value={cond.field}
+                  onValueChange={(v) => handleChange(cond.id, "field", v)}
                 >
-                  <SelectTrigger className="w-[100px]">
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {conectores.map((conn) => (
-                      <SelectItem key={conn.value} value={conn.value}>
-                        {conn.label}
+                    {camposDisponibles.map((campo) => (
+                      <SelectItem key={campo} value={campo}>
+                        {campo}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              )}
+              </div>
 
-              {/* Campo */}
-              <Select
-                value={cond.field}
-                onValueChange={(v) => handleChange(cond.id, "field", v)}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {camposDisponibles.map((campo) => (
-                    <SelectItem key={campo} value={campo}>
-                      {campo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Operador */}
-              <Select
-                value={cond.operator}
-                onValueChange={(v) => handleChange(cond.id, "operator", v)}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {operadores.map((op) => (
-                    <SelectItem key={op.value} value={op.value}>
-                      {op.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Operador - Solo "Igual" como en tu diseño */}
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">
+                  Operador
+                </label>
+                <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded border">
+                  <input
+                    type="radio"
+                    id={`operator-igual-${cond.id}`}
+                    checked={cond.operator === "igual"}
+                    onChange={() => handleChange(cond.id, "operator", "igual")}
+                    className="h-4 w-4 text-blue-600"
+                  />
+                  <label htmlFor={`operator-igual-${cond.id}`} className="text-sm text-gray-700">
+                    Igual
+                  </label>
+                </div>
+              </div>
 
               {/* Valor */}
-              <Input
-                placeholder="Introduzca un valor..."
-                className="flex-1"
-                value={cond.value}
-                onChange={(e) => handleChange(cond.id, "value", e.target.value)}
-              />
-
-              {/* Botón eliminar */}
-              {conditions.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeCondition(cond.id)}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">
+                  Valor
+                </label>
+                <Input
+                  placeholder="Introduzca un valor..."
+                  value={cond.value}
+                  onChange={(e) => handleChange(cond.id, "value", e.target.value)}
+                  className="w-full"
+                />
+              </div>
             </div>
           ))}
 
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={addCondition}
-            >
-              <Plus className="h-4 w-4" /> Agregar Condición
-            </Button>
-            
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={clearAll}
-            >
-              <Trash2 className="h-4 w-4" /> Vaciar Todos
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2 border-dashed border-2 border-gray-300 hover:border-gray-400"
+            onClick={addCondition}
+          >
+            <Plus className="h-4 w-4" /> 
+            Agregar Condición
+          </Button>
         </div>
 
-        <DialogFooter>
-          <div className="flex justify-between gap-2 mt-6 w-full">
-            <div className="text-sm text-gray-500">
-              {conditions.filter(c => c.value.trim() !== "").length} condición(es) activa(s)
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={cancel}>
-                Cancelar
-              </Button>
-              <Button onClick={applyFilters} className="bg-blue-600 hover:bg-blue-700">
-                Aplicar Filtros
-              </Button>
-            </div>
+        <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+          <Button
+            variant="outline"
+            onClick={clearAll}
+            className="w-full sm:w-auto order-2 sm:order-1"
+          >
+            Vaciar Todos
+          </Button>
+          
+          <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
+            <Button 
+              variant="outline" 
+              onClick={cancel}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={applyFilters}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              Aplicar
+            </Button>
           </div>
         </DialogFooter>
       </DialogContent>

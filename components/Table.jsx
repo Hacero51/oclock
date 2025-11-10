@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 
-function Tabla({ columnas, datos }) {
+function Tabla({ columnas, datos, onRowClick }) {
   return (
-    <div className="bg-white rounded-xl shadow overflow-x-auto">
-      <table className="min-w-full border border-gray-200 text-sm">
-        <thead className="bg-gray-100 text-gray-700">
+    <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+      <table className="w-full text-sm text-gray-700">
+        <thead className="bg-gray-100 text-gray-800">
           <tr>
             {columnas.map((col) => (
-              <th key={col} className="p-2 border text-left">
+              <th key={col} className="px-4 py-2 text-left font-medium">
                 {col}
               </th>
             ))}
@@ -15,10 +15,14 @@ function Tabla({ columnas, datos }) {
         </thead>
         <tbody>
           {datos.map((fila, i) => (
-            <tr key={i} className="hover:bg-gray-50">
-              {Object.values(fila).map((valor, j) => (
-                <td key={j} className="p-2 border">
-                  {valor}
+            <tr
+              key={i}
+              className="hover:bg-blue-50 cursor-pointer transition-colors"
+              onClick={() => onRowClick && onRowClick(fila)}
+            >
+              {columnas.map((col) => (
+                <td key={col} className="px-4 py-2 border-t">
+                  {fila[col]}
                 </td>
               ))}
             </tr>
@@ -28,10 +32,10 @@ function Tabla({ columnas, datos }) {
     </div>
   );
 }
-
 Tabla.propTypes = {
   columnas: PropTypes.arrayOf(PropTypes.string).isRequired,
   datos: PropTypes.arrayOf(PropTypes.object).isRequired,
+  onRowClick: PropTypes.func,
 };
 
 export default Tabla;

@@ -3,18 +3,17 @@
 import { useState, useEffect } from "react";
 import Tabla from "../../../../components/Table";
 
-export default function SucursalesPage() {
-  const columnas = ["Código", "Nombre a mostrar", "Tercero", "Correo"];
+export default function HorariosPage() {
+  const columnas = ["Nombre a mostrar", "Tiempo total", "Tipo"];
 
-  type Sucursal = {
+  type Horarios = {
     [key: string]: any;
-    "Código": string;
-    "Nombre a mostrar": string;
-    "Tercero": string;
-    "Correo": string;
+    "Nombre  a mostrar": string;
+    "Tiempo total": string;
+    "Tipo": string;
   };
 
-  const [datos, setDatos] = useState<Sucursal[]>([]);
+  const [datos, setDatos] = useState<Horarios[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
   // Evitar error de hidratación
@@ -25,24 +24,24 @@ export default function SucursalesPage() {
   // Obtener datos desde la API
   useEffect(() => {
     if (!isMounted) return;
-    async function fetchSucursales() {
+    async function fetchHorarios() {
       try {
-        const res = await fetch("/api/sucursales");
-        if (!res.ok) throw new Error("Error al obtener sucursales");
+        const res = await fetch("/api/horarios");
+        if (!res.ok) throw new Error("Error al obtener horarios");
         const data = await res.json();
         setDatos(data);
       } catch (err) {
         console.error("Error:", err);
       }
     }
-    fetchSucursales();
+    fetchHorarios();
   }, [isMounted]);
 
   // Evitar render prematuro
   if (!isMounted) {
     return (
       <div className="p-8 text-center text-gray-500">
-        Cargando sucursales...
+        Cargando Horarios...
       </div>
     );
   }
@@ -51,7 +50,7 @@ export default function SucursalesPage() {
     <div className="space-y-6 p-6">
       {/* 🔹 Encabezado */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">Sucursales</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Horarios</h1>
       </div>
 
       {/* 🔹 Tabla */}

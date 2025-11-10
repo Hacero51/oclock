@@ -8,8 +8,10 @@ import DiaFestivoForm from "./form/DiaFestivoForm";
 import DispositivoForm from "./form/DispositivoForm";
 import HorarioFijoForm from "./form/HorarioFijoForm";
 import MarcacionForm from "./form/MarcacionForm";
+import PermisosEIncaForm from "./form/PermisosEIncaForm.jsx";
+import SucursalForm from "./form/SucursalForm";
 import TurnoForm from "./form/TurnoForm";
-import HorarioForm from "./form/HorarioForm";
+import { ca } from "zod/v4/locales";
 
 export default function CreateModal({ type, onClose }) {
   if (!type) return null;
@@ -17,16 +19,20 @@ export default function CreateModal({ type, onClose }) {
   const getModalSize = () => {
     switch (type) {
       case "empleado":
+      case "dispositivo":
         return "max-w-6xl h-[90vh]"; // Más grande para el formulario complejo
       case "turno":
       case "horario":
       case "centrocosto":
-      case "dispositivo":
       case "horariofijo":
+      case "turno":
+        return "max-w-4xl h-[60vh]";
       case "marcacion":
-        return "max-w-4xl h-[80vh]";
+      case "sucursal":
       default:
-        return "max-w-2xl h-[70vh]";
+      case "permisoseinca":
+        return "max-w-2xl h-[80vh]";
+        
     }
   };
 
@@ -37,8 +43,10 @@ export default function CreateModal({ type, onClose }) {
       centrocosto: "Crear Centro de Costo",
       diafestivo: "Crear Día Festivo",
       dispositivo: "Crear Dispositivo",
-      horarofijo: "Crear Horario Fijo",
+      horariofijo: "Crear Horario Fijo",
       marcacion: "Crear Marcación",
+      permisoseinca: "Crear Permisos Incapacidades",
+      sucursal: "Crear Sucursal",
       turno: "Crear Turno",
       horario: "Crear Horario"
     };
@@ -53,6 +61,8 @@ export default function CreateModal({ type, onClose }) {
     dispositivo: <DispositivoForm onClose={onClose} />,
     horariofijo: <HorarioFijoForm onClose={onClose} />,
     marcacion: <MarcacionForm onClose={onClose} />,
+    permisoseinca: <PermisosEIncaForm onClose={onClose} />,
+    sucursal: <SucursalForm onClose={onClose} />,
     turno: <TurnoForm onClose={onClose} />,
     horario: <HorarioForm onClose={onClose} />,
   };

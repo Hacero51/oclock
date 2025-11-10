@@ -1,408 +1,265 @@
-'use client';
-import { useState, useEffect } from 'react';
+"use client";
 
-export default function FormularioMarcacion() {
-  // Estados del formulario
+import { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Label } from "@/components/ui/Label";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Clock, User, Search } from "lucide-react";
+
+export default function MarcacionForm({ onClose }) {
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState(null);
-  const [busquedaEmpleado, setBusquedaEmpleado] = useState('');
-  const [fecha, setFecha] = useState('');
-  const [entrada, setEntrada] = useState('');
-  const [salida, setSalida] = useState('');
-  const [estado, setEstado] = useState('completo');
+  const [busquedaEmpleado, setBusquedaEmpleado] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [entrada, setEntrada] = useState("");
+  const [salida, setSalida] = useState("");
+  const [estado, setEstado] = useState("completo");
   const [showBuscador, setShowBuscador] = useState(false);
-
-  // Estado para empleados (datos de ejemplo)
   const [empleados, setEmpleados] = useState([
     {
       id: 1,
-      numeroLector: '001',
-      documento: '12345678',
-      nombreCompleto: 'Juan Pérez García',
-      cargo: 'Analista de Sistemas',
-      departamento: 'TI'
+      numeroLector: "001",
+      documento: "12345678",
+      nombreCompleto: "Juan Pérez García",
+      cargo: "Analista de Sistemas",
+      departamento: "TI",
     },
     {
       id: 2,
-      numeroLector: '002',
-      documento: '87654321',
-      nombreCompleto: 'María López Hernández',
-      cargo: 'Supervisor de Producción',
-      departamento: 'Producción'
+      numeroLector: "002",
+      documento: "87654321",
+      nombreCompleto: "María López Hernández",
+      cargo: "Supervisor de Producción",
+      departamento: "Producción",
     },
     {
       id: 3,
-      numeroLector: '003',
-      documento: '11223344',
-      nombreCompleto: 'Carlos Rodríguez Martínez',
-      cargo: 'Asistente Administrativo',
-      departamento: 'Administración'
+      numeroLector: "003",
+      documento: "11223344",
+      nombreCompleto: "Carlos Rodríguez Martínez",
+      cargo: "Asistente Administrativo",
+      departamento: "Administración",
     },
     {
       id: 4,
-      numeroLector: '004',
-      documento: '44332211',
-      nombreCompleto: 'Ana García Silva',
-      cargo: 'Jefe de Turno',
-      departamento: 'Operaciones'
+      numeroLector: "004",
+      documento: "44332211",
+      nombreCompleto: "Ana García Silva",
+      cargo: "Jefe de Turno",
+      departamento: "Operaciones",
     },
     {
       id: 5,
-      numeroLector: '005',
-      documento: '55667788',
-      nombreCompleto: 'Pedro Sánchez Vargas',
-      cargo: 'Técnico Especializado',
-      departamento: 'Mantenimiento'
-    }
+      numeroLector: "005",
+      documento: "55667788",
+      nombreCompleto: "Pedro Sánchez Vargas",
+      cargo: "Técnico Especializado",
+      departamento: "Mantenimiento",
+    },
   ]);
 
-  // Estado para empleados filtrados
   const [empleadosFiltrados, setEmpleadosFiltrados] = useState([]);
 
-  // Formatear fecha actual como valor por defecto
+  // Fecha y hora iniciales
   useEffect(() => {
     const ahora = new Date();
-    const fechaFormateada = ahora.toISOString().split('T')[0];
+    const fechaFormateada = ahora.toISOString().split("T")[0];
     setFecha(fechaFormateada);
-    
-    // Formatear hora actual
-    const hora = ahora.getHours().toString().padStart(2, '0');
-    const minutos = ahora.getMinutes().toString().padStart(2, '0');
+    const hora = ahora.getHours().toString().padStart(2, "0");
+    const minutos = ahora.getMinutes().toString().padStart(2, "0");
     setEntrada(`${hora}:${minutos}`);
   }, []);
 
-  // Filtrar empleados según búsqueda
+  // Filtrar empleados
   useEffect(() => {
-    if (busquedaEmpleado.trim() === '') {
+    if (busquedaEmpleado.trim() === "") {
       setEmpleadosFiltrados([]);
-      return;
+    } else {
+      const resultado = empleados.filter((emp) =>
+        emp.nombreCompleto.toLowerCase().includes(busquedaEmpleado.toLowerCase())
+      );
+      setEmpleadosFiltrados(resultado);
     }
-
-    const filtrados = empleados.filter(emp =>
-      emp.numeroLector.toLowerCase().includes(busquedaEmpleado.toLowerCase()) ||
-      emp.documento.toLowerCase().includes(busquedaEmpleado.toLowerCase()) ||
-      emp.nombreCompleto.toLowerCase().includes(busquedaEmpleado.toLowerCase()) ||
-      emp.cargo.toLowerCase().includes(busquedaEmpleado.toLowerCase()) ||
-      emp.departamento.toLowerCase().includes(busquedaEmpleado.toLowerCase())
-    );
-    setEmpleadosFiltrados(filtrados);
   }, [busquedaEmpleado, empleados]);
 
-  // Seleccionar empleado
-  const seleccionarEmpleado = (empleado) => {
-    setEmpleadoSeleccionado(empleado);
-    setBusquedaEmpleado(empleado.nombreCompleto);
+  const seleccionarEmpleado = (emp) => {
+    setEmpleadoSeleccionado(emp);
+    setBusquedaEmpleado(emp.nombreCompleto);
     setShowBuscador(false);
   };
 
-  // Formatear fecha para mostrar
-  const formatearFecha = (fechaStr) => {
-    if (!fechaStr) return '';
-    
-    const fechaObj = new Date(fechaStr);
-    const opciones = { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    return fechaObj.toLocaleDateString('es-ES', opciones);
-  };
-
-  // Convertir hora militar a formato AM/PM
-  const militarANormal = (horaMilitar) => {
-    if (!horaMilitar) return '';
-    
-    const [horas, minutos] = horaMilitar.split(':');
-    const horasNum = parseInt(horas);
-    const ampm = horasNum >= 12 ? 'p. m.' : 'a. m.';
-    const horas12 = horasNum % 12 || 12;
-    return `${horas12}:${minutos} ${ampm}`;
-  };
-
-  // Enviar formulario
-  const handleSubmit = (e) => {
+  const guardarMarcacion = (e) => {
     e.preventDefault();
-    
     if (!empleadoSeleccionado) {
-      alert('Por favor seleccione un empleado');
+      alert("Debe seleccionar un empleado");
       return;
     }
-
-    const datosMarcacion = {
+    console.log({
       empleado: empleadoSeleccionado,
-      fecha: formatearFecha(fecha),
-      entrada: militarANormal(entrada),
-      salida: militarANormal(salida),
-      estado
-    };
-
-    console.log('Datos de marcación:', datosMarcacion);
-    alert('Marcación registrada exitosamente');
+      fecha,
+      entrada,
+      salida,
+      estado,
+    });
+    alert("Marcación guardada correctamente");
+    onClose?.();
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
-        {/* Header */}
-        <div className="bg-blue-600 text-white p-6">
-          <h1 className="text-2xl font-bold">Formulario de Marcación</h1>
-          <p className="text-blue-100">Registro de asistencia y control de horarios</p>
-        </div>
+    <form
+      onSubmit={guardarMarcacion}
+      className="space-y-6 w-full max-w-4xl mx-auto"
+    >
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            Registro de Marcación Manual
+          </CardTitle>
+        </CardHeader>
 
-        <form onSubmit={handleSubmit} className="p-6">
-          {/* Campo Empleado con Buscador */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Empleado *
-            </label>
-            <div className="relative">
-              <input
-                type="text"
+        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Campo de búsqueda de empleado */}
+          <div className="relative space-y-2 md:col-span-2">
+            <Label htmlFor="busquedaEmpleado" className="text-sm font-medium">
+              Buscar Empleado <span className="text-red-500">*</span>
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="busquedaEmpleado"
                 value={busquedaEmpleado}
                 onChange={(e) => {
                   setBusquedaEmpleado(e.target.value);
                   setShowBuscador(true);
                 }}
-                onFocus={() => setShowBuscador(true)}
-                placeholder="Buscar por nombre, documento, número lector, cargo o departamento..."
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                required
+                placeholder="Ingrese nombre o documento..."
+                className="w-full"
               />
-              
-              {/* Lista de resultados de búsqueda */}
-              {showBuscador && empleadosFiltrados.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                  {empleadosFiltrados.map((empleado) => (
-                    <div
-                      key={empleado.id}
-                      onClick={() => seleccionarEmpleado(empleado)}
-                      className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100"
-                    >
-                      <div className="font-medium text-gray-900">{empleado.nombreCompleto}</div>
-                      <div className="text-sm text-gray-600">
-                        <span>N° Lector: {empleado.numeroLector}</span>
-                        {' | '}
-                        <span>Doc: {empleado.documento}</span>
-                        {' | '}
-                        <span>{empleado.cargo}</span>
-                        {' | '}
-                        <span>{empleado.departamento}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowBuscador(!showBuscador)}
+              >
+                <Search className="w-4 h-4" />
+              </Button>
             </div>
 
-            {/* Información del empleado seleccionado */}
-            {empleadoSeleccionado && (
-              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Nombre:</span>
-                    <span className="ml-2">{empleadoSeleccionado.nombreCompleto}</span>
+            {showBuscador && empleadosFiltrados.length > 0 && (
+              <div className="absolute z-10 bg-white border border-gray-300 rounded-md shadow-lg mt-1 w-full max-h-48 overflow-auto">
+                {empleadosFiltrados.map((emp) => (
+                  <div
+                    key={emp.id}
+                    onClick={() => seleccionarEmpleado(emp)}
+                    className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                  >
+                    <p className="font-medium">{emp.nombreCompleto}</p>
+                    <p className="text-gray-500 text-xs">
+                      {emp.cargo} — {emp.departamento}
+                    </p>
                   </div>
-                  <div>
-                    <span className="font-medium">N° Lector:</span>
-                    <span className="ml-2">{empleadoSeleccionado.numeroLector}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium">Documento:</span>
-                    <span className="ml-2">{empleadoSeleccionado.documento}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium">Cargo:</span>
-                    <span className="ml-2">{empleadoSeleccionado.cargo}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium">Departamento:</span>
-                    <span className="ml-2">{empleadoSeleccionado.departamento}</span>
-                  </div>
-                </div>
+                ))}
               </div>
             )}
           </div>
 
-          {/* Campos de Fecha y Hora */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {/* Campo Fecha */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha *
-              </label>
-              <input
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-              {fecha && (
-                <div className="mt-1 text-sm text-gray-500">
-                  {formatearFecha(fecha)}
-                </div>
-              )}
+          {/* Datos del empleado seleccionado */}
+          {empleadoSeleccionado && (
+            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-md border border-gray-200">
+              <div>
+                <Label className="text-xs text-gray-500">Documento</Label>
+                <p className="font-medium">{empleadoSeleccionado.documento}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Número de Lector</Label>
+                <p className="font-medium">{empleadoSeleccionado.numeroLector}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Cargo</Label>
+                <p className="font-medium">{empleadoSeleccionado.cargo}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Departamento</Label>
+                <p className="font-medium">{empleadoSeleccionado.departamento}</p>
+              </div>
             </div>
+          )}
 
-            {/* Campo Entrada */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hora de Entrada *
-              </label>
-              <input
-                type="time"
-                value={entrada}
-                onChange={(e) => setEntrada(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-              {entrada && (
-                <div className="mt-1 text-sm text-gray-500">
-                  {militarANormal(entrada)}
-                </div>
-              )}
-            </div>
-
-            {/* Campo Salida */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hora de Salida
-              </label>
-              <input
-                type="time"
-                value={salida}
-                onChange={(e) => setSalida(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
-              {salida && (
-                <div className="mt-1 text-sm text-gray-500">
-                  {militarANormal(salida)}
-                </div>
-              )}
-            </div>
+          {/* Fecha */}
+          <div className="space-y-2">
+            <Label htmlFor="fecha" className="text-sm font-medium">
+              Fecha
+            </Label>
+            <Input
+              id="fecha"
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+            />
           </div>
 
-          {/* Campo Estado */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Estado *
-            </label>
+          {/* Hora entrada */}
+          <div className="space-y-2">
+            <Label htmlFor="entrada" className="text-sm font-medium">
+              Hora de Entrada
+            </Label>
+            <Input
+              id="entrada"
+              type="time"
+              value={entrada}
+              onChange={(e) => setEntrada(e.target.value)}
+            />
+          </div>
+
+          {/* Hora salida */}
+          <div className="space-y-2">
+            <Label htmlFor="salida" className="text-sm font-medium">
+              Hora de Salida
+            </Label>
+            <Input
+              id="salida"
+              type="time"
+              value={salida}
+              onChange={(e) => setSalida(e.target.value)}
+            />
+          </div>
+
+          {/* Estado */}
+          <div className="space-y-2">
+            <Label htmlFor="estado" className="text-sm font-medium">
+              Estado
+            </Label>
             <select
+              id="estado"
               value={estado}
               onChange={(e) => setEstado(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              required
+              className="border rounded-md px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-300 focus:border-blue-300 transition-colors"
             >
               <option value="completo">Completo</option>
               <option value="incompleto">Incompleto</option>
+              <option value="manual">Manual</option>
+              <option value="ajuste">Ajuste</option>
             </select>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Sección de Configuraciones Adicionales */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">Configuraciones Adicionales</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Columna Izquierda */}
-              <div className="space-y-4">
-                <label className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Tiempo Extra Después de la Jornada</span>
-                </label>
-                
-                <label className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Tiempo Extra en Festivo</span>
-                </label>
-                
-                <label className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Marcación Normal</span>
-                </label>
-              </div>
-
-              {/* Columna Derecha */}
-              <div className="space-y-4">
-                <label className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Ausencia Justificada</span>
-                </label>
-                
-                <label className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Licencia</span>
-                </label>
-                
-                <label className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Vacaciones</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Resumen de la Marcación */}
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 className="text-lg font-semibold text-blue-600 mb-3">Resumen de la Marcación</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="font-medium">Empleado:</span>
-                <span className="ml-2">{empleadoSeleccionado ? empleadoSeleccionado.nombreCompleto : 'No seleccionado'}</span>
-              </div>
-              <div>
-                <span className="font-medium">Fecha:</span>
-                <span className="ml-2">{formatearFecha(fecha)}</span>
-              </div>
-              <div>
-                <span className="font-medium">Entrada:</span>
-                <span className="ml-2">{militarANormal(entrada)}</span>
-              </div>
-              <div>
-                <span className="font-medium">Salida:</span>
-                <span className="ml-2">{militarANormal(salida)}</span>
-              </div>
-              <div>
-                <span className="font-medium">Estado:</span>
-                <span className="ml-2 capitalize">{estado}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Botones de acción */}
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Registrar Marcación
-            </button>
-          </div>
-        </form>
+      {/* Botones de acción */}
+      <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          className="px-6 py-2"
+        >
+          Cancelar
+        </Button>
+        <Button
+          type="submit"
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 shadow-md"
+        >
+          Guardar Marcación
+        </Button>
       </div>
-    </div>
+    </form>
   );
 }

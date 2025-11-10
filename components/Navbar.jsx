@@ -46,12 +46,8 @@ export default function NavbarSecundario({ onOpenCreate }) {
     { label: "Dispositivo", icon: Fingerprint, type: "dispositivo" },
     { label: "Horario Fijo", icon: Clock, type: "horariofijo" },
     { label: "Marcación", icon: BookmarkCheck, type: "marcacion" },
-    { label: "Permisos e Incapacidades", icon: BellElectric, type: "permisosIncapacidades" },
-    { label: "Registro", icon: FileStack, type: "registro" },
-    { label: "Resumen Asistencia", icon: Handshake, type: "resumenAsistencia" },
-    { label: "Secuencia", icon: Repeat, type: "secuencia" },
+    { label: "Permisos e Incapacidades", icon: BellElectric, type: "permisoseinca" },
     { label: "Sucursal", icon: GitBranch, type: "sucursal" },
-    { label: "Tipos de Permisos e Incapacidades", icon: TableOfContents, type: "tiposPermisosIncapacidades" },
     { label: "Turno", icon: CalendarSync, type: "turno" },
   ];
 

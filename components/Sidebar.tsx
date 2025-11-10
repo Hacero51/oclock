@@ -84,8 +84,8 @@ export default function Sidebar({ collapsed, setCollapsed }) {
           </div>
           {!collapsed && (
             <div>
-              <h1 className="text-lg font-semibold text-white">Oclock</h1>
-              <p className="text-xs text-red-200">Panel de Administración</p>
+              <h1 className="text-lg font-semibold text-white">En Punto</h1>
+              <h3 className="text-xs text-red-200">Panel de Administración</h3>
             </div>
           )}
         </div>
@@ -149,7 +149,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         <div className="p-4 border-t border-red-700">
           <div className="text-center">
             <p className="text-xs text-red-300">Versión 1.0</p>
-            <p className="text-xs text-red-400 mt-1">© 2024 Oclock</p>
+            <p className="text-xs text-red-400 mt-1">© 2025 En Punto</p>
             <p className="text-xs text-red-400 mt-1">INR</p>
           </div>
         </div>

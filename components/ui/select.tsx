@@ -1,3 +1,4 @@
+// components/ui/select.tsx
 "use client";
 
 import * as React from "react";
@@ -105,7 +106,7 @@ const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
 >(({ className, children, ...props }, ref) => (
-  <SelectPrimitive.Item
+  <SelectPrimitive.Item 
     ref={ref}
     className={cn(
       "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none",
@@ -131,5 +132,5 @@ export {
   SelectValue,
   SelectTrigger,
   SelectContent,
-  SelectItem,
+  SelectItem, // ← Se exporta como SelectItem
 };

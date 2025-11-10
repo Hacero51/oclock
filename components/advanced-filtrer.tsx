@@ -7,18 +7,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "../components/ui/dialog";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Filter } from "lucide-react";
 
 interface Condition { 
   id: number;
   field: string;
   operator: string;
   value: string;
-  connector?: "Y" | "O" | "No" | "O no";
+  connector?: "Y" | "O" | "Y no" | "O no";
 }
 
 export function AdvancedFilterDialog({
@@ -31,8 +31,33 @@ export function AdvancedFilterDialog({
   onApply: (filters: Condition[]) => void;
 }) {
   const [conditions, setConditions] = useState<Condition[]>([
-    { id: 1, field: "departamento", operator: "igual", value: "", connector: "Y" },
+    { id: 1, field: "Departamento", operator: "igual", value: "", connector: "Y" },
   ]);
+
+  const camposDisponibles = [
+    "Departamento",
+    "Nombre a mostrar", 
+    "Documento",
+    "Turno Actual",
+    "Número Lector",
+    "Valor Hora"
+  ];
+
+  const operadores = [
+    { value: "igual", label: "Igual" },
+    { value: "contiene", label: "Contiene" },
+    { value: "empieza", label: "Empieza con" },
+    { value: "termina", label: "Termina con" },
+    { value: "mayor", label: "Mayor que" },
+    { value: "menor", label: "Menor que" }
+  ];
+
+  const conectores = [
+    { value: "Y", label: "Y" },
+    { value: "O", label: "O" },
+    { value: "Y no", label: "Y no" },
+    { value: "O no", label: "O no" }
+  ];
 
   const handleChange = (id: number, key: keyof Condition, value: string) => {
     setConditions((prev) =>
@@ -43,62 +68,88 @@ export function AdvancedFilterDialog({
   const addCondition = () => {
     setConditions((prev) => [
       ...prev,
-      { id: Date.now(), field: "departamento", operator: "igual", value: "", connector: "Y" },
+      { 
+        id: Date.now(), 
+        field: "Departamento", 
+        operator: "igual", 
+        value: "", 
+        connector: "Y" 
+      },
     ]);
   };
 
   const removeCondition = (id: number) => {
-    setConditions((prev) => prev.filter((c) => c.id !== id));
+    if (conditions.length > 1) {
+      setConditions((prev) => prev.filter((c) => c.id !== id));
+    }
   };
 
-  const clearAll = () => setConditions([]);
+  const clearAll = () => {
+    setConditions([{ id: 1, field: "Departamento", operator: "igual", value: "", connector: "Y" }]);
+  };
 
   const applyFilters = () => {
-    onApply(conditions);
+    // Filtrar condiciones que tienen valor
+    const filtersWithValues = conditions.filter(cond => cond.value.trim() !== "");
+    onApply(filtersWithValues);
+    onOpenChange(false);
+  };
+
+  const cancel = () => {
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl bg-card text-card-foreground">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Editor de filtros</DialogTitle>
+          <DialogTitle>
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Editor de Filtros
+            </div>
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3">
-          {conditions.map((cond) => (
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          {conditions.map((cond, index) => (
             <div
               key={cond.id}
-              className="flex items-center gap-2 border rounded-md p-2 bg-muted/30"
+              className="flex items-center gap-2 border rounded-lg p-3 bg-gray-50/50"
             >
-              {/* Conector lógico */}
-              <Select
-                value={cond.connector}
-                onValueChange={(v) => handleChange(cond.id, "connector", v)}
-              >
-                <SelectTrigger className="w-[80px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Y">Y</SelectItem>
-                  <SelectItem value="O">O</SelectItem>
-                  <SelectItem value="No">No</SelectItem>
-                  <SelectItem value="O no">O no</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Conector lógico (no mostrar en el primero) */}
+              {index > 0 && (
+                <Select
+                  value={cond.connector}
+                  onValueChange={(v) => handleChange(cond.id, "connector", v)}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {conectores.map((conn) => (
+                      <SelectItem key={conn.value} value={conn.value}>
+                        {conn.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
               {/* Campo */}
               <Select
                 value={cond.field}
                 onValueChange={(v) => handleChange(cond.id, "field", v)}
               >
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="departamento">Departamento</SelectItem>
-                  <SelectItem value="turno">Turno</SelectItem>
-                  <SelectItem value="nombre">Nombre</SelectItem>
+                  {camposDisponibles.map((campo) => (
+                    <SelectItem key={campo} value={campo}>
+                      {campo}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -107,53 +158,72 @@ export function AdvancedFilterDialog({
                 value={cond.operator}
                 onValueChange={(v) => handleChange(cond.id, "operator", v)}
               >
-                <SelectTrigger className="w-[120px]">
+                <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="igual">Igual</SelectItem>
-                  <SelectItem value="contiene">Contiene</SelectItem>
-                  <SelectItem value="empieza">Empieza con</SelectItem>
-                  <SelectItem value="termina">Termina con</SelectItem>
+                  {operadores.map((op) => (
+                    <SelectItem key={op.value} value={op.value}>
+                      {op.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
               {/* Valor */}
               <Input
-                placeholder="Valor..."
+                placeholder="Introduzca un valor..."
                 className="flex-1"
                 value={cond.value}
                 onChange={(e) => handleChange(cond.id, "value", e.target.value)}
               />
 
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={() => removeCondition(cond.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {/* Botón eliminar */}
+              {conditions.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeCondition(cond.id)}
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           ))}
 
-          <Button
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={addCondition}
-          >
-            <Plus className="h-4 w-4" /> Agregar condición
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={addCondition}
+            >
+              <Plus className="h-4 w-4" /> Agregar Condición
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={clearAll}
+            >
+              <Trash2 className="h-4 w-4" /> Vaciar Todos
+            </Button>
+          </div>
         </div>
 
-        <DialogFooter className="mt-4 flex justify-between">
-          <Button variant="secondary" onClick={clearAll}>
-            Vaciar todos
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={applyFilters}>Aplicar</Button>
+        <DialogFooter>
+          <div className="flex justify-between gap-2 mt-6 w-full">
+            <div className="text-sm text-gray-500">
+              {conditions.filter(c => c.value.trim() !== "").length} condición(es) activa(s)
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={cancel}>
+                Cancelar
+              </Button>
+              <Button onClick={applyFilters} className="bg-blue-600 hover:bg-blue-700">
+                Aplicar Filtros
+              </Button>
+            </div>
           </div>
         </DialogFooter>
       </DialogContent>

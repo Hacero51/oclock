@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from "react";
 import { Input } from "@/components/ui/Input";
@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Tabla from "@/components/Table"; // Ajusta la ruta según donde tengas tu componente
 
 export default function RegistroTiempoForm() {
   const [filtros, setFiltros] = useState({
@@ -336,6 +337,45 @@ export default function RegistroTiempoForm() {
     return coincideEmpleado && coincideTipo && coincideFecha;
   });
 
+  // 🎯 PREPARAR DATOS PARA LA TABLA ESTANDARIZADA
+  const datosParaTabla = registrosFiltrados.map((registro) => ({
+    'Empleado': registro.empleado,
+    'Tiempo': registro.tiempo,
+    'Tipo': (
+      <span className={`px-2 py-1 rounded text-xs font-medium ${
+        registro.tipo === "Entrada" 
+          ? "bg-green-100 text-green-800" 
+          : "bg-red-100 text-red-800"
+      }`}>
+        {registro.tipo}
+      </span>
+    ),
+    'Año': registro.año,
+    'Mes': registro.mes,
+    'Método de Verificación': (
+      <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+        {registro.metodoverificacion}
+      </span>
+    ),
+    'Lector': registro.lector
+  }));
+
+  const columnasTabla = [
+    'Empleado', 
+    'Tiempo', 
+    'Tipo', 
+    'Año', 
+    'Mes', 
+    'Método de Verificación', 
+    'Lector'
+  ];
+
+  // Función para manejar el click en una fila
+  const manejarClickFila = (fila: any) => {
+    console.log('Fila clickeada:', fila);
+    // Aquí puedes agregar lógica para editar, ver detalles, etc.
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-9xl mx-auto">
@@ -416,48 +456,19 @@ export default function RegistroTiempoForm() {
           </div>
         </div>
 
-        {/* Tabla de registros */}
+        {/* Tabla Estándar */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Empleado</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Tiempo</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Tipo</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Año</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Mes</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Metodo de Verificacion</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Lector</th>
-                </tr>
-              </thead>
-              <tbody>
-                {registrosFiltrados.map((registro, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4 text-gray-900 font-medium">{registro.empleado}</td>
-                    <td className="py-3 px-4 text-gray-600">{registro.tiempo}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        registro.tipo === "Entrada" 
-                          ? "bg-green-100 text-green-800" 
-                          : "bg-red-100 text-red-800"
-                      }`}>
-                        {registro.tipo}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">{registro.año}</td>
-                    <td className="py-3 px-4 text-gray-600">{registro.mes}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                        {registro.metodoverificacion}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">{registro.lector}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {datosParaTabla.length > 0 ? (
+            <Tabla 
+              columnas={columnasTabla}
+              datos={datosParaTabla}
+              onRowClick={manejarClickFila}
+            />
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No se encontraron registros con los filtros aplicados
+            </div>
+          )}
 
           {/* Footer de la tabla */}
           <div className="bg-gray-50 px-4 py-3 border-t">

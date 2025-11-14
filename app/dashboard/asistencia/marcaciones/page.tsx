@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from "react";
 import { Input } from "@/components/ui/Input";
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import Tabla from "@/components/Table"; // Ajusta la ruta según donde tengas tu componente
 
 export default function FormMarcaciones() {
   const [filtros, setFiltros] = useState({
@@ -79,6 +80,67 @@ export default function FormMarcaciones() {
 
     return coincideEmpleado && coincideTurno && coincideEstado;
   });
+
+  // 🎯 PREPARAR DATOS PARA LA TABLA ESTANDARIZADA
+  const datosParaTabla = registrosFiltrados.map((registro) => ({
+    'Empleado': registro.empleado,
+    'Turno': registro.turno,
+    'Fecha': registro.fecha,
+    'Entrada': registro.entrada,
+    'Salida': registro.salida || "--",
+    'Inicia Turno': (
+      <div className="flex justify-center">
+        <Checkbox checked={registro.iniciaTurno} disabled />
+      </div>
+    ),
+    'Tiempo Extra Después': (
+      <div className="flex justify-center">
+        <Checkbox checked={registro.tiempoExtraDespues} disabled />
+      </div>
+    ),
+    'Tiempo Extra Festivo': (
+      <div className="flex justify-center">
+        <Checkbox checked={registro.tiempoExtraFestivo} disabled />
+      </div>
+    ),
+    'Autorizar': (
+      <div className="flex justify-center">
+        <Checkbox checked={registro.autorizar} disabled />
+      </div>
+    ),
+    'Estado': (
+      <div className="flex justify-center">
+        <span
+          className={`px-2 py-1 rounded text-xs font-medium ${
+            registro.estado === "OK"
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
+        >
+          {registro.estado}
+        </span>
+      </div>
+    )
+  }));
+
+  const columnasTabla = [
+    'Empleado', 
+    'Turno', 
+    'Fecha', 
+    'Entrada', 
+    'Salida', 
+    'Inicia Turno', 
+    'Tiempo Extra Después', 
+    'Tiempo Extra Festivo', 
+    'Autorizar', 
+    'Estado'
+  ];
+
+  // Función para manejar el click en una fila
+  const manejarClickFila = (fila: any) => {
+    console.log('Fila clickeada:', fila);
+    // Aquí puedes agregar lógica para editar, ver detalles, etc.
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -169,60 +231,19 @@ export default function FormMarcaciones() {
           </div>
         </div>
 
-        {/* Tabla */}
+        {/* Tabla Estándar */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b text-gray-700">
-                  <th className="py-3 px-4 text-left font-medium">Empleado</th>
-                  <th className="py-3 px-4 text-left font-medium">Turno</th>
-                  <th className="py-3 px-4 text-left font-medium">Fecha</th>
-                  <th className="py-3 px-4 text-left font-medium">Entrada</th>
-                  <th className="py-3 px-4 text-left font-medium">Salida</th>
-                  <th className="py-3 px-4 text-center font-medium">Inicia Turno</th>
-                  <th className="py-3 px-4 text-center font-medium">Tiempo Extra Después</th>
-                  <th className="py-3 px-4 text-center font-medium">Tiempo Extra Festivo</th>
-                  <th className="py-3 px-4 text-center font-medium">Autorizar</th>
-                  <th className="py-3 px-4 text-center font-medium">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {registrosFiltrados.map((r, i) => (
-                  <tr key={i} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4 text-gray-900 font-medium">{r.empleado}</td>
-                    <td className="py-3 px-4 text-gray-700">{r.turno}</td>
-                    <td className="py-3 px-4 text-gray-600">{r.fecha}</td>
-                    <td className="py-3 px-4 text-gray-600">{r.entrada}</td>
-                    <td className="py-3 px-4 text-gray-600">{r.salida || "--"}</td>
-                    <td className="py-3 px-4 text-center">
-                      <Checkbox checked={r.iniciaTurno} disabled />
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <Checkbox checked={r.tiempoExtraDespues} disabled />
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <Checkbox checked={r.tiempoExtraFestivo} disabled />
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <Checkbox checked={r.autorizar} disabled />
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          r.estado === "OK"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {r.estado}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {datosParaTabla.length > 0 ? (
+            <Tabla 
+              columnas={columnasTabla}
+              datos={datosParaTabla}
+              onRowClick={manejarClickFila}
+            />
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No se encontraron registros con los filtros aplicados
+            </div>
+          )}
 
           {/* Footer */}
           <div className="bg-gray-50 px-4 py-3 border-t flex justify-between items-center text-sm text-gray-600">
@@ -243,4 +264,3 @@ export default function FormMarcaciones() {
     </div>
   );
 }
-

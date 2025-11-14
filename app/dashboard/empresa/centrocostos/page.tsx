@@ -3,57 +3,49 @@
 import { useState, useEffect } from "react";
 import Tabla from "../../../../components/Table";
 
-export default function SucursalesPage() {
-  const columnas = ["Código", "Nombre"];
+export default function CentroCostosPage() {
+  const columnas = ["Codigo", "Nombre"];
 
-  type Sucursal = {
-    [key: string]: any;
-    "Código": string;
+  type CentroCosto = {
+    "Codigo": string;
     "Nombre": string;
   };
 
-  const [datos, setDatos] = useState<Sucursal[]>([]);
+  const [datos, setDatos] = useState<CentroCosto[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Evitar error de hidratación
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Obtener datos desde la API
   useEffect(() => {
     if (!isMounted) return;
-    async function fetchCentrosCostos() {
+
+    async function fetchCentros() {
       try {
         const res = await fetch("/api/centrocostos");
-        if (!res.ok) throw new Error("Error al obtener centrocostos");
+        if (!res.ok) throw new Error("Error al obtener centros de costos");
+
         const data = await res.json();
         setDatos(data);
+
       } catch (err) {
         console.error("Error:", err);
       }
     }
-    fetchCentrosCostos();
+
+    fetchCentros();
   }, [isMounted]);
 
-  // Evitar render prematuro
-  if (!isMounted) {
-    return (
-      <div className="p-8 text-center text-gray-500">
-        Cargando Centros Costos...
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 p-6">
-      {/* 🔹 Encabezado */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">Centros de costos</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Centros de Costos</h1>
       </div>
 
-      {/* 🔹 Tabla */}
-      <Tabla columnas={columnas} datos={datos} />
+      <Tabla columnas={columnas} datos={datos} onRowClick={() => {}} />
     </div>
   );
 }
+

@@ -53,7 +53,7 @@ export default function TurnosPage() {
       </div>
 
       {/* 🔹 Tabla */}
-      <Tabla columnas={columnas} datos={datos} />
+      <Tabla columnas={columnas} datos={datos} onRowClick={() => {}} />
     </div>
   );
 }

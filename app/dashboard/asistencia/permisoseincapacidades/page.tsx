@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import Tabla from "@/components/Table"; // Ajusta la ruta según donde tengas tu componente
 
 export default function FormPermisosIncapacidades() {
   const [filtros, setFiltros] = useState({
@@ -65,6 +66,33 @@ export default function FormPermisosIncapacidades() {
     const matchTipo = !filtros.tipo || filtros.tipo === "all" || r.tipo === filtros.tipo;
     return matchEmpleado && matchTipo;
   });
+
+  // 🎯 PREPARAR DATOS PARA LA TABLA ESTANDARIZADA
+  const datosParaTabla = registrosFiltrados.map((registro) => ({
+    'Empleado': registro.empleado,
+    'Tipo': registro.tipo,
+    'Inicio': registro.inicio,
+    'Fin': registro.fin,
+    'Pago': (
+      <div className="flex justify-center">
+        <Checkbox checked={registro.pago} disabled />
+      </div>
+    )
+  }));
+
+  const columnasTabla = [
+    'Empleado', 
+    'Tipo', 
+    'Inicio', 
+    'Fin', 
+    'Pago'
+  ];
+
+  // Función para manejar el click en una fila
+  const manejarClickFila = (fila: any) => {
+    console.log('Fila clickeada:', fila);
+    // Aquí puedes agregar lógica para editar, ver detalles, etc.
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -136,34 +164,19 @@ export default function FormPermisosIncapacidades() {
           </div>
         </div>
 
-        {/* Tabla */}
+        {/* Tabla Estándar */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b text-gray-700">
-                  <th className="py-3 px-4 text-left font-medium">Empleado</th>
-                  <th className="py-3 px-4 text-left font-medium">Tipo</th>
-                  <th className="py-3 px-4 text-left font-medium">Inicio</th>
-                  <th className="py-3 px-4 text-left font-medium">Fin</th>
-                  <th className="py-3 px-4 text-center font-medium">Pago</th>
-                </tr>
-              </thead>
-              <tbody>
-                {registrosFiltrados.map((r, i) => (
-                  <tr key={i} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4 text-gray-900 font-medium">{r.empleado}</td>
-                    <td className="py-3 px-4 text-gray-700">{r.tipo}</td>
-                    <td className="py-3 px-4 text-gray-600">{r.inicio}</td>
-                    <td className="py-3 px-4 text-gray-600">{r.fin}</td>
-                    <td className="py-3 px-4 text-center">
-                      <Checkbox checked={r.pago} disabled />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {datosParaTabla.length > 0 ? (
+            <Tabla 
+              columnas={columnasTabla}
+              datos={datosParaTabla}
+              onRowClick={manejarClickFila}
+            />
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No se encontraron registros con los filtros aplicados
+            </div>
+          )}
 
           {/* Footer */}
           <div className="bg-gray-50 px-4 py-3 border-t flex justify-between items-center text-sm text-gray-600">

@@ -10,9 +10,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import {
-  Plus,
-  Trash2,
-  Mail,
+  ClockPlus,
   UserPlus,
   Briefcase,
   Layers,
@@ -23,7 +21,10 @@ import {
   BellElectric,
   GitBranch,
   CalendarSync,
+  FilePlusCorner,
 } from "lucide-react";
+
+
 
 /**
  * NavbarSecundario — Versión con apertura de modal
@@ -63,7 +64,7 @@ export default function NavbarSecundario({ onOpenCreate }) {
             title="Nuevo registro"
             onClick={() => setMenuAbierto(!menuAbierto)}
           >
-            <Plus className="h-4 w-4 text-green-600" />
+            <ClockPlus className="h-4 w-4 text-blue-600" />
           </Button>
 
           {menuAbierto && (
@@ -85,11 +86,6 @@ export default function NavbarSecundario({ onOpenCreate }) {
           )}
         </div>
 
-        {/* Botón Eliminar */}
-        <Button variant="ghost" size="icon" title="Eliminar seleccionado">
-          <Trash2 className="h-4 w-4 text-red-600" />
-        </Button>
-
         {/* Filtro por estado */}
         <Select value={estado} onValueChange={setEstado}>
           <SelectTrigger className="w-[150px] text-sm bg-white">
@@ -110,9 +106,6 @@ export default function NavbarSecundario({ onOpenCreate }) {
           placeholder="Buscar..."
           className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
         />
-        <Button variant="ghost" size="icon" title="Enviar mensaje">
-          <Mail className="h-4 w-4 text-blue-600" />
-        </Button>
       </div>
     </div>
   );

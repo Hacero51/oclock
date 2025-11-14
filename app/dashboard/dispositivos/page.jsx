@@ -1,8 +1,9 @@
-"use client";
+'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Fingerprint, RefreshCcw } from "lucide-react";
+import Tabla from "@/components/Table"; // Ajusta la ruta según donde tengas tu componente
 
 export default function DispositivosPage() {
   // Datos de ejemplo (puedes reemplazarlos por datos reales desde tu backend)
@@ -27,12 +28,41 @@ export default function DispositivosPage() {
     },
   ];
 
+  // 🎯 PREPARAR DATOS PARA LA TABLA ESTANDARIZADA
+  const datosParaTabla = dispositivos.map((dispositivo) => ({
+    'Número de Dispositivo': dispositivo.id,
+    'Nombre': dispositivo.nombre,
+    'Última Descarga': dispositivo.ultimaDescarga,
+    'Estado de Conexión': (
+      <span className={`font-semibold ${
+        dispositivo.estado === "Conectado"
+          ? "text-green-600"
+          : "text-red-600"
+      }`}>
+        {dispositivo.estado}
+      </span>
+    )
+  }));
+
+  const columnasTabla = [
+    'Número de Dispositivo', 
+    'Nombre', 
+    'Última Descarga', 
+    'Estado de Conexión'
+  ];
+
+  // Función para manejar el click en una fila
+  const manejarClickFila = (fila) => {
+    console.log('Dispositivo clickeado:', fila);
+    // Aquí puedes agregar lógica para ver detalles del dispositivo, editar, etc.
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Encabezado */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-<Fingerprint className="text-blue-700" size={28} />
+          <Fingerprint className="text-blue-700" size={28} />
           <h1 className="text-2xl font-semibold text-gray-800">Dispositivos</h1>
         </div>
 
@@ -43,48 +73,24 @@ export default function DispositivosPage() {
         </Button>
       </div>
 
-      {/* Tabla */}
-      <Card className="shadow-md border border-red-200">
+      {/* Tabla Estándar */}
+      <Card className="shadow-md border">
         <CardHeader>
           <CardTitle className="text-lg text-gray-700">Lista de Dispositivos</CardTitle>
         </CardHeader>
 
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-200 rounded-lg text-sm">
-              <thead className="bg-blue-900 text-white">
-                <tr>
-                  <th className="p-3 text-left w-1/6">Número de Dispositivo</th>
-                  <th className="p-3 text-left w-1/3">Nombre</th>
-                  <th className="p-3 text-left w-1/3">Última Descarga</th>
-                  <th className="p-3 text-left w-1/6">Estado de Conexión</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dispositivos.map((d, index) => (
-                  <tr
-                    key={d.id}
-                    className={`border-t hover:bg-gray-50 transition ${
-                      index % 2 === 0 ? "bg-gray-50/40" : "bg-white"
-                    }`}
-                  >
-                    <td className="p-3">{d.id}</td>
-                    <td className="p-3 font-medium text-gray-800">{d.nombre}</td>
-                    <td className="p-3 text-gray-600">{d.ultimaDescarga}</td>
-                    <td
-                      className={`p-3 font-semibold ${
-                        d.estado === "Conectado"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {d.estado}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {dispositivos.length > 0 ? (
+            <Tabla 
+              columnas={columnasTabla}
+              datos={datosParaTabla}
+              onRowClick={manejarClickFila}
+            />
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No hay dispositivos registrados
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

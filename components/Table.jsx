@@ -4,7 +4,7 @@ function Tabla({ columnas, datos, onRowClick }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
       <table className="w-full text-sm text-gray-700">
-        <thead className="bg-gray-100 text-gray-800">
+        <thead className="bg-blue-900 text-white">
           <tr>
             {columnas.map((col) => (
               <th key={col} className="px-4 py-2 text-left font-medium">

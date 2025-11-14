@@ -14,9 +14,9 @@ import {
   CalendarSync,
   CalendarCheck2,
   Folders,
-  ShieldUser
+  ShieldUser,
+  LogOut
 } from "lucide-react";
-import path from "path";
 
 const menuItems = [
   {
@@ -54,9 +54,7 @@ const menuItems = [
   {
     title: "Reportes",
     icon: Clock,
-    subItems: [
-      { title: "Informes", path: "/dashboard/reportes/informes" },
-    ],
+    subItems: [{ title: "Informes", path: "/dashboard/reportes/informes" }],
   },
   {
     title: "Maestros",
@@ -66,7 +64,7 @@ const menuItems = [
       { title: "Dias Festivos", path: "/dashboard/maestros/diafestivos" },
     ],
   },
-    {
+  {
     title: "Administracion",
     icon: ShieldUser,
     subItems: [
@@ -81,37 +79,45 @@ export default function Sidebar({ collapsed, setCollapsed }) {
 
   const toggleItem = (title) => setOpenItem(openItem === title ? null : title);
 
+  const handleLogout = () => {
+    // Aquí irá la lógica de logout real (NextAuth, JWT, cookies, etc)
+    // Ejemplo future:
+    // await signOut();
+    window.location.href = "/login";
+  };
+
   return (
     <aside
       className={`fixed left-0 top-0 h-screen bg-red-900 border-r border-red-700 shadow-xl z-40 flex flex-col transition-all duration-300
         ${collapsed ? "w-20" : "w-72"}`}
     >
-      {/* Encabezado: logo con fondo blanco para contraste */}
+      {/* Encabezado con logo clickeable */}
       <div className={`flex items-center justify-between p-10 border-b border-red-700 ${collapsed ? "px-3" : "px-6"}`}>
-        <div className="flex items-center gap-2">
-          {/* Contenedor blanco para el logo */}
+        
+        {/* 👉 Ahora el logo lleva al dashboard */}
+        <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
           <div className="p-1 rounded-lg shadow-sm">
-            <Image 
-              src="/logo.png" 
-              alt="Logo" 
-              width={collapsed ? 60 : 90} 
-              height={collapsed ? 60 : 90} 
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={collapsed ? 60 : 90}
+              height={collapsed ? 60 : 90}
               className="rounded"
             />
           </div>
+
           {!collapsed && (
             <div>
               <h1 className="text-lg font-semibold text-white">En Punto</h1>
               <h3 className="text-xs text-red-200">Panel de Administración</h3>
             </div>
           )}
-        </div>
+        </Link>
 
-        {/* Botón colapsar / expandir */}
+        {/* Botón colapsar */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-2 rounded hover:bg-red-800 transition text-white"
-          aria-label={collapsed ? "Expandir sidebar" : "Colapsar sidebar"}
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
@@ -122,40 +128,36 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         {menuItems.map((item) => {
           const isOpen = openItem === item.title;
           const Icon = item.icon;
+
           return (
             <div key={item.title} className="mb-1">
-            {item.path ? (
-              // 👉 Si el item tiene path, que sea un Link directo
-              <Link
-                href={item.path}
-                className={`flex items-center justify-between w-full rounded-md px-3 py-3 hover:bg-red-800 transition text-white
-                  ${isOpen ? "bg-red-800 text-white" : ""}`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon size={collapsed ? 20 : 22} className="text-red-200" />
-                  {!collapsed && <span className="font-medium text-white">{item.title}</span>}
-                </div>
-              </Link>
-            ) : (
-              // 👉 Si tiene subItems, se comporta como botón para desplegar
-              <button
-                onClick={() => toggleItem(item.title)}
-                className={`flex items-center justify-between w-full rounded-md px-3 py-3 hover:bg-red-800 transition text-white
-                  ${isOpen ? "bg-red-800 text-white" : ""}`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon size={collapsed ? 20 : 22} className="text-red-200" />
-                  {!collapsed && <span className="font-medium text-white">{item.title}</span>}
-                </div>
-                {!collapsed && item.subItems && (
-                  <div className="text-red-200">
-                    {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              {item.path ? (
+                <Link
+                  href={item.path}
+                  className="flex items-center justify-between w-full rounded-md px-3 py-3 hover:bg-red-800 transition text-white"
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon size={collapsed ? 20 : 22} className="text-red-200" />
+                    {!collapsed && <span className="font-medium">{item.title}</span>}
                   </div>
-                )}
-              </button>
-            )}
+                </Link>
+              ) : (
+                <button
+                  onClick={() => toggleItem(item.title)}
+                  className="flex items-center justify-between w-full rounded-md px-3 py-3 hover:bg-red-800 transition text-white"
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon size={collapsed ? 20 : 22} className="text-red-200" />
+                    {!collapsed && <span className="font-medium">{item.title}</span>}
+                  </div>
+                  {!collapsed && item.subItems && (
+                    <div className="text-red-200">
+                      {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
+                  )}
+                </button>
+              )}
 
-              {/* Submenú sólo cuando NO está colapsado */}
               {!collapsed && isOpen && item.subItems && (
                 <div className="ml-6 mt-1 space-y-1 border-l-2 border-red-600 pl-3">
                   {item.subItems.map((sub) => (
@@ -172,21 +174,30 @@ export default function Sidebar({ collapsed, setCollapsed }) {
             </div>
           );
         })}
+        {/* 👉 Botón Salir */}
+        <button
+          onClick={handleLogout}
+          className={`w-full flex items-center gap-3 text-left px-3 py-2 rounded-md hover:bg-red-800 text-red-200 transition ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          <LogOut size={collapsed ? 20 : 18} />
+          {!collapsed && <span>Salir</span>}
+        </button>
       </nav>
 
-      {/* Footer del sidebar (opcional) */}
-      {!collapsed && (
-        <div className="p-4 border-t border-red-700">
+      {/* Footer + botón salir */}
+      <div className="p-4 border-t border-red-700 space-y-3">
+        {!collapsed && (
           <div className="text-center">
             <p className="text-xs text-red-300">Versión 1.0</p>
             <p className="text-xs text-red-400 mt-1">© 2025 En Punto</p>
             <p className="text-xs text-red-400 mt-1">INR</p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </aside>
   );
 }
-
 
 

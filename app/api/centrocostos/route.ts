@@ -2,25 +2,25 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const centroCostos = [
+  const centrocostos = [
     {
-      "codigo": "162",
-      "nombre": "ADHESIVO"
+      "Codigo": "162",
+      "Nombre": "ADHESIVO"
     },
     {
-      "codigo": "153", 
-      "nombre": "ADMINISTRACION"
+      "Codigo": "153", 
+      "Nombre": "ADMINISTRACION"
     },
     {
-      "codigo": "170",
-      "nombre": "ADMINISTRACION\VENTAS"
+      "Codigo": "170",
+      "Nombre": "ADMINISTRACION\VENTAS"
     },
     {
-      "codigo": "352",
-      "nombre": "ALMACEN CALLE 4"
+      "Codigo": "352",
+      "Nombre": "ALMACEN CALLE 4"
     }
 
   ];
 
-  return NextResponse.json(centroCostos);
+  return NextResponse.json(centrocostos);
 }

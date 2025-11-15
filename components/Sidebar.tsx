@@ -61,7 +61,7 @@ const menuItems = [
     icon: Folders,
     subItems: [
       { title: "Asistencia", path: "/dashboard/maestros/asistencia" },
-      { title: "Dias Festivos", path: "/dashboard/maestros/diafestivos" },
+      { title: "Dias Festivos", path: "/dashboard/maestros/diasfestivos" },
     ],
   },
   {

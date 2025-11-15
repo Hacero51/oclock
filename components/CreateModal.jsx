@@ -20,17 +20,19 @@ export default function CreateModal({ type, onClose }) {
     switch (type) {
       case "empleado":
       case "dispositivo":
-        return "max-w-6xl h-[90vh]"; // Más grande para el formulario complejo
-      case "turno":
-      case "horario":
-      case "centrocosto":
       case "horariofijo":
-      case "turno":
-        return "max-w-4xl h-[60vh]";
-      case "marcacion":
       case "sucursal":
-      default:
+        return "max-w-6xl h-[90vh]"; // Más grande para el formulario complejo
+      case "centrocosto":
       case "permisoseinca":
+        return "max-w-6xl h-[70vh]";      
+      case "turno":
+        return "max-w-4xl h-[80vh]";
+      case "cargo":
+      case "marcacion":
+      case "diafestivo":
+        return "max-w-2xl h-[50vh]";
+      default:
         return "max-w-2xl h-[80vh]";
         
     }
@@ -48,7 +50,6 @@ export default function CreateModal({ type, onClose }) {
       permisoseinca: "Crear Permisos Incapacidades",
       sucursal: "Crear Sucursal",
       turno: "Crear Turno",
-      horario: "Crear Horario"
     };
     return titles[type] || `Crear ${type}`;
   };

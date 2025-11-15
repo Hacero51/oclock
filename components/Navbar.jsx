@@ -54,7 +54,7 @@ export default function NavbarSecundario({ onOpenCreate }) {
   };
 
   return (
-    <div className="relative flex items-center justify-between bg-gradient-to-b from-gray-100 to-gray-200 border-b border-gray-300 px-4 py-1 shadow-sm">
+    <div className="relative flex items-center justify-between from-blue-100 to-blue-200 border-b border-blue-300 px-4 py-1">
       <div className="flex items-center space-x-2">
         {/* Botón + con menú desplegable */}
         <div className="relative">
@@ -64,7 +64,7 @@ export default function NavbarSecundario({ onOpenCreate }) {
             title="Nuevo registro"
             onClick={() => setMenuAbierto(!menuAbierto)}
           >
-            <ClockPlus className="h-4 w-4 text-blue-600" />
+            <ClockPlus className="h-4 w-4 text-red-900" />
           </Button>
 
           {menuAbierto && (

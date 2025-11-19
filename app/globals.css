@@ -154,6 +154,21 @@ body {
   border-bottom: 2px solid var(--primary);
 }
 
+.text-white-900 {
+    color: #fff;
+}
+
+.text-white-700 {
+    color: #fff;
+}
+
+.text-white-500 {
+    color: #fff;
+}
+
+.text-white-400 {
+    color: #fff;
+}
 .tabs-secondary .active {
   color: var(--secondary);
   border-bottom: 2px solid var(--secondary);

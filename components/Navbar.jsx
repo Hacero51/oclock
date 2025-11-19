@@ -53,60 +53,48 @@ export default function NavbarSecundario({ onOpenCreate }) {
     if (onOpenCreate) onOpenCreate(type);
   };
 
-  return (
-    <div className="relative flex items-center justify-between from-blue-100 to-blue-200 border-b border-blue-300 px-4 py-1">
-      <div className="flex items-center space-x-2">
-        {/* Botón + con menú desplegable */}
-        <div className="relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Nuevo registro"
-            onClick={() => setMenuAbierto(!menuAbierto)}
-          >
-            <ClockPlus className="h-4 w-4 text-red-900" />
-          </Button>
+ return (
+    <div className="relative flex flex-wrap items-center gap-3 justify-between 
+        bg-blue-900 border-b border-blue-300 px-4 py-2">
 
-          {menuAbierto && (
-            <div className="absolute left-0 mt-1 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-50">
-              <ul className="max-h-[300px] overflow-y-auto">
-                {opciones.map(({ label, icon: Icon, type }) => (
-                  <li key={type}>
-                    <button
-                      onClick={() => handleOpcionClick(type)}
-                      className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      <Icon className="w-4 h-4 text-gray-600" />
-                      {label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+      {/* Botón + */}
+      <div className="relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMenuAbierto(!menuAbierto)}
+          className="text-white-900"
+        >
+          <ClockPlus className="h-5 w-5" />
+        </Button>
 
-        {/* Filtro por estado */}
-        <Select value={estado} onValueChange={setEstado}>
-          <SelectTrigger className="w-[150px] text-sm bg-white">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="activos">Activos</SelectItem>
-            <SelectItem value="inactivos">Inactivos</SelectItem>
-            <SelectItem value="todos">Todos</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Menú desplegable */}
+        {menuAbierto && (
+          <div className="absolute left-0 mt-2 w-48 bg-white border rounded shadow z-50">
+            {opciones.map((op) => (
+              <button
+                key={op.type}
+                onClick={() => handleOpcionClick(op.type)}
+                className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+              >
+                {op.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Buscador y botón mensaje */}
-      <div className="flex items-center space-x-2">
-        <input
-          type="text"
-          placeholder="Buscar..."
-          className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
-        />
-      </div>
+      {/* Select Estado */}
+      <Select value={estado} onValueChange={setEstado}>
+        <SelectTrigger className="w-[160px] text-sm bg-white">
+          <SelectValue placeholder="Estado" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="activos">Activos</SelectItem>
+          <SelectItem value="inactivos">Inactivos</SelectItem>
+          <SelectItem value="todos">Todos</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }

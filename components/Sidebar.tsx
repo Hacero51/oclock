@@ -68,45 +68,47 @@ const menuItems = [
     title: "Administracion",
     icon: ShieldUser,
     subItems: [
-      { title: "Registros", path: "/dashboard/horarios" },
-      { title: "Plantillas", path: "/dashboard/horarios/plantillas" },
+      { title: "Configuracion", path: "/dashboard/administracion/configuracion" },
+      { title: "Usuario", path: "/dashboard/administracion/usuario" },
     ],
   },
 ];
 
 export default function Sidebar({ collapsed, setCollapsed }) {
   const [openItem, setOpenItem] = useState(null);
+  const [hoverExpand, setHoverExpand] = useState(false);
+
+  const isExpanded = !collapsed || hoverExpand;
 
   const toggleItem = (title) => setOpenItem(openItem === title ? null : title);
 
   const handleLogout = () => {
-    // Aquí irá la lógica de logout real (NextAuth, JWT, cookies, etc)
-    // Ejemplo future:
-    // await signOut();
     window.location.href = "/login";
   };
 
   return (
     <aside
+      onMouseEnter={() => collapsed && setHoverExpand(true)}
+      onMouseLeave={() => collapsed && setHoverExpand(false)}
       className={`fixed left-0 top-0 h-screen bg-red-900 border-r border-red-700 shadow-xl z-40 flex flex-col transition-all duration-300
-        ${collapsed ? "w-20" : "w-72"}`}
+        ${isExpanded ? "w-72" : "w-20"}`}
     >
-      {/* Encabezado con logo clickeable */}
-      <div className={`flex items-center justify-between p-10 border-b border-red-700 ${collapsed ? "px-3" : "px-6"}`}>
-        
-        {/* 👉 Ahora el logo lleva al dashboard */}
+      {/* Encabezado */}
+      <div className={`flex items-center justify-between p-10 border-b border-red-700 ${isExpanded ? "px-6" : "px-3"}`}>
+
+        {/* Logo click → dashboard */}
         <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
           <div className="p-1 rounded-lg shadow-sm">
             <Image
               src="/logo.png"
               alt="Logo"
-              width={collapsed ? 60 : 90}
-              height={collapsed ? 60 : 90}
+              width={isExpanded ? 90 : 80}
+              height={isExpanded ? 90 : 80}
               className="rounded"
             />
           </div>
 
-          {!collapsed && (
+          {isExpanded && (
             <div>
               <h1 className="text-lg font-semibold text-white">En Punto</h1>
               <h3 className="text-xs text-red-200">Panel de Administración</h3>
@@ -119,7 +121,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
           onClick={() => setCollapsed(!collapsed)}
           className="p-2 rounded hover:bg-red-800 transition text-white"
         >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          {isExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
         </button>
       </div>
 
@@ -137,8 +139,8 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                   className="flex items-center justify-between w-full rounded-md px-3 py-3 hover:bg-red-800 transition text-white"
                 >
                   <div className="flex items-center gap-3">
-                    <Icon size={collapsed ? 20 : 22} className="text-red-200" />
-                    {!collapsed && <span className="font-medium">{item.title}</span>}
+                    <Icon size={isExpanded ? 22 : 20} className="text-red-200" />
+                    {isExpanded && <span className="font-medium">{item.title}</span>}
                   </div>
                 </Link>
               ) : (
@@ -147,10 +149,10 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                   className="flex items-center justify-between w-full rounded-md px-3 py-3 hover:bg-red-800 transition text-white"
                 >
                   <div className="flex items-center gap-3">
-                    <Icon size={collapsed ? 20 : 22} className="text-red-200" />
-                    {!collapsed && <span className="font-medium">{item.title}</span>}
+                    <Icon size={isExpanded ? 22 : 20} className="text-red-200" />
+                    {isExpanded && <span className="font-medium">{item.title}</span>}
                   </div>
-                  {!collapsed && item.subItems && (
+                  {isExpanded && item.subItems && (
                     <div className="text-red-200">
                       {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
@@ -158,7 +160,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                 </button>
               )}
 
-              {!collapsed && isOpen && item.subItems && (
+              {isExpanded && isOpen && item.subItems && (
                 <div className="ml-6 mt-1 space-y-1 border-l-2 border-red-600 pl-3">
                   {item.subItems.map((sub) => (
                     <Link
@@ -174,21 +176,22 @@ export default function Sidebar({ collapsed, setCollapsed }) {
             </div>
           );
         })}
-        {/* 👉 Botón Salir */}
-        <button
-          onClick={handleLogout}
-          className={`w-full flex items-center gap-3 text-left px-3 py-2 rounded-md hover:bg-red-800 text-red-200 transition ${
-            collapsed ? "justify-center" : ""
-          }`}
-        >
-          <LogOut size={collapsed ? 20 : 18} />
-          {!collapsed && <span>Salir</span>}
-        </button>
       </nav>
 
-      {/* Footer + botón salir */}
+      {/* Botón salir */}
+      <button
+        onClick={handleLogout}
+        className={`w-full flex items-center gap-3 text-left px-3 py-2 rounded-md hover:bg-red-800 text-red-200 transition ${
+          !isExpanded ? "justify-center" : ""
+        }`}
+      >
+        <LogOut size={isExpanded ? 18 : 20} />
+        {isExpanded && <span>Salir</span>}
+      </button>
+
+      {/* Footer */}
       <div className="p-4 border-t border-red-700 space-y-3">
-        {!collapsed && (
+        {isExpanded && (
           <div className="text-center">
             <p className="text-xs text-red-300">Versión 1.0</p>
             <p className="text-xs text-red-400 mt-1">© 2025 En Punto</p>
@@ -199,5 +202,4 @@ export default function Sidebar({ collapsed, setCollapsed }) {
     </aside>
   );
 }
-
 

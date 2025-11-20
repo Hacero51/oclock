@@ -14,10 +14,10 @@ import {
 export default function TurnosForm() {
   const [formData, setFormData] = useState({
     nombre: "",
-    rotacion: "semana",
-    festivos: "no_trabaja",
+    rotacion: "",
+    festivos: "",
     numeroCiclos: "",
-    estado: "activo",
+    estado: "",
     tiempoExtra: {
       antesEntrada: false,
       despuesSalida: false,
@@ -57,10 +57,10 @@ export default function TurnosForm() {
   const handleLimpiar = () => {
     setFormData({
       nombre: "",
-      rotacion: "semana",
-      festivos: "no_trabaja",
+      rotacion: "",
+      festivos: "",
       numeroCiclos: "",
-      estado: "activo",
+      estado: "",
       tiempoExtra: {
         antesEntrada: false,
         despuesSalida: false,

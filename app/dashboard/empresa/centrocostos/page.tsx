@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Tabla from "../../../../components/Table";
+import UpdateModal from "@/components/UpdateModal";
 
 export default function CentroCostosPage() {
   const columnas = ["Codigo", "Nombre"];
@@ -10,7 +11,8 @@ export default function CentroCostosPage() {
     "Codigo": string;
     "Nombre": string;
   };
-
+  const [selectedCentroCostos, setSelectedCentroCostos] = useState<CentroCosto | null>(null);
+  const [openUpdate, setOpenUpdate] = useState(false);
   const [datos, setDatos] = useState<CentroCosto[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -37,6 +39,11 @@ export default function CentroCostosPage() {
     fetchCentros();
   }, [isMounted]);
 
+    const handleRowClick = (centrocostos: CentroCosto) => {
+    setSelectedCentroCostos(centrocostos);
+    setOpenUpdate(true);
+  };
+
 
   return (
     <div className="space-y-6 p-6">
@@ -44,7 +51,16 @@ export default function CentroCostosPage() {
         <h1 className="text-3xl font-bold text-gray-800">Centros de Costos</h1>
       </div>
 
-      <Tabla columnas={columnas} datos={datos} onRowClick={() => {}} />
+      <Tabla columnas={columnas} datos={datos} onRowClick={handleRowClick} />
+
+              {/* Update Modal */}
+              {openUpdate && selectedCentroCostos && (
+                <UpdateModal
+                  type="centrocosto"
+                  data={selectedCentroCostos}
+                  onClose={() => setOpenUpdate(false)}
+                />
+              )}
     </div>
   );
 }

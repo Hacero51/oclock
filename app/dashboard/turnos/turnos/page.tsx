@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Tabla from "../../../../components/Table";
+import UpdateModal from "@/components/UpdateModal";
 
 export default function TurnosPage() {
   const columnas = ["Nombre", "Estado"];
@@ -12,6 +13,8 @@ export default function TurnosPage() {
     "Estado": string;
   };
 
+  const [selectedTurnos, setSelectedTurnos] = useState<Turnos | null>(null);
+  const [openUpdate, setOpenUpdate] = useState(false);
   const [datos, setDatos] = useState<Turnos[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -45,6 +48,12 @@ export default function TurnosPage() {
     );
   }
 
+      const handleRowClick = (turnos: Turnos) => {
+    setSelectedTurnos(turnos);
+    setOpenUpdate(true);
+  };
+
+
   return (
     <div className="space-y-6 p-6">
       {/* 🔹 Encabezado */}
@@ -53,7 +62,16 @@ export default function TurnosPage() {
       </div>
 
       {/* 🔹 Tabla */}
-      <Tabla columnas={columnas} datos={datos} onRowClick={() => {}} />
+      <Tabla columnas={columnas} datos={datos} onRowClick={handleRowClick} />
+
+              {/* Update Modal */}
+              {openUpdate && selectedTurnos && (
+                <UpdateModal
+                  type="turno"
+                  data={selectedTurnos}
+                  onClose={() => setOpenUpdate(false)}
+                />
+              )}
     </div>
   );
 }

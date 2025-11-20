@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Tabla from "../../../../components/Table";
+import UpdateModal from "@/components/UpdateModal";
 
 export default function SucursalesPage() {
   const columnas = ["Código", "Nombre a mostrar", "Tercero", "Correo"];
@@ -14,6 +15,9 @@ export default function SucursalesPage() {
     "Correo": string;
   };
 
+   // Modal Update
+  const [selectedSucursal, setSelectedSucursal] = useState<Sucursal | null>(null);
+  const [openUpdate, setOpenUpdate] = useState(false);
   const [datos, setDatos] = useState<Sucursal[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -38,6 +42,12 @@ export default function SucursalesPage() {
     fetchSucursales();
   }, [isMounted]);
 
+    // Al hacer click en fila
+  const handleRowClick = (sucursales: Sucursal) => {
+    setSelectedSucursal(sucursales);
+    setOpenUpdate(true);
+  };
+
   // Evitar render prematuro
   if (!isMounted) {
     return (
@@ -55,7 +65,16 @@ export default function SucursalesPage() {
       </div>
 
       {/* 🔹 Tabla */}
-      <Tabla columnas={columnas} datos={datos} onRowClick={() => {}} />
+      <Tabla columnas={columnas} datos={datos}  onRowClick={handleRowClick} />
+
+            {/* Update Modal */}
+            {openUpdate && selectedSucursal && (
+              <UpdateModal
+                type="sucursal"
+                data={selectedSucursal}
+                onClose={() => setOpenUpdate(false)}
+              />
+            )}
     </div>
   );
 }

@@ -5,10 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { useState } from "react";
 import { 
   Building, 
+  Users,
+  User,
+  Mail,
+  Briefcase,
+  Clock,
+  DollarSign
 } from "lucide-react";
 
 
@@ -52,7 +59,7 @@ const empleadosEjemplo = [
   }
 ];
 
-export default function CentroCostoForm({ onClose }) {
+export default function CentroCostoForm({ data, onClose }) {
   const [activeTab, setActiveTab] = useState("crear");
   const [centroCostoCreado, setCentroCostoCreado] = useState(null);
   const [empleadosAsignados, setEmpleadosAsignados] = useState([]);
@@ -157,6 +164,7 @@ export default function CentroCostoForm({ onClose }) {
                       <p className="text-xs text-red-500">{errors.nombre.message}</p>
                     )}
                   </div>
+
                 </div>
               </CardContent>
             </Card>

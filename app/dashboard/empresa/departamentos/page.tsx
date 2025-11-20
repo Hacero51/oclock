@@ -26,10 +26,10 @@ function TreeItem({ label, children }) {
 
 export default function DepartamentosPage() {
   return (
-    <div className="space-y-6">
+    <div className="p-8 bg-gray-100 min-h-screen">
       <h1 className="text-2xl font-bold text-gray-800">Departamentos</h1>
 
-      <div className="bg-white rounded-xl shadow-md p-4 border">
+      <div className="bg-white rounded-xl shadow-md p-6 border">
         <TreeItem label="ADMINISTRACIÓN">
           <TreeItem label="HORAS EXTRAS" />
         </TreeItem>

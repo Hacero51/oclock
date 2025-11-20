@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Tabla from "../../../../components/Table";
+import UpdateModal from "@/components/UpdateModal";
 
 export default function HorariosPage() {
   const columnas = ["Nombre a mostrar", "Tiempo total", "Tipo"];
@@ -13,6 +14,8 @@ export default function HorariosPage() {
     "Tipo": string;
   };
 
+  const [selectedHorarios, setSelectedHorarios] = useState<Horarios | null>(null);
+  const [openUpdate, setOpenUpdate] = useState(false);
   const [datos, setDatos] = useState<Horarios[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -45,6 +48,10 @@ export default function HorariosPage() {
       </div>
     );
   }
+  const handleRowClick = (horarios: Horarios) => {
+    setSelectedHorarios(horarios);
+    setOpenUpdate(true);
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -54,7 +61,15 @@ export default function HorariosPage() {
       </div>
 
       {/* 🔹 Tabla */}
-      <Tabla columnas={columnas} datos={datos} onRowClick={() => {}} />
+      <Tabla columnas={columnas} datos={datos} onRowClick={handleRowClick} />
+              {/* Update Modal */}
+              {openUpdate && selectedHorarios && (
+                <UpdateModal
+                  type="horariofijo"
+                  data={selectedHorarios}
+                  onClose={() => setOpenUpdate(false)}
+                />
+              )}
     </div>
   );
 }

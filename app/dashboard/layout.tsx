@@ -1,63 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import type { ReactNode } from "react";
+import { createContext, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
 import CreateModal from "@/components/CreateModal";
 
-export default function DashboardLayout({ children }: { children?: ReactNode }) {
+export const DashboardContext = createContext({
+  openCreate: (type: string) => {},
+});
+
+export default function DashboardLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
-
-  // Modal dinámico (empleado, cargo, etc)
-  const [modalType, setModalType] = useState(null);
-
-  const expandedWidthRem = 18;
-  const collapsedWidthRem = 5;
+  const [createType, setCreateType] = useState<string | null>(null);
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar */}
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <DashboardContext.Provider value={{ openCreate: (t) => setCreateType(t) }}>
+        <div className="flex h-screen bg-gray-50 overflow-hidden">
+          
+          <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-      {/* Contenedor principal */}
-      <div
-        className="flex-1 flex flex-col transition-all duration-300"
-        style={{
-          marginLeft: `${collapsed ? collapsedWidthRem : expandedWidthRem}rem`,
-        }}
-      >
-        {/* Navbar recibe un callback para abrir modales */}
-        <Navbar
-          {...({
-            onToggleSidebar: () => setCollapsed(!collapsed),
-            collapsed,
-            onOpenCreate: (type: any) => setModalType(type),
-          } as any)}
-        />
+          <div
+            className="flex-1 flex flex-col transition-all duration-300"
+            style={{ marginLeft: collapsed ? "5rem" : "18rem" }}
+          >
+            <Navbar
+              collapsed={collapsed}
+              onToggleSidebar={() => setCollapsed(!collapsed)}
+              onOpenCreate={(t) => setCreateType(t)}
+            />
 
-        <main className="flex-1 overflow-auto p-6">
-          <div className="bg-white border border-gray-200 rounded shadow-sm p-4">
-            {/* Le pasamos también el setModalType a los children */}
-            {children &&
-              typeof children === "object" &&
-              // Clonamos el hijo para agregarle el prop de abrir modal
-              Array.isArray(children)
-                ? children.map((child) =>
-                    child && typeof child === "object"
-                      ? { ...child, props: { ...child.props, onOpenCreate: setModalType } }
-                      : child
-                  )
-                : { ...children, props: { ...children.props, onOpenCreate: setModalType } }}
+            <main className="flex-1 p-6 overflow-visible">
+              <div className="bg-white border rounded shadow-sm h-full flex flex-col">
+                <div className="flex-1 overflow-auto">
+                  {children}
+                </div>
+                {/* Los controles de paginación se agregarán en cada página */}
+              </div>
+            </main>
           </div>
-        </main>
-      </div>
 
-      {/* Modal dinámico global */}
-      {modalType && (
-        <CreateModal type={modalType} onClose={() => setModalType(null)} />
-      )}
-    </div>
+          {createType && (
+            <CreateModal type={createType} onClose={() => setCreateType(null)} />
+          )}
+        </div>
+      </DashboardContext.Provider>
   );
 }
 

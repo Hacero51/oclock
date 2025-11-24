@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Tabla from "../../../../components/Table";
+import UpdateModal from "@/components/UpdateModal";
 
 interface ConceptoAsistencia {
   id?: string;
@@ -21,15 +22,59 @@ interface TipoPermiso {
   estado: string;
 }
 
-interface ConceptoUnificado {
-  id: string;
-  codigo: string;
-  codigoExportar: string;
-  nombre: string;
-  tipo: 'asistencia' | 'permiso';
-  estado: string;
-  factor?: string;
-  pago?: boolean;
+// Componente de controles de paginación local
+function PaginationControls({ 
+  currentPage, 
+  totalPages, 
+  totalItems, 
+  itemsPerPage, 
+  onPageChange,
+  tableType 
+}) {
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  if (totalItems === 0 && currentPage === 1) {
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-3 bg-white border-t border-gray-200">
+        <div className="text-xs text-gray-600">
+          No hay {tableType === 'asistencia' ? 'conceptos de asistencia' : 'tipos de permisos'} para mostrar
+        </div>
+      </div>
+    );
+  }
+
+  if (totalItems === 0) return null;
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white border-t border-gray-200">
+      <div className="text-xs text-gray-600">
+        Mostrando {startItem}-{endItem} de {totalItems} {tableType === 'asistencia' ? 'conceptos' : 'permisos'}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Anterior
+        </button>
+
+        <span className="text-xs text-gray-600 mx-1">
+          Pág. {currentPage} de {totalPages}
+        </span>
+
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // 🔧 CONFIGURACIÓN API - URLs que se conectarán a la base de datos
@@ -41,10 +86,20 @@ const API_URLS = {
 export default function GestionConceptos() {
   const [conceptosAsistencia, setConceptosAsistencia] = useState<ConceptoAsistencia[]>([]);
   const [tiposPermisos, setTiposPermisos] = useState<TipoPermiso[]>([]);
-  const [conceptosUnificados, setConceptosUnificados] = useState<ConceptoUnificado[]>([]);
-  const [filtro, setFiltro] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState<'todos' | 'asistencia' | 'permiso'>('todos');
   const [cargando, setCargando] = useState(true);
+  
+  // Estados para paginación de asistencia
+  const [currentPageAsistencia, setCurrentPageAsistencia] = useState(1);
+  const [itemsPerPageAsistencia] = useState(5);
+  
+  // Estados para paginación de permisos
+  const [currentPagePermisos, setCurrentPagePermisos] = useState(1);
+  const [itemsPerPagePermisos] = useState(5);
+  
+  // Estados para modal
+  const [selectedConcepto, setSelectedConcepto] = useState<any>(null);
+  const [openUpdate, setOpenUpdate] = useState(false);
+  const [modalType, setModalType] = useState<'asistencia' | 'permiso'>('asistencia');
 
   // 📡 FUNCIONES API - Listas para conectar con la base de datos
   const fetchConceptosAsistencia = async (): Promise<ConceptoAsistencia[]> => {
@@ -107,7 +162,6 @@ export default function GestionConceptos() {
         
         setConceptosAsistencia(asistenciaData);
         setTiposPermisos(permisosData);
-        unificarConceptos(asistenciaData, permisosData);
       } catch (error) {
         console.error('Error cargando datos:', error);
       } finally {
@@ -118,55 +172,27 @@ export default function GestionConceptos() {
     cargarDatos();
   }, []);
 
-  // 🔄 UNIFICAR CONCEPTOS
-  const unificarConceptos = (asistencia: ConceptoAsistencia[], permisos: TipoPermiso[]) => {
-    const unificados: ConceptoUnificado[] = [
-      ...asistencia.map(item => ({
-        id: `asistencia-${item.id || item.codigo}`,
-        codigo: item.codigo,
-        codigoExportar: item.codigoExportar,
-        nombre: item.nombre,
-        tipo: 'asistencia' as const,
-        estado: item.estado,
-        factor: item.factor
-      })),
-      ...permisos.map(item => ({
-        id: `permiso-${item.id || item.codigo}`,
-        codigo: item.codigo,
-        codigoExportar: item.codigoExportar,
-        nombre: item.nombre,
-        tipo: 'permiso' as const,
-        estado: item.estado,
-        pago: item.pago
-      }))
-    ];
-    setConceptosUnificados(unificados);
-  };
+  // 📄 PAGINACIÓN PARA ASISTENCIA
+  const conceptosAsistenciaPaginados = useMemo(() => {
+    const startIndex = (currentPageAsistencia - 1) * itemsPerPageAsistencia;
+    return conceptosAsistencia.slice(startIndex, startIndex + itemsPerPageAsistencia);
+  }, [conceptosAsistencia, currentPageAsistencia, itemsPerPageAsistencia]);
 
-  // 🔍 FILTRAR CONCEPTOS
-  const conceptosFiltrados = conceptosUnificados.filter(concepto => {
-    const coincideBusqueda = concepto.nombre.toLowerCase().includes(filtro.toLowerCase()) ||
-                           concepto.codigo.includes(filtro) ||
-                           concepto.codigoExportar.toLowerCase().includes(filtro.toLowerCase());
-    const coincideTipo = filtroTipo === 'todos' || concepto.tipo === filtroTipo;
-    return coincideBusqueda && coincideTipo;
-  });
+  // 📄 PAGINACIÓN PARA PERMISOS
+  const tiposPermisosPaginados = useMemo(() => {
+    const startIndex = (currentPagePermisos - 1) * itemsPerPagePermisos;
+    return tiposPermisos.slice(startIndex, startIndex + itemsPerPagePermisos);
+  }, [tiposPermisos, currentPagePermisos, itemsPerPagePermisos]);
 
-  // 🎯 PREPARAR DATOS PARA LA TABLA ESTANDARIZADA - CORREGIDO
-  const datos = conceptosFiltrados.map(concepto => ({
-    // Las claves deben coincidir EXACTAMENTE con los nombres de las columnas
+  const totalPagesAsistencia = Math.ceil(conceptosAsistencia.length / itemsPerPageAsistencia);
+  const totalPagesPermisos = Math.ceil(tiposPermisos.length / itemsPerPagePermisos);
+
+  // 🎯 PREPARAR DATOS PARA LAS TABLAS
+  const datosParaTablaAsistencia = conceptosAsistenciaPaginados.map(concepto => ({
     'Código': concepto.codigo,
     'Código Exportar': concepto.codigoExportar || '-',
     'Nombre': concepto.nombre,
-    'Factor/Pago': concepto.tipo === 'asistencia' 
-      ? concepto.factor 
-      : (
-        <span className={`px-2 py-1 rounded text-xs ${
-          concepto.pago ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {concepto.pago ? 'Con pago' : 'Sin pago'}
-        </span>
-      ),
+    'Fecha/Proga': concepto.factor,
     'Estado': (
       <span className={`px-2 py-1 rounded text-xs ${
         concepto.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -176,12 +202,52 @@ export default function GestionConceptos() {
     )
   }));
 
-  const columnas = ['Código', 'Código Exportar', 'Nombre', 'Factor/Pago', 'Estado'];
+  const datosParaTablaPermisos = tiposPermisosPaginados.map(permiso => ({
+    'Código': permiso.codigo,
+    'Código Exportar': permiso.codigoExportar || '-',
+    'Nombre': permiso.nombre,
+    'Pago': (
+      <span className={`px-2 py-1 rounded text-xs ${
+        permiso.pago ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+      }`}>
+        {permiso.pago ? 'Con pago' : 'Sin pago'}
+      </span>
+    ),
+    'Estado': (
+      <span className={`px-2 py-1 rounded text-xs ${
+        permiso.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+      }`}>
+        {permiso.estado}
+      </span>
+    )
+  }));
 
-  // Función para manejar el click en una fila
-  const handleRowClick = (fila: any) => {
-    console.log('Fila clickeada:', fila);
-    // Aquí puedes agregar lógica para editar, ver detalles, etc.
+  const columnasAsistencia = ['Código', 'Código Exportar', 'Nombre', 'Fecha/Proga', 'Estado'];
+  const columnasPermisos = ['Código', 'Código Exportar', 'Nombre', 'Pago', 'Estado'];
+
+  // Función para manejar el click en una fila (abrir modal)
+  const handleRowClickAsistencia = (fila: any) => {
+    const conceptoOriginal = conceptosAsistenciaPaginados.find(
+      concepto => concepto.codigo === fila['Código'] && concepto.nombre === fila['Nombre']
+    );
+    
+    if (conceptoOriginal) {
+      setSelectedConcepto(conceptoOriginal);
+      setModalType('asistencia');
+      setOpenUpdate(true);
+    }
+  };
+
+  const handleRowClickPermisos = (fila: any) => {
+    const permisoOriginal = tiposPermisosPaginados.find(
+      permiso => permiso.codigo === fila['Código'] && permiso.nombre === fila['Nombre']
+    );
+    
+    if (permisoOriginal) {
+      setSelectedConcepto(permisoOriginal);
+      setModalType('permiso');
+      setOpenUpdate(true);
+    }
   };
 
   if (cargando) {
@@ -193,42 +259,84 @@ export default function GestionConceptos() {
   }
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold mb-6">Asistencia</h1>
+    <div className="p-4 bg-white rounded-lg shadow-md">
+      <h1 className="text-xl font-bold mb-4">Asistencia</h1>
 
-      {/* CONTROLES SUPERIORES */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex-1 min-w-[300px]">
-          <input
-            type="text"
-            placeholder="Buscar por código, nombre o código exportar..."
-            value={filtro}
-            onChange={(e) => setFiltro(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
-          />
+      {/* CONTENEDOR DE LAS DOS TABLAS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* TABLA DE CONCEPTOS DE ASISTENCIA */}
+        <div className="bg-gray-50 rounded-lg border border-gray-200">
+          <div className="p-3 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800">Conceptos de Asistencia</h2>
+          </div>
+          
+          {conceptosAsistencia.length > 0 ? (
+            <>
+              <div className="text-xs">
+                <Tabla 
+                  columnas={columnasAsistencia}
+                  datos={datosParaTablaAsistencia}
+                  onRowClick={handleRowClickAsistencia}
+                />
+              </div>
+              
+              <PaginationControls
+                currentPage={currentPageAsistencia}
+                totalPages={totalPagesAsistencia}
+                totalItems={conceptosAsistencia.length}
+                itemsPerPage={itemsPerPageAsistencia}
+                onPageChange={setCurrentPageAsistencia}
+                tableType="asistencia"
+              />
+            </>
+          ) : (
+            <div className="text-center py-8 text-gray-500 text-sm">
+              No hay conceptos de asistencia para mostrar
+            </div>
+          )}
         </div>
-        <select
-          value={filtroTipo}
-          onChange={(e) => setFiltroTipo(e.target.value as any)}
-          className="p-2 border border-gray-300 rounded"
-        >
-          <option value="todos">Todos</option>
-          <option value="asistencia">Conceptos Asistencia</option>
-          <option value="permiso">Tipos de Permisos</option>
-        </select>
+
+        {/* TABLA DE TIPOS DE PERMISOS */}
+        <div className="bg-gray-50 rounded-lg border border-gray-200">
+          <div className="p-3 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800">Tipos de Permisos</h2>
+          </div>
+          
+          {tiposPermisos.length > 0 ? (
+            <>
+              <div className="text-xs">
+                <Tabla 
+                  columnas={columnasPermisos}
+                  datos={datosParaTablaPermisos}
+                  onRowClick={handleRowClickPermisos}
+                />
+              </div>
+              
+              <PaginationControls
+                currentPage={currentPagePermisos}
+                totalPages={totalPagesPermisos}
+                totalItems={tiposPermisos.length}
+                itemsPerPage={itemsPerPagePermisos}
+                onPageChange={setCurrentPagePermisos}
+                tableType="permiso"
+              />
+            </>
+          ) : (
+            <div className="text-center py-8 text-gray-500 text-sm">
+              No hay tipos de permisos para mostrar
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* TABLA ESTANDARIZADA */}
-      {datos.length > 0 ? (
-        <Tabla 
-          columnas={columnas}
-          datos={datos}
-          onRowClick={handleRowClick}
+      {/* 🔹 Update Modal */}
+      {openUpdate && selectedConcepto && (
+        <UpdateModal
+          type={modalType === 'asistencia' ? 'conceptosasistencia' : 'tipopermiso'}
+          data={selectedConcepto}
+          onClose={() => setOpenUpdate(false)}
         />
-      ) : (
-        <div className="text-center py-8 text-gray-500">
-          No se encontraron conceptos con los filtros aplicados
-        </div>
       )}
     </div>
   );

@@ -14,36 +14,36 @@ export default function DashboardLayout({ children }) {
   const [createType, setCreateType] = useState<string | null>(null);
 
   return (
-      <DashboardContext.Provider value={{ openCreate: (t) => setCreateType(t) }}>
-        <div className="flex h-screen bg-gray-50 overflow-hidden">
-          
-          <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+    <DashboardContext.Provider value={{ openCreate: (t) => setCreateType(t) }}>
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+        
+        <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-          <div
-            className="flex-1 flex flex-col transition-all duration-300"
-            style={{ marginLeft: collapsed ? "5rem" : "18rem" }}
-          >
-            <Navbar
-              collapsed={collapsed}
-              onToggleSidebar={() => setCollapsed(!collapsed)}
-              onOpenCreate={(t) => setCreateType(t)}
-            />
+        <div
+          className="flex-1 flex flex-col transition-all duration-300 min-w-0" // Agregado min-w-0
+          style={{ marginLeft: collapsed ? "5rem" : "18rem" }}
+        >
+          <Navbar
+            collapsed={collapsed}
+            onToggleSidebar={() => setCollapsed(!collapsed)}
+            onOpenCreate={(t) => setCreateType(t)}
+          />
 
-            <main className="flex-1 p-6 overflow-visible">
-              <div className="bg-white border rounded shadow-sm h-full flex flex-col">
-                <div className="flex-1 overflow-auto">
-                  {children}
-                </div>
-                {/* Los controles de paginación se agregarán en cada página */}
+          <main className="flex-1 p-6 overflow-y-auto"> {/* Cambiado a overflow-y-auto */}
+            <div className="bg-white border rounded-lg shadow-sm h-full flex flex-col min-h-0"> {/* Agregado min-h-0 y rounded-lg */}
+              <div className="flex-1 overflow-y-auto p-4"> {/* Agregado overflow-y-auto y padding */}
+                {children}
               </div>
-            </main>
-          </div>
-
-          {createType && (
-            <CreateModal type={createType} onClose={() => setCreateType(null)} />
-          )}
+              {/* Los controles de paginación se agregarán en cada página */}
+            </div>
+          </main>
         </div>
-      </DashboardContext.Provider>
+
+        {createType && (
+          <CreateModal type={createType} onClose={() => setCreateType(null)} />
+        )}
+      </div>
+    </DashboardContext.Provider>
   );
 }
 

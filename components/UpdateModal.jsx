@@ -8,9 +8,11 @@ import UpdateDiaFestivoForm from "./form/update/DiaFestivoForm";
 import UpdateDispositivoForm from "./form/update/DispositivoForm";
 import UpdateHorarioFijoForm from "./form/update/UpdateHorarioFijoForm";
 import UpdateMarcacionForm from "./form/update/MarcacionForm";
-import UpdatePermisosEIncaForm from "./form/update/PermisosEIncaForm";
+import UpdatePermisosEIncaForm from "./form/update/UpdatePermisosEIncaForm";
 import UpdateSucursalForm from "./form/update/UpdateSucursalForm";
 import UpdateTurnoForm from "./form/update/UpdateTurnoForm";
+import UpdateConceptoAsistenciaForm from "./form/update/Updateconceptosasistenciaform";
+import UpdateTipoPermisoForm from "./form/update/UpdateTipoPermisoForm";
 
 export default function UpdateModal({ type, data, onClose }) {
   if (!type) return null;
@@ -24,8 +26,10 @@ export default function UpdateModal({ type, data, onClose }) {
     sucursal: "max-w-6xl h-[80vh]",
     marcacion: "max-w-2xl h-[55vh]",
     diafestivo: "max-w-2xl h-[55vh]",
-    permisoseinca: "max-w-3xl h-[65vh]",
+    permisoseinca: "max-w-3xl h-[75vh]",
     cargo: "max-w-3xl h-[60vh]",
+    conceptosasistencia: "max-w-2xl h-[60vh]",
+    tipopermiso: "max-w-2xl h-[60vh]",
   };
 
   const forms = {
@@ -39,6 +43,8 @@ export default function UpdateModal({ type, data, onClose }) {
     permisoseinca: <UpdatePermisosEIncaForm data={data} onClose={onClose} />,
     sucursal: <UpdateSucursalForm data={data} onClose={onClose} />,
     turno: <UpdateTurnoForm data={data} onClose={onClose} />,
+    conceptosasistencia: <UpdateConceptoAsistenciaForm data={data} onClose={onClose} />,
+    tipopermiso: <UpdateTipoPermisoForm data={data} onClose={onClose} />,
   };
 
   return (
@@ -56,7 +62,7 @@ export default function UpdateModal({ type, data, onClose }) {
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
           {forms[type] ?? (
             <div className="text-center text-gray-500">
-              Formulario no disponible
+              Formulario no disponible update 
             </div>
           )}
         </div>

@@ -1,15 +1,3487 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../lib/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "mysql"
+}
+
+model acc_acccombination {
+  id               Int            @id @default(autoincrement())
+  create_time      DateTime?      @db.DateTime(6)
+  create_user      String?        @db.VarChar(150)
+  change_time      DateTime?      @db.DateTime(6)
+  change_user      String?        @db.VarChar(150)
+  status           Int            @db.SmallInt
+  combination_no   Int
+  combination_name String         @db.VarChar(100)
+  group1           Int?
+  group2           Int?
+  group3           Int?
+  group4           Int?
+  group5           Int?
+  remark           String?        @db.VarChar(999)
+  update_time      DateTime?      @db.DateTime(6)
+  area_id          Int
+  personnel_area   personnel_area @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "acc_acccombination_area_id_0d22c34e_fk_personnel_area_id")
+
+  @@unique([area_id, combination_no], map: "acc_acccombination_area_id_combination_no_619eb4f5_uniq")
+  @@index([area_id], map: "acc_acccombination_area_id_0d22c34e")
+}
+
+model acc_accgroups {
+  id                 Int                @id @default(autoincrement())
+  create_time        DateTime?          @db.DateTime(6)
+  create_user        String?            @db.VarChar(150)
+  change_time        DateTime?          @db.DateTime(6)
+  change_user        String?            @db.VarChar(150)
+  status             Int                @db.SmallInt
+  group_no           Int
+  group_name         String             @db.VarChar(100)
+  verify_mode        Int
+  timezone1          Int?
+  timezone2          Int?
+  timezone3          Int?
+  is_include_holiday Int                @db.SmallInt
+  update_time        DateTime?          @db.DateTime(6)
+  area_id            Int
+  personnel_area     personnel_area     @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "acc_accgroups_area_id_b83745c3_fk_personnel_area_id")
+  acc_accprivilege   acc_accprivilege[]
+
+  @@unique([area_id, group_no], map: "acc_accgroups_area_id_group_no_5130a89c_uniq")
+  @@index([area_id], map: "acc_accgroups_area_id_b83745c3")
+}
+
+model acc_accholiday {
+  id              Int             @id @default(autoincrement())
+  create_time     DateTime?       @db.DateTime(6)
+  create_user     String?         @db.VarChar(150)
+  change_time     DateTime?       @db.DateTime(6)
+  change_user     String?         @db.VarChar(150)
+  status          Int             @db.SmallInt
+  update_time     DateTime?       @db.DateTime(6)
+  area_id         Int
+  holiday_id      Int
+  timezone_id     Int
+  personnel_area  personnel_area  @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "acc_accholiday_area_id_d15c19da_fk_personnel_area_id")
+  att_holiday     att_holiday     @relation(fields: [holiday_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "acc_accholiday_holiday_id_a9efe924_fk_att_holiday_id")
+  acc_acctimezone acc_acctimezone @relation(fields: [timezone_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "acc_accholiday_timezone_id_450d2d1e_fk_acc_acctimezone_id")
+
+  @@unique([area_id, holiday_id], map: "acc_accholiday_area_id_holiday_id_6630c2eb_uniq")
+  @@index([area_id], map: "acc_accholiday_area_id_d15c19da")
+  @@index([holiday_id], map: "acc_accholiday_holiday_id_a9efe924_fk_att_holiday_id")
+  @@index([timezone_id], map: "acc_accholiday_timezone_id_450d2d1e_fk_acc_acctimezone_id")
+}
+
+model acc_accprivilege {
+  id                  Int                @id @default(autoincrement())
+  create_time         DateTime?          @db.DateTime(6)
+  create_user         String?            @db.VarChar(150)
+  change_time         DateTime?          @db.DateTime(6)
+  change_user         String?            @db.VarChar(150)
+  status              Int                @db.SmallInt
+  is_group_timezone   Int                @db.SmallInt
+  timezone1           Int?
+  timezone2           Int?
+  timezone3           Int?
+  is_group_verifycode Int                @db.SmallInt
+  verify_mode         Int?
+  update_time         DateTime?          @db.DateTime(6)
+  area_id             Int
+  employee_id         Int
+  group_id            Int
+  personnel_area      personnel_area     @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "acc_accprivilege_area_id_2123ff6f_fk_personnel_area_id")
+  personnel_employee  personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "acc_accprivilege_employee_id_5fc55f95_fk_personnel_employee_id")
+  acc_accgroups       acc_accgroups      @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "acc_accprivilege_group_id_c5ed7003_fk_acc_accgroups_id")
+
+  @@unique([area_id, employee_id, group_id], map: "acc_accprivilege_area_id_employee_id_group_id_f3b297d8_uniq")
+  @@index([area_id], map: "acc_accprivilege_area_id_2123ff6f")
+  @@index([employee_id], map: "acc_accprivilege_employee_id_5fc55f95_fk_personnel_employee_id")
+  @@index([group_id], map: "acc_accprivilege_group_id_c5ed7003_fk_acc_accgroups_id")
+}
+
+model acc_accterminal {
+  id                  Int             @id @default(autoincrement())
+  create_time         DateTime?       @db.DateTime(6)
+  create_user         String?         @db.VarChar(150)
+  change_time         DateTime?       @db.DateTime(6)
+  change_user         String?         @db.VarChar(150)
+  status              Int             @db.SmallInt
+  door_name           String?         @db.VarChar(50)
+  door_lock_delay     Int
+  door_sensor_delay   Int
+  door_sensor_type    Int             @db.SmallInt
+  door_alarm_delay    Int
+  retry_times         Int             @db.SmallInt
+  valid_holiday       Int             @db.SmallInt
+  nc_time_period      Int
+  no_time_period      Int
+  speaker_alarm       Int             @db.SmallInt
+  duress_fun_on       Int             @db.SmallInt
+  alarm_1_1           Int             @db.SmallInt
+  alarm_1_n           Int             @db.SmallInt
+  alarm_password      Int             @db.SmallInt
+  duress_alarm_delay  Int
+  anti_passback_mode  Int             @db.SmallInt
+  anti_door_direction Int             @db.SmallInt
+  verify_mode_485     Int             @db.SmallInt
+  push_time           DateTime?       @db.DateTime(6)
+  terminal_id         Int
+  iclock_terminal     iclock_terminal @relation(fields: [terminal_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "acc_accterminal_terminal_id_fc92cce2_fk_iclock_terminal_id")
+
+  @@index([terminal_id], map: "acc_accterminal_terminal_id_fc92cce2_fk_iclock_terminal_id")
+}
+
+model acc_acctimezone {
+  id             Int              @id @default(autoincrement())
+  create_time    DateTime?        @db.DateTime(6)
+  create_user    String?          @db.VarChar(150)
+  change_time    DateTime?        @db.DateTime(6)
+  change_user    String?          @db.VarChar(150)
+  status         Int              @db.SmallInt
+  timezone_no    Int
+  timezone_name  String           @db.VarChar(100)
+  sun_start      DateTime         @db.Time(6)
+  sun_end        DateTime         @db.Time(6)
+  sun_on         Int?             @db.SmallInt
+  mon_start      DateTime         @db.Time(6)
+  mon_end        DateTime         @db.Time(6)
+  mon_on         Int?             @db.SmallInt
+  tue_start      DateTime         @db.Time(6)
+  tue_end        DateTime         @db.Time(6)
+  tue_on         Int?             @db.SmallInt
+  wed_start      DateTime         @db.Time(6)
+  wed_end        DateTime         @db.Time(6)
+  wed_on         Int?             @db.SmallInt
+  thu_start      DateTime         @db.Time(6)
+  thu_end        DateTime         @db.Time(6)
+  thu_on         Int?             @db.SmallInt
+  fri_start      DateTime         @db.Time(6)
+  fri_end        DateTime         @db.Time(6)
+  fri_on         Int?             @db.SmallInt
+  sat_start      DateTime         @db.Time(6)
+  sat_end        DateTime         @db.Time(6)
+  sat_on         Int?             @db.SmallInt
+  remark         String?          @db.VarChar(999)
+  update_time    DateTime?        @db.DateTime(6)
+  area_id        Int
+  acc_accholiday acc_accholiday[]
+  personnel_area personnel_area   @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "acc_acctimezone_area_id_e9ce7a7a_fk_personnel_area_id")
+
+  @@unique([area_id, timezone_no], map: "acc_acctimezone_area_id_timezone_no_0cb8250f_uniq")
+  @@index([area_id], map: "acc_acctimezone_area_id_e9ce7a7a")
+}
+
+model agreement {
+  Oid                 String    @id @db.Char(38)
+  StartDate           DateTime? @db.DateTime(0)
+  EndDate             DateTime? @db.DateTime(0)
+  AgreementType       String?   @db.Char(38)
+  Employee            String?   @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([AgreementType], map: "iAgreementType_Agreement")
+  @@index([Employee], map: "iEmployee_Agreement")
+}
+
+model agreementtype {
+  Oid                 String  @id @db.Char(38)
+  Name                String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model analysis {
+  Oid                       String  @id @db.Char(38)
+  DimensionPropertiesString String? @db.LongText
+  Name                      String? @db.VarChar(100)
+  Criteria                  String? @db.LongText
+  ObjectTypeName            String? @db.VarChar(100)
+  ChartSettingsContent      Bytes?
+  PivotGridSettingsContent  Bytes?
+  OptimisticLockField       Int?
+  GCRecord                  Int?
+}
+
+model att_addbreakinshift {
+  id                 Int                 @id @default(autoincrement())
+  att_date           DateTime?           @db.Date
+  hours_by_day       String?             @db.VarChar(20)
+  clock_in           DateTime?           @db.DateTime(6)
+  clock_out          DateTime?           @db.DateTime(6)
+  total_time         Int?
+  first_last_time    Int?
+  emp_id             Int?
+  shift_id           Int?
+  personnel_employee personnel_employee? @relation(fields: [emp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_addbreakinshift_emp_id_4779fdbb_fk_personnel_employee_id")
+  att_attshift       att_attshift?       @relation(fields: [shift_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_addbreakinshift_shift_id_fd063a59_fk_att_attshift_id")
+
+  @@index([emp_id], map: "att_addbreakinshift_emp_id_4779fdbb_fk_personnel_employee_id")
+  @@index([shift_id], map: "att_addbreakinshift_shift_id_fd063a59_fk_att_attshift_id")
+}
+
+model att_attcalclog {
+  id          Int      @id @default(autoincrement())
+  dept_id     Int?
+  emp_id      Int?
+  start_date  DateTime @db.DateTime(6)
+  end_date    DateTime @db.DateTime(6)
+  update_time DateTime @db.DateTime(6)
+  log_type    Int
+}
+
+model att_attreportsetting {
+  id         Int     @id @default(autoincrement())
+  resign_emp Int     @db.SmallInt
+  short_date Int     @db.SmallInt
+  short_time Int     @db.SmallInt
+  func_key   String? @db.LongText
+  att_item   String? @db.LongText
+}
+
+model att_attrule {
+  param_name  String  @id @db.VarChar(20)
+  param_value String  @db.LongText
+  company     String? @db.VarChar(20)
+  cost_center String? @db.VarChar(20)
+  department  String? @db.VarChar(20)
+}
+
+model att_attschedule {
+  id                 Int                @id @default(autoincrement())
+  start_date         DateTime           @db.Date
+  end_date           DateTime           @db.Date
+  employee_id        Int
+  shift_id           Int
+  personnel_employee personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_attschedule_employee_id_caa61686_fk_personnel_employee_id")
+  att_attshift       att_attshift       @relation(fields: [shift_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_attschedule_shift_id_13d2db9a_fk_att_attshift_id")
+
+  @@index([employee_id], map: "att_attschedule_employee_id_caa61686_fk_personnel_employee_id")
+  @@index([shift_id], map: "att_attschedule_shift_id_13d2db9a_fk_att_attshift_id")
+}
+
+model att_attshift {
+  id                     Int                      @id @default(autoincrement())
+  alias                  String                   @db.VarChar(50)
+  cycle_unit             Int                      @db.SmallInt
+  shift_cycle            Int
+  work_weekend           Boolean
+  weekend_type           Int                      @db.SmallInt
+  work_day_off           Boolean
+  day_off_type           Int                      @db.SmallInt
+  auto_shift             Int                      @db.SmallInt
+  business_hour          String                   @db.VarChar(20)
+  punch_valid_range      String                   @db.VarChar(20)
+  shift_code             String                   @unique(map: "shift_code") @db.VarChar(20)
+  flexible_schedule      Int                      @db.SmallInt
+  hours_by_day           String                   @db.VarChar(20)
+  normal_schedule        Int                      @db.SmallInt
+  att_addbreakinshift    att_addbreakinshift[]
+  att_attschedule        att_attschedule[]
+  att_departmentschedule att_departmentschedule[]
+  att_shiftdetail        att_shiftdetail[]
+}
+
+model att_breaktime {
+  id                          Int                           @id @default(autoincrement())
+  alias                       String                        @db.VarChar(50)
+  period_start                DateTime                      @db.Time(6)
+  func_key                    Int                           @db.SmallInt
+  available_interval_type     Int                           @db.SmallInt
+  available_interval          Int
+  multiple_punch              Int                           @db.SmallInt
+  calc_type                   Int                           @db.SmallInt
+  minimum_duration            Int?
+  duration                    Int
+  early_in                    Int                           @db.SmallInt
+  end_margin                  Int
+  late_in                     Int                           @db.SmallInt
+  min_early_in                Int
+  min_late_in                 Int
+  schedule_code               String                        @db.VarChar(20)
+  shift_code                  String                        @db.VarChar(20)
+  att_timeinterval_break_time att_timeinterval_break_time[]
+
+  @@unique([shift_code, schedule_code], map: "att_breaktime_shift_code_schedule_code_945b7d21_uniq")
+}
+
+model att_changeschedule {
+  abstractexception_ptr_id   Int                        @id
+  att_date                   DateTime                   @db.Date
+  previous_timeinterval      String?                    @db.VarChar(100)
+  apply_time                 DateTime                   @db.DateTime(6)
+  apply_reason               String?                    @db.VarChar(200)
+  audit_reason               String?                    @db.LongText
+  audit_time                 DateTime                   @db.DateTime(6)
+  approver                   String?                    @db.VarChar(50)
+  employee_id                Int
+  timeinterval_id            Int
+  workflow_abstractexception workflow_abstractexception @relation(fields: [abstractexception_ptr_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_changeschedule_abstractexception_pt_6bf48cd8_fk_workflow_")
+  personnel_employee         personnel_employee         @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_changeschedule_employee_id_7871a2b6_fk_personnel_employee_id")
+  att_timeinterval           att_timeinterval           @relation(fields: [timeinterval_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_changeschedule_timeinterval_id_d41ac077_fk_att_timei")
+
+  @@index([employee_id], map: "att_changeschedule_employee_id_7871a2b6_fk_personnel_employee_id")
+  @@index([timeinterval_id], map: "att_changeschedule_timeinterval_id_d41ac077_fk_att_timei")
+}
+
+model att_departmentschedule {
+  id                   Int                  @id @default(autoincrement())
+  create_time          DateTime?            @db.DateTime(6)
+  create_user          String?              @db.VarChar(150)
+  change_time          DateTime?            @db.DateTime(6)
+  change_user          String?              @db.VarChar(150)
+  status               Int                  @db.SmallInt
+  start_date           DateTime             @db.Date
+  end_date             DateTime             @db.Date
+  department_id        Int
+  shift_id             Int
+  personnel_department personnel_department @relation(fields: [department_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_departmentschedu_department_id_c68fca3d_fk_personnel")
+  att_attshift         att_attshift         @relation(fields: [shift_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_departmentschedule_shift_id_c37d5ade_fk_att_attshift_id")
+
+  @@index([department_id], map: "att_departmentschedu_department_id_c68fca3d_fk_personnel")
+  @@index([shift_id], map: "att_departmentschedule_shift_id_c37d5ade_fk_att_attshift_id")
+}
+
+model att_deptattrule {
+  id                   Int                  @id @default(autoincrement())
+  alias                String               @db.VarChar(50)
+  rule                 String?              @db.LongText
+  department_id        Int
+  personnel_department personnel_department @relation(fields: [department_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_deptattrule_department_id_f333c8f0_fk_personnel")
+
+  @@index([department_id], map: "att_deptattrule_department_id_f333c8f0")
+}
+
+model att_holiday {
+  id                   Int                   @id @default(autoincrement())
+  alias                String                @db.VarChar(50)
+  start_date           DateTime              @db.Date
+  duration_day         Int                   @db.SmallInt
+  work_type            Int                   @db.SmallInt
+  department_id        Int?
+  overtime_lv1         Int                   @db.SmallInt
+  overtime_lv2         Int                   @db.SmallInt
+  overtime_lv3         Int                   @db.SmallInt
+  acc_accholiday       acc_accholiday[]
+  personnel_department personnel_department? @relation(fields: [department_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_holiday_department_id_fbbbd185_fk_personnel_department_id")
+
+  @@index([department_id], map: "att_holiday_department_id_fbbbd185")
+}
+
+model att_leave {
+  abstractexception_ptr_id   Int                        @id
+  start_time                 DateTime?                  @db.DateTime(6)
+  end_time                   DateTime?                  @db.DateTime(6)
+  apply_reason               String?                    @db.LongText
+  apply_time                 DateTime                   @db.DateTime(6)
+  audit_reason               String?                    @db.LongText
+  audit_time                 DateTime                   @db.DateTime(6)
+  approval_level             Int?                       @db.SmallInt
+  audit_user_id              Int?
+  approver                   String?                    @db.VarChar(50)
+  category                   Int
+  employee_id                Int
+  attachment                 String?                    @db.VarChar(100)
+  end_day                    DateTime?                  @db.Date
+  fixed_hours                Int?
+  start_day                  DateTime?                  @db.Date
+  workflow_abstractexception workflow_abstractexception @relation(fields: [abstractexception_ptr_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_leave_abstractexception_pt_7d182abd_fk_workflow_")
+  personnel_employee         personnel_employee         @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_leave_employee_id_bb231627_fk_personnel_employee_id")
+  att_payloadexception       att_payloadexception[]
+
+  @@index([employee_id], map: "att_leave_employee_id_bb231627_fk_personnel_employee_id")
+}
+
+model att_leavecategory {
+  id                   Int                    @id @default(autoincrement())
+  category_name        String                 @db.VarChar(50)
+  minimum_unit         Float
+  unit                 Int                    @db.SmallInt
+  round_off            Int                    @db.SmallInt
+  report_symbol        String                 @db.VarChar(5)
+  payroll_leaveformula payroll_leaveformula[]
+}
+
+model att_leavesum {
+  id             Int       @id @default(autoincrement())
+  category       Int
+  start_time     DateTime? @db.DateTime(6)
+  end_time       DateTime? @db.DateTime(6)
+  apply_reason   String?   @db.LongText
+  apply_time     DateTime  @db.DateTime(6)
+  audit_reason   String?   @db.LongText
+  audit_time     DateTime  @db.DateTime(6)
+  approval_level Int?      @db.SmallInt
+  audit_user_id  Int?
+  approver       String?   @db.VarChar(50)
+  start_day      DateTime? @db.Date
+  end_day        DateTime? @db.Date
+  fixed_hours    Int?
+  attachment     String?   @db.VarChar(100)
+}
+
+model att_manuallog {
+  abstractexception_ptr_id   Int                        @id
+  punch_time                 DateTime                   @db.DateTime(6)
+  punch_state                Int
+  work_code                  String?                    @db.VarChar(20)
+  apply_reason               String?                    @db.LongText
+  apply_time                 DateTime                   @db.DateTime(6)
+  audit_reason               String?                    @db.LongText
+  audit_time                 DateTime                   @db.DateTime(6)
+  approval_level             Int?                       @db.SmallInt
+  audit_user_id              Int?
+  approver                   String?                    @db.VarChar(50)
+  employee_id                Int
+  is_mask                    Boolean
+  temperature                Decimal?                   @db.Decimal(4, 1)
+  workflow_abstractexception workflow_abstractexception @relation(fields: [abstractexception_ptr_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_manuallog_abstractexception_pt_f1e1b292_fk_workflow_")
+  personnel_employee         personnel_employee         @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_manuallog_employee_id_dc8cc2ad_fk_personnel_employee_id")
+
+  @@index([employee_id], map: "att_manuallog_employee_id_dc8cc2ad_fk_personnel_employee_id")
+}
+
+model att_overtime {
+  abstractexception_ptr_id   Int                        @id
+  overtime_type              String?                    @db.VarChar(50)
+  start_time                 DateTime?                  @db.DateTime(6)
+  end_time                   DateTime?                  @db.DateTime(6)
+  apply_reason               String?                    @db.LongText
+  apply_time                 DateTime                   @db.DateTime(6)
+  audit_reason               String?                    @db.LongText
+  audit_time                 DateTime                   @db.DateTime(6)
+  approval_level             Int?                       @db.SmallInt
+  audit_user_id              Int?
+  approver                   String?                    @db.VarChar(50)
+  employee_id                Int?
+  pc_name                    String?                    @db.VarChar(50)
+  pc_value                   Int?
+  schedule_in                DateTime?                  @db.DateTime(6)
+  schedule_out               DateTime?                  @db.DateTime(6)
+  workflow_abstractexception workflow_abstractexception @relation(fields: [abstractexception_ptr_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_overtime_abstractexception_pt_94834697_fk_workflow_")
+  personnel_employee         personnel_employee?        @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_overtime_employee_id_0c0d39dc_fk_personnel_employee_id")
+
+  @@index([employee_id], map: "att_overtime_employee_id_0c0d39dc_fk_personnel_employee_id")
+}
+
+model att_payloadbase {
+  uuid                                                                String              @id @db.VarChar(36)
+  att_date                                                            DateTime?           @db.Date
+  weekday                                                             Int?                @db.SmallInt
+  check_in                                                            DateTime?           @db.DateTime(6)
+  check_out                                                           DateTime?           @db.DateTime(6)
+  duration                                                            Int?
+  duty_duration                                                       Int?
+  work_day                                                            Float
+  clock_in                                                            DateTime?           @db.DateTime(6)
+  clock_out                                                           DateTime?           @db.DateTime(6)
+  total_time                                                          Int?
+  duty_worked                                                         Int?
+  actual_worked                                                       Int?
+  unscheduled                                                         Int?
+  remaining                                                           Int?
+  total_worked                                                        Int?
+  late                                                                Int?
+  early_leave                                                         Int?
+  short                                                               Int?
+  absent                                                              Int?
+  leave                                                               Int?
+  exception                                                           String?             @db.VarChar(50)
+  day_off                                                             Int                 @db.SmallInt
+  break_time_id                                                       String?             @unique(map: "break_time_id") @db.VarChar(36)
+  emp_id                                                              Int
+  overtime_id                                                         String?             @unique(map: "overtime_id") @db.VarChar(36)
+  payroll_concept_id                                                  String?             @unique(map: "payroll_concept_id") @db.VarChar(36)
+  trans_in_id                                                         Int?
+  trans_out_id                                                        Int?
+  timetable_id                                                        String?             @db.VarChar(50)
+  personnel_employee                                                  personnel_employee  @relation(fields: [emp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_payloadbase_emp_id_2c0f6a7b_fk_personnel_employee_id")
+  iclock_transaction_att_payloadbase_trans_in_idToiclock_transaction  iclock_transaction? @relation("att_payloadbase_trans_in_idToiclock_transaction", fields: [trans_in_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_payloadbase_trans_in_id_3b8fd648_fk_iclock_transaction_id")
+  iclock_transaction_att_payloadbase_trans_out_idToiclock_transaction iclock_transaction? @relation("att_payloadbase_trans_out_idToiclock_transaction", fields: [trans_out_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_payloadbase_trans_out_id_ec63bbcc_fk_iclock_transaction_id")
+
+  @@index([emp_id], map: "att_payloadbase_emp_id_2c0f6a7b_fk_personnel_employee_id")
+  @@index([trans_in_id], map: "att_payloadbase_trans_in_id_3b8fd648_fk_iclock_transaction_id")
+  @@index([trans_out_id], map: "att_payloadbase_trans_out_id_ec63bbcc_fk_iclock_transaction_id")
+}
+
+model att_payloadbreak {
+  uuid            String    @id @db.VarChar(36)
+  break_out       DateTime? @db.DateTime(6)
+  break_in        DateTime? @db.DateTime(6)
+  duration        Int?
+  taken           Int?
+  actual_duration Int?
+  early_in        Int?
+  late_in         Int?
+  late            Int?
+  early_leave     Int?
+  absent          Int?
+  work_time       Int?
+  overtime        Int?
+  weekend_ot      Int?
+  holiday_ot      Int?
+}
+
+model att_payloadexception {
+  uuid        String     @id @db.VarChar(36)
+  start_time  DateTime   @db.DateTime(6)
+  end_time    DateTime   @db.DateTime(6)
+  duration    Int?
+  days        Float?
+  data_type   Int        @db.SmallInt
+  description String?    @db.VarChar(50)
+  item_id     Int?
+  skd_id      String?    @db.VarChar(36)
+  pc_id       String?    @db.VarChar(36)
+  att_leave   att_leave? @relation(fields: [item_id], references: [abstractexception_ptr_id], onDelete: NoAction, onUpdate: NoAction, map: "att_payloadexception_item_id_a08bfe48_fk_att_leave")
+
+  @@index([item_id], map: "att_payloadexception_item_id_a08bfe48_fk_att_leave")
+  @@index([pc_id], map: "att_payloadexception_pc_id_5fe78c11")
+  @@index([skd_id], map: "att_payloadexception_skd_id_b2e9ecaa")
+}
+
+model att_payloadmulpunchset {
+  id                 Int                @id @default(autoincrement())
+  att_date           DateTime           @db.Date
+  weekday            Int?               @db.SmallInt
+  data_index         Int                @db.SmallInt
+  clock_in           DateTime?          @db.DateTime(6)
+  in_id              Int?
+  clock_out          DateTime?          @db.DateTime(6)
+  out_id             Int?
+  total_time         Int?
+  worked_time        Int?
+  data_type          Int                @db.SmallInt
+  emp_id             Int
+  timetable_id       String?            @db.VarChar(50)
+  personnel_employee personnel_employee @relation(fields: [emp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_payloadmulpunchset_emp_id_f47610c8_fk_personnel_employee_id")
+
+  @@index([emp_id], map: "att_payloadmulpunchset_emp_id_f47610c8_fk_personnel_employee_id")
+}
+
+model att_payloadovertime {
+  uuid       String @id @db.VarChar(36)
+  normal_wt  Int?
+  normal_ot  Int?
+  weekend_ot Int?
+  holiday_ot Int?
+  ot_lv1     Int?
+  ot_lv2     Int?
+  ot_lv3     Int?
+  total_ot   Int?
+}
+
+model att_payloadpayrollconcept {
+  uuid                                   String                             @id @db.VarChar(36)
+  att_date                               DateTime?                          @db.Date
+  work_day                               Float
+  duration                               Int?
+  schedule_in                            DateTime?                          @db.DateTime(6)
+  schedule_out                           DateTime?                          @db.DateTime(6)
+  clock_in                               DateTime?                          @db.DateTime(6)
+  clock_out                              DateTime?                          @db.DateTime(6)
+  regular_hours                          Int?
+  regular_surcharge_nocturnal            Int?
+  extra_hour_dayjob                      Int?
+  extra_hour_nightjob                    Int?
+  surcharge_onsunday_dayjob              Int?
+  nocturnal_surcharge_onsunday           Int?
+  extra_hour_dayjob_onsunday             Int?
+  extra_hour_nightjob_onsunday           Int?
+  holiday_surcharge_nocturnal            Int?
+  holiday_extra_hour_dayjob              Int?
+  holiday_extra_hour_nocturnal           Int?
+  holiday_surcharge_dayjob               Int?
+  nocturnal_sunday_without_compensatory  Int?
+  dayjob_with_compensatory_onsunday      Int?
+  dayjob_without_compensatory_onsunday   Int?
+  nocturnal_sunday_with_compensatory     Int?
+  nocturnal_holiday_with_compensatory    Int?
+  nocturnal_holiday_without_compensatory Int?
+  holiday_dayjob_with_compensatory       Int?
+  holiday_dayjob_without_compensatory    Int?
+  left_time                              BigInt?
+  emp_id                                 Int
+  timetable                              String?                            @db.VarChar(50)
+  pc_overtime_id                         Int?
+  add_left_time                          String?                            @db.VarChar(256)
+  personnel_employee                     personnel_employee                 @relation(fields: [emp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_payloadpayrollco_emp_id_42295d1d_fk_personnel")
+  att_payloadpayrollconceptovertime      att_payloadpayrollconceptovertime? @relation(fields: [pc_overtime_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_payloadpayrollco_pc_overtime_id_8efd87e4_fk_att_paylo")
+
+  @@index([emp_id], map: "att_payloadpayrollco_emp_id_42295d1d_fk_personnel")
+  @@index([pc_overtime_id], map: "att_payloadpayrollco_pc_overtime_id_8efd87e4_fk_att_paylo")
+}
+
+model att_payloadpayrollconceptovertime {
+  id                        Int                         @id @default(autoincrement())
+  pc_uuid                   String?                     @db.VarChar(36)
+  pc_id                     Int?
+  att_date                  DateTime?                   @db.Date
+  pc_name                   String?                     @db.VarChar(50)
+  start_time                String?                     @db.VarChar(50)
+  end_time                  String?                     @db.VarChar(50)
+  emp_id                    Int
+  att_payloadpayrollconcept att_payloadpayrollconcept[]
+  personnel_employee        personnel_employee          @relation(fields: [emp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_payloadpayrollco_emp_id_0ac40669_fk_personnel")
+
+  @@index([emp_id], map: "att_payloadpayrollco_emp_id_0ac40669_fk_personnel")
+}
+
+model att_payloadpunch {
+  uuid               String              @id @db.VarChar(36)
+  att_date           DateTime?           @db.Date
+  correct_state      String?             @db.VarChar(3)
+  emp_id             Int
+  orig_id            Int?
+  skd_id             String?             @db.VarChar(36)
+  personnel_employee personnel_employee  @relation(fields: [emp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_payloadpunch_emp_id_053da2f0_fk_personnel_employee_id")
+  iclock_transaction iclock_transaction? @relation(fields: [orig_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_payloadpunch_orig_id_16b26416_fk_iclock_transaction_id")
+
+  @@index([emp_id], map: "att_payloadpunch_emp_id_053da2f0_fk_personnel_employee_id")
+  @@index([orig_id], map: "att_payloadpunch_orig_id_16b26416_fk_iclock_transaction_id")
+  @@index([skd_id], map: "att_payloadpunch_skd_id_17596d82")
+}
+
+model att_punchadjustment {
+  id                 Int                @id @default(autoincrement())
+  check_in           DateTime?          @db.DateTime(6)
+  check_out          DateTime?          @db.DateTime(6)
+  apply_reason       String?            @db.LongText
+  apply_time         DateTime           @db.DateTime(6)
+  update_time        DateTime?          @db.DateTime(6)
+  employee_id        Int
+  personnel_employee personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_punchadjustment_employee_id_764cf994_fk_personnel")
+
+  @@index([employee_id], map: "att_punchadjustment_employee_id_764cf994_fk_personnel")
+}
+
+model att_reportparam {
+  param_name  String @id @db.VarChar(20)
+  param_value String @db.LongText
+}
+
+model att_settlement {
+  id           Int       @id @default(autoincrement())
+  create_time  DateTime? @db.DateTime(6)
+  create_user  String?   @db.VarChar(150)
+  change_time  DateTime? @db.DateTime(6)
+  change_user  String?   @db.VarChar(150)
+  status       Int       @db.SmallInt
+  sett_code    String    @unique(map: "sett_code") @db.VarChar(10)
+  sett_name    String    @db.VarChar(50)
+  start_date   DateTime  @db.Date
+  end_date     DateTime  @db.Date
+  to_block     DateTime? @db.DateTime(6)
+  update_time  DateTime  @db.DateTime(6)
+  company      String?   @db.VarChar(100)
+  cost_centers String?   @db.VarChar(100)
+  department   String?   @db.VarChar(100)
+  emp_type     String?   @db.VarChar(10)
+}
+
+model att_shiftdetail {
+  id               Int              @id @default(autoincrement())
+  in_time          DateTime         @db.Time(6)
+  out_time         DateTime         @db.Time(6)
+  day_index        Int
+  shift_id         Int
+  time_interval_id Int
+  is_lastday       Boolean
+  att_attshift     att_attshift     @relation(fields: [shift_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_shiftdetail_shift_id_7d694501_fk_att_attshift_id")
+  att_timeinterval att_timeinterval @relation(fields: [time_interval_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_shiftdetail_time_interval_id_777dde8f_fk_att_timeinterval_id")
+
+  @@index([shift_id], map: "att_shiftdetail_shift_id_7d694501_fk_att_attshift_id")
+  @@index([time_interval_id], map: "att_shiftdetail_time_interval_id_777dde8f_fk_att_timeinterval_id")
+}
+
+model att_tempschedule {
+  id                 Int                @id @default(autoincrement())
+  start_time         DateTime           @db.DateTime(6)
+  end_time           DateTime           @db.DateTime(6)
+  rule_flag          Int                @db.SmallInt
+  work_type          Int                @db.SmallInt
+  employee_id        Int
+  time_interval_id   Int?
+  personnel_employee personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_tempschedule_employee_id_b89c7e54_fk_personnel_employee_id")
+
+  @@index([employee_id], map: "att_tempschedule_employee_id_b89c7e54_fk_personnel_employee_id")
+  @@index([time_interval_id], map: "att_tempschedule_time_interval_id_08dd8eb3")
+}
+
+model att_timeinterval {
+  id                          Int                           @id @default(autoincrement())
+  alias                       String                        @db.VarChar(50)
+  use_mode                    Int                           @db.SmallInt
+  in_time                     DateTime                      @db.Time(6)
+  in_required                 Int                           @db.SmallInt
+  out_required                Int                           @db.SmallInt
+  allow_late                  Int
+  allow_leave_early           Int
+  work_day                    Float
+  multiple_punch              Int                           @db.SmallInt
+  available_interval_type     Int                           @db.SmallInt
+  available_interval          Int
+  work_time_duration          Int
+  func_key                    Int                           @db.SmallInt
+  work_type                   Int                           @db.SmallInt
+  day_change                  DateTime                      @db.Time(6)
+  duration                    Int
+  early_in                    Int                           @db.SmallInt
+  in_above_margin             Int
+  in_ahead_margin             Int
+  late_out                    Int                           @db.SmallInt
+  min_early_in                Int
+  min_late_out                Int
+  out_above_margin            Int
+  out_ahead_margin            Int
+  overtime_lv                 Int                           @db.SmallInt
+  overtime_lv1                Int                           @db.SmallInt
+  overtime_lv2                Int                           @db.SmallInt
+  overtime_lv3                Int                           @db.SmallInt
+  maximum_working_hours       Int
+  schedule_code               String                        @db.VarChar(20)
+  shift_code                  String                        @db.VarChar(20)
+  is_weekend                  Int                           @db.SmallInt
+  sunday_display              String?                       @db.VarChar(20)
+  hours_cross_day             Int?
+  att_changeschedule          att_changeschedule[]
+  att_shiftdetail             att_shiftdetail[]
+  att_timeinterval_break_time att_timeinterval_break_time[]
+
+  @@unique([shift_code, schedule_code], map: "att_timeinterval_shift_code_schedule_code_b50caead_uniq")
+}
+
+model att_timeinterval_break_time {
+  id               Int              @id @default(autoincrement())
+  timeinterval_id  Int
+  breaktime_id     Int
+  att_breaktime    att_breaktime    @relation(fields: [breaktime_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_timeinterval_bre_breaktime_id_08462308_fk_att_break")
+  att_timeinterval att_timeinterval @relation(fields: [timeinterval_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_timeinterval_bre_timeinterval_id_2287017e_fk_att_timei")
+
+  @@unique([timeinterval_id, breaktime_id], map: "att_timeinterval_break_t_timeinterval_id_breaktim_6e1bfb4e_uniq")
+  @@index([breaktime_id], map: "att_timeinterval_bre_breaktime_id_08462308_fk_att_break")
+}
+
+model att_training {
+  abstractexception_ptr_id   Int                        @id
+  start_time                 DateTime                   @db.DateTime(6)
+  end_time                   DateTime                   @db.DateTime(6)
+  apply_reason               String?                    @db.LongText
+  apply_time                 DateTime                   @db.DateTime(6)
+  audit_reason               String?                    @db.LongText
+  audit_time                 DateTime                   @db.DateTime(6)
+  approval_level             Int?                       @db.SmallInt
+  audit_user_id              Int?
+  approver                   String?                    @db.VarChar(50)
+  category_id                Int
+  employee_id                Int
+  workflow_abstractexception workflow_abstractexception @relation(fields: [abstractexception_ptr_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_training_abstractexception_pt_60a3e8f3_fk_workflow_")
+  att_trainingcategory       att_trainingcategory       @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_training_category_id_fb38e891_fk_att_trainingcategory_id")
+  personnel_employee         personnel_employee         @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "att_training_employee_id_44af8319_fk_personnel_employee_id")
+
+  @@index([category_id], map: "att_training_category_id_fb38e891_fk_att_trainingcategory_id")
+  @@index([employee_id], map: "att_training_employee_id_44af8319_fk_personnel_employee_id")
+}
+
+model att_trainingcategory {
+  id            Int            @id @default(autoincrement())
+  category_name String         @db.VarChar(50)
+  minimum_unit  Float
+  unit          Int            @db.SmallInt
+  round_off     Int            @db.SmallInt
+  report_symbol String         @db.VarChar(5)
+  att_training  att_training[]
+}
+
+model attcurrentconfig {
+  Oid                 String @id @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model attendancedetail {
+  Oid                 String    @id @db.Char(38)
+  Employee            String?   @db.Char(38)
+  Day                 DateTime? @db.DateTime(0)
+  AttendanceType      String?   @db.Char(38)
+  StartDate           DateTime? @db.DateTime(0)
+  EndDate             DateTime? @db.DateTime(0)
+  Time                Float?
+  Hours               Float?
+  ValueXHour          Float?
+  TotalValue          Float?
+  ModificationDate    DateTime? @db.DateTime(0)
+  OptimisticLockField Int?
+
+  @@index([AttendanceType], map: "iAttendanceType_AttendanceDetail")
+  @@index([Employee], map: "iEmployee_AttendanceDetail")
+}
+
+model attendancesummary {
+  Oid                 String    @id @db.Char(38)
+  TypeInteger1        Int?
+  TypeInteger2        Int?
+  TypeInteger3        Int?
+  TypeDecimal1        Float?
+  TypeDecimal2        Float?
+  TypeDecimal3        Float?
+  TypeBoolean1        Boolean?  @db.Bit(1)
+  TypeBoolean2        Boolean?  @db.Bit(1)
+  TypeString1         String?   @db.VarChar(100)
+  TypeString2         String?   @db.VarChar(100)
+  TypeString3         String?   @db.VarChar(100)
+  TypeString4         String?   @db.VarChar(100)
+  TypeMemo            String?   @db.LongText
+  TypeDateTime1       DateTime? @db.DateTime(0)
+  TypeDateTime2       DateTime? @db.DateTime(0)
+  Year                Int?
+  Period              Int?
+  Employee            String?   @db.Char(38)
+  AttendanceType      String?   @db.Char(38)
+  Time                Float?
+  Hours               Float?
+  TotalValue          Float?
+  Status              Int?
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([AttendanceType], map: "iAttendanceType_AttendanceSummary")
+  @@index([Employee], map: "iEmployee_AttendanceSummary")
+}
+
+model attendancetype {
+  Oid          String  @id @db.Char(38)
+  CodeToExport String? @db.VarChar(100)
+  Status       Int?
+  Factor       Float?
+}
+
+model attparam {
+  id        Int     @id @default(autoincrement())
+  paraname  String  @db.VarChar(30)
+  paratype  String? @db.VarChar(10)
+  paravalue String? @db.VarChar(250)
+
+  @@unique([paraname, paratype], map: "attparam_paraname_paratype_6f176d25_uniq")
+}
+
+model auditdataitempersistent {
+  Oid                 String    @id @db.Char(38)
+  UserName            String?   @db.VarChar(100)
+  ModifiedOn          DateTime? @db.DateTime(0)
+  OperationType       String?   @db.VarChar(100)
+  Description         String?   @db.MediumText
+  AuditedObject       String?   @db.Char(38)
+  OldObject           String?   @db.Char(38)
+  NewObject           String?   @db.Char(38)
+  OldValue            String?   @db.MediumText
+  NewValue            String?   @db.MediumText
+  PropertyName        String?   @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([AuditedObject], map: "iAuditedObject_AuditDataItemPersistent")
+  @@index([ModifiedOn], map: "iModifiedOn_AuditDataItemPersistent")
+  @@index([NewObject], map: "iNewObject_AuditDataItemPersistent")
+  @@index([OldObject], map: "iOldObject_AuditDataItemPersistent")
+  @@index([OperationType], map: "iOperationType_AuditDataItemPersistent")
+  @@index([UserName], map: "iUserName_AuditDataItemPersistent")
+}
+
+model auditedobjectweakreference {
+  Oid         String  @id @db.Char(38)
+  GuidId      String? @db.Char(38)
+  IntId       Int?
+  DisplayName String? @db.VarChar(250)
+}
+
+model auth_group {
+  id                             Int                              @id @default(autoincrement())
+  name                           String                           @unique(map: "name") @db.VarChar(80)
+  auth_group_permissions         auth_group_permissions[]
+  auth_user_groups               auth_user_groups[]
+  guardian_groupobjectpermission guardian_groupobjectpermission[]
+}
+
+model auth_group_permissions {
+  id              Int             @id @default(autoincrement())
+  group_id        Int
+  permission_id   Int
+  auth_permission auth_permission @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_group_permissio_permission_id_84c5c92e_fk_auth_perm")
+  auth_group      auth_group      @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_group_permissions_group_id_b120cbf9_fk_auth_group_id")
+
+  @@unique([group_id, permission_id], map: "auth_group_permissions_group_id_permission_id_0cd325b0_uniq")
+  @@index([permission_id], map: "auth_group_permissio_permission_id_84c5c92e_fk_auth_perm")
+}
+
+model auth_permission {
+  id                             Int                              @id @default(autoincrement())
+  name                           String                           @db.VarChar(255)
+  content_type_id                Int
+  codename                       String                           @db.VarChar(100)
+  auth_group_permissions         auth_group_permissions[]
+  django_content_type            django_content_type              @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_permission_content_type_id_2f476e4b_fk_django_co")
+  auth_user_user_permissions     auth_user_user_permissions[]
+  guardian_groupobjectpermission guardian_groupobjectpermission[]
+  guardian_userobjectpermission  guardian_userobjectpermission[]
+
+  @@unique([content_type_id, codename], map: "auth_permission_content_type_id_codename_01ab375a_uniq")
+}
+
+model auth_user {
+  id                            Int                             @id @default(autoincrement())
+  username                      String                          @unique(map: "username") @db.VarChar(30)
+  password                      String                          @db.VarChar(128)
+  first_name                    String                          @db.VarChar(30)
+  last_name                     String                          @db.VarChar(30)
+  emp_pin                       String?                         @db.VarChar(30)
+  email                         String                          @db.VarChar(254)
+  tele_phone                    String?                         @db.VarChar(30)
+  auth_time_dept                Int?
+  login_id                      Int?
+  login_type                    Int?
+  login_count                   Int?
+  is_staff                      Boolean
+  is_active                     Boolean
+  is_superuser                  Boolean
+  is_public                     Boolean
+  can_manage_all_dept           Boolean
+  del_flag                      Int?
+  date_joined                   DateTime                        @db.DateTime(6)
+  last_login                    DateTime?                       @db.DateTime(6)
+  auth_user_auth_area           auth_user_auth_area[]
+  auth_user_auth_company        auth_user_auth_company[]
+  auth_user_auth_cost_centers   auth_user_auth_cost_centers[]
+  auth_user_auth_dept           auth_user_auth_dept[]
+  auth_user_groups              auth_user_groups[]
+  auth_user_profile             auth_user_profile?
+  auth_user_user_permissions    auth_user_user_permissions[]
+  authtoken_token               authtoken_token?
+  base_adminlog                 base_adminlog[]
+  base_bookmark                 base_bookmark[]
+  django_admin_log              django_admin_log[]
+  guardian_userobjectpermission guardian_userobjectpermission[]
+  workflow_nodeinstance         workflow_nodeinstance[]
+}
+
+model auth_user_auth_area {
+  id             Int            @id @default(autoincrement())
+  myuser_id      Int
+  area_id        Int
+  personnel_area personnel_area @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_auth_area_area_id_d1e54c70_fk_personnel_area_id")
+  auth_user      auth_user      @relation(fields: [myuser_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_auth_area_myuser_id_5fb9a803_fk_auth_user_id")
+
+  @@unique([myuser_id, area_id], map: "auth_user_auth_area_myuser_id_area_id_02a19d63_uniq")
+  @@index([area_id], map: "auth_user_auth_area_area_id_d1e54c70_fk_personnel_area_id")
+}
+
+model auth_user_auth_company {
+  id                Int               @id @default(autoincrement())
+  myuser_id         Int
+  company_id        Int
+  personnel_company personnel_company @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_auth_compa_company_id_8f856436_fk_personnel")
+  auth_user         auth_user         @relation(fields: [myuser_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_auth_company_myuser_id_d0926065_fk_auth_user_id")
+
+  @@unique([myuser_id, company_id], map: "auth_user_auth_company_myuser_id_company_id_afb6d3bd_uniq")
+  @@index([company_id], map: "auth_user_auth_compa_company_id_8f856436_fk_personnel")
+}
+
+model auth_user_auth_cost_centers {
+  id                    Int                   @id @default(autoincrement())
+  myuser_id             Int
+  costcenters_id        Int
+  personnel_costcenters personnel_costcenters @relation(fields: [costcenters_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_auth_cost__costcenters_id_88f32c68_fk_personnel")
+  auth_user             auth_user             @relation(fields: [myuser_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_auth_cost_centers_myuser_id_b8192521_fk_auth_user_id")
+
+  @@unique([myuser_id, costcenters_id], map: "auth_user_auth_cost_cent_myuser_id_costcenters_id_ac57f060_uniq")
+  @@index([costcenters_id], map: "auth_user_auth_cost__costcenters_id_88f32c68_fk_personnel")
+}
+
+model auth_user_auth_dept {
+  id                   Int                  @id @default(autoincrement())
+  myuser_id            Int
+  department_id        Int
+  personnel_department personnel_department @relation(fields: [department_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_auth_dept_department_id_5866c514_fk_personnel")
+  auth_user            auth_user            @relation(fields: [myuser_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_auth_dept_myuser_id_18a51b27_fk_auth_user_id")
+
+  @@unique([myuser_id, department_id], map: "auth_user_auth_dept_myuser_id_department_id_61d83386_uniq")
+  @@index([department_id], map: "auth_user_auth_dept_department_id_5866c514_fk_personnel")
+}
+
+model auth_user_groups {
+  id         Int        @id @default(autoincrement())
+  myuser_id  Int
+  group_id   Int
+  auth_group auth_group @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_groups_group_id_97559544_fk_auth_group_id")
+  auth_user  auth_user  @relation(fields: [myuser_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_groups_myuser_id_d03e8dcc_fk_auth_user_id")
+
+  @@unique([myuser_id, group_id], map: "auth_user_groups_myuser_id_group_id_664bdfc3_uniq")
+  @@index([group_id], map: "auth_user_groups_group_id_97559544_fk_auth_group_id")
+}
+
+model auth_user_profile {
+  id              Int       @id @default(autoincrement())
+  login_name      String    @db.VarChar(30)
+  pin_tabs        String    @db.LongText
+  disabled_fields String    @db.LongText
+  column_order    String    @db.LongText
+  preferences     String    @db.LongText
+  user_id         Int       @unique(map: "user_id")
+  auth_user       auth_user @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_profile_user_id_f9aded29_fk_auth_user_id")
+}
+
+model auth_user_user_permissions {
+  id              Int             @id @default(autoincrement())
+  myuser_id       Int
+  permission_id   Int
+  auth_permission auth_permission @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_user_permi_permission_id_1fbb5f2c_fk_auth_perm")
+  auth_user       auth_user       @relation(fields: [myuser_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_user_permissions_myuser_id_679b1527_fk_auth_user_id")
+
+  @@unique([myuser_id, permission_id], map: "auth_user_user_permissions_myuser_id_permission_id_a558717f_uniq")
+  @@index([permission_id], map: "auth_user_user_permi_permission_id_1fbb5f2c_fk_auth_perm")
+}
+
+model authtoken_token {
+  key       String    @id @db.VarChar(40)
+  created   DateTime  @db.DateTime(6)
+  user_id   Int       @unique(map: "user_id")
+  auth_user auth_user @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "authtoken_token_user_id_35299eff_fk_auth_user_id")
+}
+
+model base_adminlog {
+  id                  Int                  @id @default(autoincrement())
+  action              String               @db.VarChar(50)
+  targets             String?              @db.LongText
+  targets_repr        String?              @db.LongText
+  action_status       Int                  @db.SmallInt
+  description         String?              @db.LongText
+  ip_address          String?              @db.Char(39)
+  can_routable        Boolean
+  op_time             DateTime             @db.DateTime(6)
+  content_type_id     Int?
+  user_id             Int
+  django_content_type django_content_type? @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "base_adminlog_content_type_id_3e553c30_fk_django_content_type_id")
+  auth_user           auth_user            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "base_adminlog_user_id_ecf659f8_fk_auth_user_id")
+
+  @@index([content_type_id], map: "base_adminlog_content_type_id_3e553c30_fk_django_content_type_id")
+  @@index([user_id], map: "base_adminlog_user_id_ecf659f8_fk_auth_user_id")
+}
+
+model base_alertsetting {
+  id           Int       @id @default(autoincrement())
+  create_time  DateTime? @db.DateTime(6)
+  create_user  String?   @db.VarChar(150)
+  change_time  DateTime? @db.DateTime(6)
+  change_user  String?   @db.VarChar(150)
+  status       Int       @db.SmallInt
+  name         String    @db.VarChar(30)
+  value        String    @db.LongText
+  department   Int?
+  company      Int?
+  cost_centers Int?
+}
+
+model base_attparamdepts {
+  id       Int       @id @default(autoincrement())
+  rulename String    @unique(map: "rulename") @db.VarChar(40)
+  deptid   Int
+  operator String?   @db.VarChar(20)
+  optime   DateTime? @db.DateTime(6)
+}
+
+model base_autoexporttask {
+  id               Int       @id @default(autoincrement())
+  create_time      DateTime? @db.DateTime(6)
+  create_user      String?   @db.VarChar(150)
+  change_time      DateTime? @db.DateTime(6)
+  change_user      String?   @db.VarChar(150)
+  status           Int       @db.SmallInt
+  task_code        String    @unique(map: "task_code") @db.VarChar(30)
+  task_name        String    @db.VarChar(30)
+  params           String?   @db.LongText
+  without_grouping Boolean
+}
+
+model base_bookmark {
+  id                  Int                 @id @default(autoincrement())
+  title               String              @db.VarChar(128)
+  filters             String              @db.VarChar(1000)
+  is_share            Boolean
+  time_saved          DateTime            @db.DateTime(6)
+  content_type_id     Int
+  user_id             Int?
+  django_content_type django_content_type @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "base_bookmark_content_type_id_b6a0e799_fk_django_content_type_id")
+  auth_user           auth_user?          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "base_bookmark_user_id_5f2d5ca2_fk_auth_user_id")
+
+  @@index([content_type_id], map: "base_bookmark_content_type_id_b6a0e799_fk_django_content_type_id")
+  @@index([user_id], map: "base_bookmark_user_id_5f2d5ca2_fk_auth_user_id")
+}
+
+model base_dbbackuplog {
+  id            Int       @id @default(autoincrement())
+  create_time   DateTime? @db.DateTime(6)
+  create_user   String?   @db.VarChar(150)
+  change_time   DateTime? @db.DateTime(6)
+  change_user   String?   @db.VarChar(150)
+  status        Int       @db.SmallInt
+  db_type       String    @db.VarChar(50)
+  db_name       String    @db.VarChar(50)
+  operator      String?   @db.VarChar(50)
+  backup_file   String    @db.VarChar(100)
+  backup_time   DateTime  @db.DateTime(6)
+  backup_status Int       @db.SmallInt
+  remark        String?   @db.LongText
+}
+
+model base_dbmigrate {
+  id          Int       @id @default(autoincrement())
+  create_time DateTime? @db.DateTime(6)
+  create_user String?   @db.VarChar(150)
+  change_time DateTime? @db.DateTime(6)
+  change_user String?   @db.VarChar(150)
+  status      Int       @db.SmallInt
+  name        String    @db.VarChar(30)
+  value       String    @db.LongText
+}
+
+model base_emailtemplate {
+  id           Int       @id @default(autoincrement())
+  create_time  DateTime? @db.DateTime(6)
+  create_user  String?   @db.VarChar(150)
+  change_time  DateTime? @db.DateTime(6)
+  change_user  String?   @db.VarChar(150)
+  status       Int       @db.SmallInt
+  category     Int
+  sub_category Int
+  event        Int
+  receiver     Int
+  subject      String?   @db.VarChar(100)
+  template     String    @db.LongText
+  enable       Boolean
+}
+
+model base_linenotifysetting {
+  id                     Int                   @id @default(autoincrement())
+  include_sub_department Int?
+  line_notify_token      String?               @db.VarChar(200)
+  message_type           Int?
+  message_head           String?               @db.VarChar(100)
+  message_tail           String?               @db.VarChar(100)
+  push_time              DateTime?             @db.Time(6)
+  is_valid               Int?
+  remark                 String?               @db.VarChar(200)
+  line_notify_dept_id    Int?
+  personnel_department   personnel_department? @relation(fields: [line_notify_dept_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "base_linenotifysetti_line_notify_dept_id_0643a5ed_fk_personnel")
+
+  @@unique([line_notify_dept_id, line_notify_token, message_type], map: "base_linenotifysetting_line_notify_dept_id_line_dd79374f_uniq")
+  @@index([line_notify_dept_id], map: "base_linenotifysetting_line_notify_dept_id_0643a5ed")
+}
+
+model base_securitypolicy {
+  id                     Int     @id @default(autoincrement())
+  single_login           Boolean
+  security_code          Boolean
+  code_length            Int
+  valid_duration         Int
+  failed_locked          Boolean
+  lock_failed_count      Int
+  lock_duration          Int
+  enforce_pwd_change     Boolean
+  enforce_pwd_expiration Boolean
+  validity_period        Int
+  password_level         Int     @db.SmallInt
+  is_default             Boolean
+}
+
+model base_sendemail {
+  id            Int       @id @default(autoincrement())
+  purpose       Int
+  email_to      String    @db.LongText
+  email_cc      String?   @db.LongText
+  email_bcc     String?   @db.LongText
+  email_subject String    @db.VarChar(40)
+  email_content String?   @db.LongText
+  send_time     DateTime? @db.DateTime(6)
+  send_status   Int?      @db.SmallInt
+}
+
+model base_sftpsetting {
+  id            Int     @id @default(autoincrement())
+  host          String  @db.Char(39)
+  port          Int
+  auth_method   Int
+  user_name     String  @db.VarChar(30)
+  user_password String? @db.VarChar(128)
+  user_key      String? @db.LongText
+  key_password  String? @db.VarChar(128)
+
+  @@unique([user_name, host], map: "base_sftpsetting_user_name_host_f95e6bd9_uniq")
+}
+
+model base_sysparam {
+  id         Int     @id @default(autoincrement())
+  para_name  String  @db.VarChar(30)
+  para_type  String? @db.VarChar(10)
+  para_value String? @db.VarChar(250)
+
+  @@unique([para_name, para_type], map: "base_sysparam_para_name_para_type_3086789a_uniq")
+}
+
+model base_sysparamdept {
+  id        Int       @id @default(autoincrement())
+  rule_name String    @unique(map: "rule_name") @db.VarChar(40)
+  dept_id   Int
+  operator  String?   @db.VarChar(20)
+  op_time   DateTime? @db.DateTime(6)
+}
+
+model base_systemsetting {
+  id          Int       @id @default(autoincrement())
+  create_time DateTime? @db.DateTime(6)
+  create_user String?   @db.VarChar(150)
+  change_time DateTime? @db.DateTime(6)
+  change_user String?   @db.VarChar(150)
+  status      Int       @db.SmallInt
+  name        String    @db.VarChar(30)
+  value       String    @db.LongText
+}
+
+model base_taskresultlog {
+  id     Int      @id @default(autoincrement())
+  task   String   @db.VarChar(50)
+  status String   @db.VarChar(10)
+  result String   @db.VarChar(500)
+  time   DateTime @db.DateTime(6)
+}
+
+model branch {
+  Oid String @id @db.Char(38)
+}
+
+model celery_taskmeta {
+  id        Int      @id @default(autoincrement())
+  task_id   String   @unique(map: "task_id") @db.VarChar(255)
+  status    String   @db.VarChar(50)
+  result    String?  @db.LongText
+  date_done DateTime @db.DateTime(6)
+  traceback String?  @db.LongText
+  hidden    Boolean
+  meta      String?  @db.LongText
+
+  @@index([hidden], map: "celery_taskmeta_hidden_23fd02dc")
+}
+
+model celery_tasksetmeta {
+  id         Int      @id @default(autoincrement())
+  taskset_id String   @unique(map: "taskset_id") @db.VarChar(255)
+  result     String   @db.LongText
+  date_done  DateTime @db.DateTime(6)
+  hidden     Boolean
+
+  @@index([hidden], map: "celery_tasksetmeta_hidden_593cfc24")
+}
+
+model checkinout {
+  Oid                 String    @id @db.Char(38)
+  CheckTime           DateTime? @db.DateTime(0)
+  CheckType           Int?
+  VerifyCode          Int?
+  Employee            String?   @db.Char(38)
+  Machine             String?   @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Employee], map: "iEmployee_CheckInOut")
+  @@index([Machine], map: "iMachine_CheckInOut")
+}
+
+model codeevaluator {
+  Oid                 String    @id @db.Char(38)
+  Code                String?   @db.VarChar(100)
+  Name                String?   @db.VarChar(100)
+  Parameters          String?   @db.MediumText
+  Formula             String?   @db.LongText
+  ModificationDate    DateTime? @db.DateTime(0)
+  OptimisticLockField Int?
+  GCRecord            Int?
+  ObjectType          Int?
+
+  @@index([Code], map: "iCode_CodeEvaluator")
+  @@index([ObjectType], map: "iObjectType_CodeEvaluator")
+}
+
+model configuration {
+  Oid                 String  @id @db.Char(38)
+  Identifier          String? @db.VarChar(100)
+  Group               String? @db.VarChar(100)
+  Position            Int?
+  OptimisticLockField Int?
+  GCRecord            Int?
+  ObjectType          Int?
+
+  @@index([ObjectType], map: "iObjectType_Configuration")
+}
+
+model configurationadjustmenttime {
+  Oid   String @id @db.Char(38)
+  Value Int?
+}
+
+model configurationboolean {
+  Oid   String   @id @db.Char(38)
+  Value Boolean? @db.Bit(1)
+}
+
+model configurationdataprovider {
+  Oid   String @id @db.Char(38)
+  Value Int?
+}
+
+model configurationdate {
+  Oid   String    @id @db.Char(38)
+  Value DateTime? @db.DateTime(0)
+}
+
+model configurationfontname {
+  Oid   String @id @db.Char(38)
+  Value Int?
+
+  @@index([Value], map: "iValue_ConfigurationFontName")
+}
+
+model configurationinteger {
+  Oid   String @id @db.Char(38)
+  Value Int?
+}
+
+model configurationip {
+  Oid   String  @id @db.Char(38)
+  Value String? @db.VarChar(100)
+}
+
+model configurationpassword {
+  Oid   String  @id @db.Char(38)
+  Value String? @db.VarChar(100)
+}
+
+model configurationstring {
+  Oid   String  @id @db.Char(38)
+  Value String? @db.VarChar(100)
+}
+
+model configurationtimespan {
+  Oid   String @id @db.Char(38)
+  Value Float?
+}
+
+model connection {
+  OID                 Int     @id @default(autoincrement())
+  Name                String? @db.VarChar(100)
+  Provider            Int?
+  Server              String? @db.VarChar(100)
+  Port                String? @db.VarChar(100)
+  Username            String? @db.VarChar(100)
+  Password            String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Name], map: "iName_Connection")
+}
+
+model costcenter {
+  Oid                 String  @id @db.Char(38)
+  Code                String? @db.VarChar(100)
+  Name                String? @db.VarChar(100)
+  Parent              String? @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Code], map: "iCode_CostCenter")
+  @@index([Parent], map: "iParent_CostCenter")
+}
+
+model country {
+  Oid                 String  @id @db.Char(38)
+  Name                String? @db.VarChar(100)
+  PhoneCode           String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+  ObjectType          Int?
+
+  @@index([ObjectType], map: "iObjectType_Country")
+}
+
+model currentconfig {
+  Oid                 String @id @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model department {
+  Oid                 String  @id @db.Char(38)
+  FullName            String? @db.VarChar(100)
+  Key                 String? @db.VarChar(100)
+  Name                String? @db.VarChar(100)
+  Parent              String? @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Parent], map: "iParent_Department")
+}
+
+model django_admin_log {
+  id                  Int                  @id @default(autoincrement())
+  action_time         DateTime             @db.DateTime(6)
+  object_id           String?              @db.LongText
+  object_repr         String               @db.VarChar(200)
+  action_flag         Int                  @db.UnsignedSmallInt
+  change_message      String               @db.LongText
+  content_type_id     Int?
+  user_id             Int
+  django_content_type django_content_type? @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "django_admin_log_content_type_id_c4bce8eb_fk_django_co")
+  auth_user           auth_user            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "django_admin_log_user_id_c564eba6_fk_auth_user_id")
+
+  @@index([content_type_id], map: "django_admin_log_content_type_id_c4bce8eb_fk_django_co")
+  @@index([user_id], map: "django_admin_log_user_id_c564eba6_fk_auth_user_id")
+}
+
+model django_content_type {
+  id                             Int                              @id @default(autoincrement())
+  app_label                      String                           @db.VarChar(100)
+  model                          String                           @db.VarChar(100)
+  auth_permission                auth_permission[]
+  base_adminlog                  base_adminlog[]
+  base_bookmark                  base_bookmark[]
+  django_admin_log               django_admin_log[]
+  guardian_groupobjectpermission guardian_groupobjectpermission[]
+  guardian_userobjectpermission  guardian_userobjectpermission[]
+  workflow_workflowengine        workflow_workflowengine[]
+
+  @@unique([app_label, model], map: "django_content_type_app_label_model_76bd3d3b_uniq")
+}
+
+model django_migrations {
+  id      Int      @id @default(autoincrement())
+  app     String   @db.VarChar(255)
+  name    String   @db.VarChar(255)
+  applied DateTime @db.DateTime(6)
+}
+
+model django_session {
+  session_key  String   @id @db.VarChar(40)
+  session_data String   @db.LongText
+  expire_date  DateTime @db.DateTime(6)
+
+  @@index([expire_date], map: "django_session_expire_date_a5c62663")
+}
+
+model djcelery_crontabschedule {
+  id                    Int                     @id @default(autoincrement())
+  minute                String                  @db.VarChar(64)
+  hour                  String                  @db.VarChar(64)
+  day_of_week           String                  @db.VarChar(64)
+  day_of_month          String                  @db.VarChar(64)
+  month_of_year         String                  @db.VarChar(64)
+  djcelery_periodictask djcelery_periodictask[]
+}
+
+model djcelery_intervalschedule {
+  id                    Int                     @id @default(autoincrement())
+  every                 Int
+  period                String                  @db.VarChar(24)
+  djcelery_periodictask djcelery_periodictask[]
+}
+
+model djcelery_periodictask {
+  id                        Int                        @id @default(autoincrement())
+  name                      String                     @unique(map: "name") @db.VarChar(200)
+  task                      String                     @db.VarChar(200)
+  args                      String                     @db.LongText
+  kwargs                    String                     @db.LongText
+  queue                     String?                    @db.VarChar(200)
+  exchange                  String?                    @db.VarChar(200)
+  routing_key               String?                    @db.VarChar(200)
+  expires                   DateTime?                  @db.DateTime(6)
+  enabled                   Boolean
+  last_run_at               DateTime?                  @db.DateTime(6)
+  total_run_count           Int                        @db.UnsignedInt
+  date_changed              DateTime                   @db.DateTime(6)
+  description               String                     @db.LongText
+  crontab_id                Int?
+  interval_id               Int?
+  djcelery_crontabschedule  djcelery_crontabschedule?  @relation(fields: [crontab_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "djcelery_periodictas_crontab_id_75609bab_fk_djcelery_")
+  djcelery_intervalschedule djcelery_intervalschedule? @relation(fields: [interval_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "djcelery_periodictas_interval_id_b426ab02_fk_djcelery_")
+
+  @@index([crontab_id], map: "djcelery_periodictas_crontab_id_75609bab_fk_djcelery_")
+  @@index([interval_id], map: "djcelery_periodictas_interval_id_b426ab02_fk_djcelery_")
+}
+
+model djcelery_periodictasks {
+  ident       Int      @id @db.SmallInt
+  last_update DateTime @db.DateTime(6)
+}
+
+model djcelery_taskstate {
+  id                   Int                   @id @default(autoincrement())
+  state                String                @db.VarChar(64)
+  task_id              String                @unique(map: "task_id") @db.VarChar(36)
+  name                 String?               @db.VarChar(200)
+  tstamp               DateTime              @db.DateTime(6)
+  args                 String?               @db.LongText
+  kwargs               String?               @db.LongText
+  eta                  DateTime?             @db.DateTime(6)
+  expires              DateTime?             @db.DateTime(6)
+  result               String?               @db.LongText
+  traceback            String?               @db.LongText
+  runtime              Float?
+  retries              Int
+  hidden               Boolean
+  worker_id            Int?
+  djcelery_workerstate djcelery_workerstate? @relation(fields: [worker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "djcelery_taskstate_worker_id_f7f57a05_fk_djcelery_workerstate_id")
+
+  @@index([hidden], map: "djcelery_taskstate_hidden_c3905e57")
+  @@index([name], map: "djcelery_taskstate_name_8af9eded")
+  @@index([state], map: "djcelery_taskstate_state_53543be4")
+  @@index([tstamp], map: "djcelery_taskstate_tstamp_4c3f93a1")
+  @@index([worker_id], map: "djcelery_taskstate_worker_id_f7f57a05_fk_djcelery_workerstate_id")
+}
+
+model djcelery_workerstate {
+  id                 Int                  @id @default(autoincrement())
+  hostname           String               @unique(map: "hostname") @db.VarChar(255)
+  last_heartbeat     DateTime?            @db.DateTime(6)
+  djcelery_taskstate djcelery_taskstate[]
+
+  @@index([last_heartbeat], map: "djcelery_workerstate_last_heartbeat_4539b544")
+}
+
+model eaddress {
+  Oid                 String  @id @db.Char(38)
+  Street              String? @db.VarChar(100)
+  City                String? @db.Char(38)
+  ZipPostal           String? @db.VarChar(100)
+  FullAddress         String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([City], map: "iCity_eAddress")
+}
+
+model ebranch {
+  Oid          String  @id @db.Char(38)
+  Email        String? @db.VarChar(100)
+  Description  String? @db.LongText
+  Third        String? @db.Char(38)
+  Code         String? @db.VarChar(100)
+  Organization String? @db.Char(38)
+
+  @@index([Organization], map: "iOrganization_eBranch")
+  @@index([Third], map: "iThird_eBranch")
+}
+
+model ecity {
+  Oid                 String  @id @db.Char(38)
+  Code                String? @db.VarChar(100)
+  Name                String? @db.VarChar(100)
+  StateProvince       String? @db.VarChar(100)
+  Country             String? @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Code, Name], map: "iCodeName_eCity")
+  @@index([Country], map: "iCountry_eCity")
+}
+
+model ecountry {
+  Oid  String  @id @db.Char(38)
+  Code String? @db.VarChar(100)
+
+  @@index([Code], map: "iCode_eCountry")
+}
+
+model elanguage {
+  Oid                 String   @id @db.Char(38)
+  Code                String?  @db.VarChar(6)
+  Language            String?  @db.VarChar(100)
+  DefaultLanguage     Boolean? @db.Bit(1)
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model employee {
+  Oid                  String    @id @db.Char(38)
+  CycleDate            DateTime? @db.DateTime(0)
+  TypeInteger1         Int?
+  TypeInteger2         Int?
+  TypeInteger3         Int?
+  TypeDecimal1         Float?
+  TypeDecimal2         Float?
+  TypeDecimal3         Float?
+  TypeBoolean1         Boolean?  @db.Bit(1)
+  TypeBoolean2         Boolean?  @db.Bit(1)
+  TypeString1          String?   @db.VarChar(100)
+  TypeString2          String?   @db.VarChar(100)
+  TypeString3          String?   @db.VarChar(100)
+  TypeString4          String?   @db.VarChar(100)
+  TypeMemo             String?   @db.LongText
+  TypeDateTime1        DateTime? @db.DateTime(0)
+  TypeDateTime2        DateTime? @db.DateTime(0)
+  AcNumber             Int?
+  Gender               Int?
+  CardNumber           String?   @db.VarChar(100)
+  AcPassword           String?   @db.VarChar(8)
+  Privilege            Int?
+  Nationality          String?   @db.Char(38)
+  Status               Int?
+  Department           String?   @db.Char(38)
+  CurrentAgreementType String?   @db.Char(38)
+  Position             String?   @db.Char(38)
+  BaseSalary           Float?
+  GeneratesOverTime    Boolean?  @db.Bit(1)
+  CostCenter           String?   @db.Char(38)
+  CurrentShift         String?   @db.Char(38)
+  CurrentCycle         Int?
+  Boss                 String?   @db.Char(38)
+  Branch               String?   @db.Char(38)
+  ValorHora            Float?
+
+  @@index([AcNumber], map: "iAcNumber_Employee")
+  @@index([Boss], map: "iBoss_Employee")
+  @@index([Branch], map: "iBranch_Employee")
+  @@index([CostCenter], map: "iCostCenter_Employee")
+  @@index([CurrentAgreementType], map: "iCurrentAgreementType_Employee")
+  @@index([CurrentShift], map: "iCurrentShift_Employee")
+  @@index([Department], map: "iDepartment_Employee")
+  @@index([Nationality], map: "iNationality_Employee")
+  @@index([Position], map: "iPosition_Employee")
+}
+
+model eorganization {
+  Oid                 String  @id @db.Char(38)
+  Code                String? @db.VarChar(100)
+  Name                String? @db.VarChar(100)
+  Email               String? @db.VarChar(100)
+  WebSite             String? @db.VarChar(100)
+  Photo               Bytes?
+  Third               String? @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Third], map: "iThird_eOrganization")
+}
+
+model ep_epsetup {
+  id           Int       @id @default(autoincrement())
+  create_time  DateTime? @db.DateTime(6)
+  create_user  String?   @db.VarChar(150)
+  change_time  DateTime? @db.DateTime(6)
+  change_user  String?   @db.VarChar(150)
+  status       Int       @db.SmallInt
+  temp_alarm   Boolean
+  temp_warning Decimal   @db.Decimal(4, 1)
+  temp_unit    Int       @db.SmallInt
+  mask_alarm   Boolean
+}
+
+model ep_eptransaction {
+  id                 Int                 @id @default(autoincrement())
+  create_time        DateTime?           @db.DateTime(6)
+  create_user        String?             @db.VarChar(150)
+  change_time        DateTime?           @db.DateTime(6)
+  change_user        String?             @db.VarChar(150)
+  status             Int                 @db.SmallInt
+  area               String              @db.VarChar(30)
+  check_datetime     DateTime?           @db.DateTime(6)
+  check_date         DateTime            @db.Date
+  check_time         DateTime            @db.Time(6)
+  temperature        Decimal             @db.Decimal(4, 1)
+  is_mask            Boolean
+  upload_time        DateTime            @db.DateTime(6)
+  source             Int                 @db.SmallInt
+  emp_id             Int?
+  terminal_id        Int?
+  personnel_employee personnel_employee? @relation(fields: [emp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "ep_eptransaction_emp_id_1006883f_fk_personnel_employee_id")
+  iclock_terminal    iclock_terminal?    @relation(fields: [terminal_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "ep_eptransaction_terminal_id_4490b209_fk_iclock_terminal_id")
+
+  @@unique([emp_id, check_datetime], map: "ep_eptransaction_emp_id_check_datetime_57cec995_uniq")
+  @@index([terminal_id], map: "ep_eptransaction_terminal_id_4490b209_fk_iclock_terminal_id")
+}
+
+model eparty {
+  Oid                 String    @id @db.Char(38)
+  Photo               Bytes?
+  Address1            String?   @db.Char(38)
+  Address2            String?   @db.Char(38)
+  DisplayName         String?   @db.VarChar(100)
+  CreatedDate         DateTime? @db.DateTime(0)
+  OptimisticLockField Int?
+  GCRecord            Int?
+  ObjectType          Int?
+
+  @@index([Address1], map: "iAddress1_eParty")
+  @@index([Address2], map: "iAddress2_eParty")
+  @@index([ObjectType], map: "iObjectType_eParty")
+}
+
+model eperson {
+  Oid        String    @id @db.Char(38)
+  Document   String?   @db.VarChar(100)
+  FirstName  String?   @db.VarChar(100)
+  MiddleName String?   @db.VarChar(100)
+  LastName   String?   @db.VarChar(100)
+  MiddleLast String?   @db.VarChar(100)
+  Birthday   DateTime? @db.DateTime(0)
+  FullName   String?   @db.VarChar(100)
+  Email      String?   @db.MediumText
+
+  @@index([Document], map: "iDocument_ePerson")
+}
+
+model ephonenumber {
+  Oid                 String  @id @db.Char(38)
+  Number              String? @db.VarChar(100)
+  Party               String? @db.Char(38)
+  PhoneType           String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Party], map: "iParty_ePhoneNumber")
+}
+
+model ephoto {
+  Oid                 String  @id @db.Char(38)
+  Photo               Bytes?
+  DisplayName         String? @db.VarChar(100)
+  MD5                 String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model erole {
+  Oid String @id @db.Char(38)
+}
+
+model euser {
+  Oid                        String   @id @db.Char(38)
+  Person                     String?  @db.Char(38)
+  StoredPassword             String?  @db.VarChar(100)
+  HiddenUserName             String?  @db.VarChar(100)
+  UserName                   String?  @db.VarChar(100)
+  ChangePasswordOnFirstLogon Boolean? @db.Bit(1)
+  IsActive                   Boolean? @db.Bit(1)
+  OptimisticLockField        Int?
+  GCRecord                   Int?
+
+  @@index([Person], map: "iPerson_eUser")
+}
+
+model euserusers_eroleroles {
+  Roles               String? @db.Char(38)
+  Users               String? @db.Char(38)
+  OID                 String  @id @db.Char(38)
+  OptimisticLockField Int?
+
+  @@unique([Roles, Users], map: "iRolesUsers_eUserUsers_eRoleRoles")
+  @@index([Roles], map: "iRoles_eUserUsers_eRoleRoles")
+  @@index([Users], map: "iUsers_eUserUsers_eRoleRoles")
+}
+
+model filter {
+  Oid                  String  @id @db.Char(38)
+  Name                 String? @db.VarChar(100)
+  SerializedObjectType String? @db.VarChar(100)
+  Criteria             String? @db.LongText
+  OptimisticLockField  Int?
+  GCRecord             Int?
+}
+
+model fontname {
+  Oid                 Int     @id @default(autoincrement())
+  Name                String? @db.VarChar(100)
+  OptimisticLockField Int?
+}
+
+model guardian_groupobjectpermission {
+  id                  Int                 @id @default(autoincrement())
+  object_pk           String              @db.VarChar(255)
+  content_type_id     Int
+  group_id            Int
+  permission_id       Int
+  django_content_type django_content_type @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "guardian_groupobject_content_type_id_7ade36b8_fk_django_co")
+  auth_group          auth_group          @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "guardian_groupobject_group_id_4bbbfb62_fk_auth_grou")
+  auth_permission     auth_permission     @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "guardian_groupobject_permission_id_36572738_fk_auth_perm")
+
+  @@unique([group_id, permission_id, object_pk], map: "guardian_groupobjectperm_group_id_permission_id_o_3f189f7c_uniq")
+  @@index([content_type_id], map: "guardian_groupobject_content_type_id_7ade36b8_fk_django_co")
+  @@index([permission_id], map: "guardian_groupobject_permission_id_36572738_fk_auth_perm")
+}
+
+model guardian_userobjectpermission {
+  id                  Int                 @id @default(autoincrement())
+  object_pk           String              @db.VarChar(255)
+  content_type_id     Int
+  permission_id       Int
+  user_id             Int
+  django_content_type django_content_type @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "guardian_userobjectp_content_type_id_2e892405_fk_django_co")
+  auth_permission     auth_permission     @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "guardian_userobjectp_permission_id_71807bfc_fk_auth_perm")
+  auth_user           auth_user           @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "guardian_userobjectpermission_user_id_d5c1e964_fk_auth_user_id")
+
+  @@unique([user_id, permission_id, object_pk], map: "guardian_userobjectpermi_user_id_permission_id_ob_b0b3d2fc_uniq")
+  @@index([content_type_id], map: "guardian_userobjectp_content_type_id_2e892405_fk_django_co")
+  @@index([permission_id], map: "guardian_userobjectp_permission_id_71807bfc_fk_auth_perm")
+}
+
+model holiday {
+  Oid                 String    @id @db.Char(38)
+  Day                 DateTime? @db.DateTime(0)
+  Name                String?   @db.VarChar(100)
+  Note                String?   @db.Char(38)
+  Status              Int?
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Day], map: "iDay_Holiday")
+  @@index([Note], map: "iNote_Holiday")
+}
+
+model iclock_biodata {
+  id                 Int                @id @default(autoincrement())
+  create_time        DateTime?          @db.DateTime(6)
+  create_user        String?            @db.VarChar(150)
+  change_time        DateTime?          @db.DateTime(6)
+  change_user        String?            @db.VarChar(150)
+  status             Int                @db.SmallInt
+  bio_tmp            String             @db.LongText
+  bio_no             Int?
+  bio_index          Int?
+  bio_type           Int
+  major_ver          String             @db.VarChar(30)
+  minor_ver          String?            @db.VarChar(30)
+  bio_format         Int?
+  valid              Int
+  duress             Int
+  update_time        DateTime?          @db.DateTime(6)
+  sn                 String?            @db.VarChar(50)
+  employee_id        Int
+  personnel_employee personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_biodata_employee_id_ff748ea7_fk_personnel_employee_id")
+
+  @@unique([employee_id, bio_no, bio_index, bio_type, bio_format, major_ver], map: "iclock_biodata_employee_id_bio_no_bio_i_b71b2ca9_uniq")
+}
+
+model iclock_biophoto {
+  id                 Int                @id @default(autoincrement())
+  create_time        DateTime?          @db.DateTime(6)
+  create_user        String?            @db.VarChar(150)
+  change_time        DateTime?          @db.DateTime(6)
+  change_user        String?            @db.VarChar(150)
+  status             Int                @db.SmallInt
+  first_name         String?            @db.VarChar(50)
+  last_name          String?            @db.VarChar(25)
+  email              String?            @db.VarChar(254)
+  enroll_sn          String?            @db.VarChar(50)
+  register_photo     String             @db.VarChar(100)
+  register_time      DateTime           @db.DateTime(6)
+  approval_photo     String?            @db.VarChar(100)
+  approval_state     Int                @db.SmallInt
+  approval_time      DateTime?          @db.DateTime(6)
+  remark             String?            @db.VarChar(100)
+  employee_id        Int
+  personnel_employee personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_biophoto_employee_id_3dba5819_fk_personnel_employee_id")
+
+  @@index([employee_id], map: "iclock_biophoto_employee_id_3dba5819_fk_personnel_employee_id")
+}
+
+model iclock_deviceconfig {
+  uuid                   String  @id @db.VarChar(36)
+  enable_registration    Boolean
+  enable_resigned_filter Boolean
+  enable_auto_add        Boolean
+  enable_name_upload     Boolean
+  enable_card_upload     Boolean
+  transaction_retention  Int
+  command_retention      Int
+  dev_log_retention      Int
+  upload_log_retention   Int
+  edit_policy            Int     @db.SmallInt
+  import_policy          Int     @db.SmallInt
+  mobile_policy          Int     @db.SmallInt
+  device_policy          Int     @db.SmallInt
+}
+
+model iclock_errorcommandlog {
+  id              Int             @id @default(autoincrement())
+  create_time     DateTime?       @db.DateTime(6)
+  create_user     String?         @db.VarChar(150)
+  change_time     DateTime?       @db.DateTime(6)
+  change_user     String?         @db.VarChar(150)
+  status          Int             @db.SmallInt
+  error_code      String?         @db.VarChar(16)
+  error_msg       String?         @db.VarChar(50)
+  data_origin     String?         @db.LongText
+  cmd             String?         @db.VarChar(50)
+  additional      String?         @db.LongText
+  upload_time     DateTime        @db.DateTime(6)
+  terminal_id     Int
+  iclock_terminal iclock_terminal @relation(fields: [terminal_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_errorcommandl_terminal_id_3b2d7cbd_fk_iclock_te")
+
+  @@index([terminal_id], map: "iclock_errorcommandl_terminal_id_3b2d7cbd_fk_iclock_te")
+}
+
+model iclock_privatemessage {
+  id                 Int                @id @default(autoincrement())
+  create_time        DateTime?          @db.DateTime(6)
+  create_user        String?            @db.VarChar(150)
+  change_time        DateTime?          @db.DateTime(6)
+  change_user        String?            @db.VarChar(150)
+  status             Int                @db.SmallInt
+  start_time         DateTime           @db.DateTime(6)
+  duration           Int
+  content            String             @db.LongText
+  last_send          DateTime?          @db.DateTime(6)
+  employee_id        Int
+  uid                String?            @db.VarChar(36)
+  personnel_employee personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_privatemessag_employee_id_e84a34c0_fk_personnel")
+
+  @@index([employee_id], map: "iclock_privatemessag_employee_id_e84a34c0_fk_personnel")
+}
+
+model iclock_publicmessage {
+  id              Int             @id @default(autoincrement())
+  create_time     DateTime?       @db.DateTime(6)
+  create_user     String?         @db.VarChar(150)
+  change_time     DateTime?       @db.DateTime(6)
+  change_user     String?         @db.VarChar(150)
+  status          Int             @db.SmallInt
+  start_time      DateTime        @db.DateTime(6)
+  duration        Int
+  content         String          @db.LongText
+  last_send       DateTime?       @db.DateTime(6)
+  terminal_id     Int
+  uid             String?         @db.VarChar(36)
+  iclock_terminal iclock_terminal @relation(fields: [terminal_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_publicmessage_terminal_id_c3b5e4cf_fk_iclock_terminal_id")
+
+  @@index([terminal_id], map: "iclock_publicmessage_terminal_id_c3b5e4cf_fk_iclock_terminal_id")
+}
+
+model iclock_terminal {
+  id                         Int                          @id @default(autoincrement())
+  create_time                DateTime?                    @db.DateTime(6)
+  create_user                String?                      @db.VarChar(150)
+  change_time                DateTime?                    @db.DateTime(6)
+  change_user                String?                      @db.VarChar(150)
+  status                     Int                          @db.SmallInt
+  sn                         String                       @unique(map: "sn") @db.VarChar(50)
+  alias                      String                       @db.VarChar(50)
+  ip_address                 String                       @db.Char(39)
+  real_ip                    String?                      @db.Char(39)
+  state                      Int
+  terminal_tz                Int                          @db.SmallInt
+  transfer_time              String                       @db.VarChar(100)
+  heartbeat                  Int
+  transfer_interval          Int
+  product_type               Int?                         @db.SmallInt
+  purpose                    Int?                         @db.SmallInt
+  controller_type            Int?                         @db.SmallInt
+  authentication             Int                          @db.SmallInt
+  style                      String?                      @db.VarChar(20)
+  upload_flag                String?                      @db.VarChar(10)
+  fw_ver                     String?                      @db.VarChar(100)
+  push_protocol              String                       @db.VarChar(30)
+  push_ver                   String?                      @db.VarChar(30)
+  language                   Int?
+  is_tft                     Boolean
+  terminal_name              String?                      @db.VarChar(30)
+  platform                   String?                      @db.VarChar(30)
+  oem_vendor                 String?                      @db.VarChar(50)
+  log_stamp                  String?                      @db.VarChar(30)
+  op_log_stamp               String?                      @db.VarChar(30)
+  capture_stamp              String?                      @db.VarChar(30)
+  user_count                 Int?
+  user_capacity              Int?
+  photo_func_on              Boolean
+  transaction_count          Int?
+  transaction_capacity       Int?
+  fp_func_on                 Boolean
+  fp_count                   Int?
+  fp_capacity                Int?
+  fp_alg_ver                 String?                      @db.VarChar(10)
+  face_func_on               Boolean
+  face_count                 Int?
+  face_capacity              Int?
+  face_alg_ver               String?                      @db.VarChar(10)
+  fv_func_on                 Boolean
+  fv_count                   Int?
+  fv_capacity                Int?
+  fv_alg_ver                 String?                      @db.VarChar(10)
+  palm_func_on               Boolean
+  palm_count                 Int?
+  palm_capacity              Int?
+  palm_alg_ver               String?                      @db.VarChar(10)
+  last_activity              DateTime?                    @db.DateTime(6)
+  upload_time                DateTime?                    @db.DateTime(6)
+  push_time                  DateTime?                    @db.DateTime(6)
+  area_id                    Int?
+  is_access                  Int                          @db.SmallInt
+  is_registration            Int                          @db.SmallInt
+  lock_func                  Int                          @db.SmallInt
+  transfer_mode              Int                          @db.SmallInt
+  is_attendance              Int                          @db.SmallInt
+  terminal_id                String?                      @unique(map: "terminal_id") @db.VarChar(5)
+  terminal_export_id         String?                      @db.VarChar(30)
+  acc_accterminal            acc_accterminal[]
+  ep_eptransaction           ep_eptransaction[]
+  iclock_errorcommandlog     iclock_errorcommandlog[]
+  iclock_publicmessage       iclock_publicmessage[]
+  personnel_area             personnel_area?              @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_terminal_area_id_c019c6f0_fk_personnel_area_id")
+  iclock_terminalcommand     iclock_terminalcommand[]
+  iclock_terminallog         iclock_terminallog[]
+  iclock_terminalparameter   iclock_terminalparameter[]
+  iclock_terminaluploadlog   iclock_terminaluploadlog[]
+  iclock_transaction         iclock_transaction[]
+  iclock_transactionproofcmd iclock_transactionproofcmd[]
+
+  @@index([area_id], map: "iclock_terminal_area_id_c019c6f0")
+}
+
+model iclock_terminalcommand {
+  id              Int             @id @default(autoincrement())
+  content         String          @db.LongText
+  commit_time     DateTime        @db.DateTime(6)
+  transfer_time   DateTime?       @db.DateTime(6)
+  return_time     DateTime?       @db.DateTime(6)
+  return_value    Int?
+  terminal_id     Int
+  iclock_terminal iclock_terminal @relation(fields: [terminal_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_terminalcomma_terminal_id_3dcf836f_fk_iclock_te")
+
+  @@index([terminal_id], map: "iclock_terminalcomma_terminal_id_3dcf836f_fk_iclock_te")
+}
+
+model iclock_terminalemployee {
+  id          Int    @id @default(autoincrement())
+  terminal_sn String @db.VarChar(50)
+  emp_code    String @db.VarChar(20)
+  privilege   Int    @db.SmallInt
+}
+
+model iclock_terminallog {
+  id              Int             @id @default(autoincrement())
+  terminal_tz     Int?            @db.SmallInt
+  admin           String?         @db.VarChar(50)
+  action_name     Int?            @db.SmallInt
+  action_time     DateTime?       @db.DateTime(6)
+  object          String?         @db.VarChar(50)
+  param1          Int?
+  param2          Int?
+  param3          Int?
+  upload_time     DateTime?       @db.DateTime(6)
+  terminal_id     Int
+  iclock_terminal iclock_terminal @relation(fields: [terminal_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_terminallog_terminal_id_667b3ea7_fk_iclock_terminal_id")
+
+  @@index([terminal_id], map: "iclock_terminallog_terminal_id_667b3ea7_fk_iclock_terminal_id")
+}
+
+model iclock_terminalparameter {
+  id              Int             @id @default(autoincrement())
+  param_type      String?         @db.VarChar(10)
+  param_name      String          @db.VarChar(30)
+  param_value     String          @db.VarChar(100)
+  terminal_id     Int
+  iclock_terminal iclock_terminal @relation(fields: [terminal_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_terminalparam_terminal_id_443872e3_fk_iclock_te")
+
+  @@unique([terminal_id, param_name], map: "iclock_terminalparameter_terminal_id_param_name_8abbb5c0_uniq")
+}
+
+model iclock_terminaluploadlog {
+  id              Int             @id @default(autoincrement())
+  event           String          @db.VarChar(80)
+  content         String          @db.VarChar(80)
+  upload_count    Int
+  error_count     Int
+  upload_time     DateTime        @db.DateTime(6)
+  terminal_id     Int
+  iclock_terminal iclock_terminal @relation(fields: [terminal_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_terminaluploa_terminal_id_9c9a7664_fk_iclock_te")
+
+  @@index([terminal_id], map: "iclock_terminaluploa_terminal_id_9c9a7664_fk_iclock_te")
+}
+
+model iclock_terminalworkcode {
+  id            Int       @id @default(autoincrement())
+  create_time   DateTime? @db.DateTime(6)
+  create_user   String?   @db.VarChar(150)
+  change_time   DateTime? @db.DateTime(6)
+  change_user   String?   @db.VarChar(150)
+  status        Int       @db.SmallInt
+  code          String    @unique(map: "code") @db.VarChar(8)
+  alias         String    @db.VarChar(24)
+  last_activity DateTime? @db.DateTime(6)
+}
+
+model iclock_transaction {
+  id                                                               Int                 @id @default(autoincrement())
+  emp_code                                                         String              @db.VarChar(20)
+  punch_time                                                       DateTime            @db.DateTime(6)
+  punch_state                                                      String              @db.VarChar(5)
+  verify_type                                                      Int
+  work_code                                                        String?             @db.VarChar(20)
+  terminal_sn                                                      String?             @db.VarChar(50)
+  terminal_alias                                                   String?             @db.VarChar(50)
+  area_alias                                                       String?             @db.VarChar(30)
+  longitude                                                        Float?
+  latitude                                                         Float?
+  gps_location                                                     String?             @db.LongText
+  mobile                                                           String?             @db.VarChar(50)
+  source                                                           Int?                @db.SmallInt
+  purpose                                                          Int?                @db.SmallInt
+  crc                                                              String?             @db.VarChar(100)
+  is_attendance                                                    Int?                @db.SmallInt
+  reserved                                                         String?             @db.VarChar(100)
+  upload_time                                                      DateTime?           @db.DateTime(6)
+  sync_status                                                      Int?                @db.SmallInt
+  sync_time                                                        DateTime?           @db.DateTime(6)
+  emp_id                                                           Int?
+  terminal_id                                                      Int?
+  adjustment_id                                                    Int?
+  is_mask                                                          Int?                @db.SmallInt
+  temperature                                                      Decimal?            @db.Decimal(4, 1)
+  att_payloadbase_att_payloadbase_trans_in_idToiclock_transaction  att_payloadbase[]   @relation("att_payloadbase_trans_in_idToiclock_transaction")
+  att_payloadbase_att_payloadbase_trans_out_idToiclock_transaction att_payloadbase[]   @relation("att_payloadbase_trans_out_idToiclock_transaction")
+  att_payloadpunch                                                 att_payloadpunch[]
+  personnel_employee                                               personnel_employee? @relation(fields: [emp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_transaction_emp_id_60fa3521_fk_personnel_employee_id")
+  iclock_terminal                                                  iclock_terminal?    @relation(fields: [terminal_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_transaction_terminal_id_451c81c2_fk_iclock_terminal_id")
+
+  @@unique([emp_code, punch_time], map: "iclock_transaction_emp_code_punch_time_ca282852_uniq")
+  @@index([emp_id], map: "iclock_transaction_emp_id_60fa3521_fk_personnel_employee_id")
+  @@index([terminal_id], map: "iclock_transaction_terminal_id_451c81c2_fk_iclock_terminal_id")
+}
+
+model iclock_transactionproofcmd {
+  id              Int             @id @default(autoincrement())
+  action_time     DateTime        @db.DateTime(6)
+  start_time      DateTime        @db.DateTime(6)
+  end_time        DateTime        @db.DateTime(6)
+  terminal_count  Int?
+  server_count    Int?
+  flag            Int?            @db.SmallInt
+  reserved_init   Int?
+  reserved_float  Float?
+  reserved_char   String?         @db.VarChar(30)
+  terminal_id     Int
+  iclock_terminal iclock_terminal @relation(fields: [terminal_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "iclock_transactionpr_terminal_id_08b81e1e_fk_iclock_te")
+
+  @@index([terminal_id], map: "iclock_transactionpr_terminal_id_08b81e1e_fk_iclock_te")
+}
+
+model importmap {
+  OID                 Int     @id @default(autoincrement())
+  Description         String? @db.LongText
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model incapacity {
+  Oid                 String    @id @db.Char(38)
+  Employee            String?   @db.Char(38)
+  Type                String?   @db.Char(38)
+  IncapacityIn        DateTime? @db.DateTime(0)
+  IncapacityOut       DateTime? @db.DateTime(0)
+  Pay                 Boolean?  @db.Bit(1)
+  Note                String?   @db.LongText
+  ModificationDate    DateTime? @db.DateTime(0)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Employee], map: "iEmployee_Incapacity")
+  @@index([Type], map: "iType_Incapacity")
+}
+
+model incapacitytype {
+  Oid                 String   @id @db.Char(38)
+  Name                String?  @db.VarChar(100)
+  Code                String?  @db.VarChar(3)
+  Pay                 Boolean? @db.Bit(1)
+  Status              Int?
+  OptimisticLockField Int?
+  GCRecord            Int?
+  CodeToExport        String?  @db.VarChar(100)
+}
+
+model machine {
+  Oid                 String    @id @db.Char(38)
+  Name                String?   @db.VarChar(100)
+  MachineNumber       Int?
+  LastDownload        DateTime? @db.DateTime(0)
+  ConnectionStatus    Int?
+  Status              Int?
+  OptimisticLockField Int?
+  GCRecord            Int?
+  ObjectType          Int?
+
+  @@index([ObjectType], map: "iObjectType_Machine")
+}
+
+model machinemachines_employeeemployees {
+  Employees           String? @db.Char(38)
+  Machines            String? @db.Char(38)
+  OID                 String  @id @db.Char(38)
+  OptimisticLockField Int?
+
+  @@unique([Employees, Machines], map: "iEmployeesMachines_MachineMachines_EmployeeEmployees")
+  @@index([Employees], map: "iEmployees_MachineMachines_EmployeeEmployees")
+  @@index([Machines], map: "iMachines_MachineMachines_EmployeeEmployees")
+}
+
+model machinezk {
+  Oid                      String    @id @db.Char(38)
+  ConnectType              Int?
+  IP                       String?   @db.VarChar(20)
+  SerialPort               Int?
+  Port                     Int?
+  BaudRate                 Int?
+  Password                 String?   @db.VarChar(6)
+  UserCount                Int?
+  AdministratorCount       Int?
+  FingerprintCount         Int?
+  FaceCount                Int?
+  PasswordCount            Int?
+  LogCount                 Int?
+  AdministratorAccessCount Int?
+  Firmware                 String?   @db.VarChar(100)
+  FingerprintVersion       String?   @db.VarChar(100)
+  SerialNumber             String?   @db.VarChar(100)
+  MaximumQtyUsers          Int?
+  MaximumQtyLogs           Int?
+  MaximumQtyFingerprints   Int?
+  MaximumQtyFaces          Int?
+  DeviceTime               DateTime? @db.DateTime(0)
+  AcNumberLength           Int?
+  SoftwareVersion          Int?
+}
+
+model mappableproperty {
+  OID                 Int      @id @default(autoincrement())
+  Name                String?  @db.VarChar(100)
+  DisplayName         String?  @db.VarChar(100)
+  Mapped              Boolean? @db.Bit(1)
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model mapping {
+  OID                 Int     @id @default(autoincrement())
+  Map                 Int?
+  Column              String? @db.VarChar(100)
+  MapedTo             String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Map], map: "iMap_Mapping")
+}
+
+model marking {
+  Oid                 String    @id @db.Char(38)
+  Status              Int?
+  Employee            String?   @db.Char(38)
+  Shift               String?   @db.Char(38)
+  Cycle               Int?
+  Day                 DateTime? @db.DateTime(0)
+  MarkingIn           DateTime? @db.DateTime(0)
+  MarkingOut          DateTime? @db.DateTime(0)
+  StartShiftMarkingIn Boolean?  @db.Bit(1)
+  OverTimeBeforeEntry Boolean?  @db.Bit(1)
+  OverTimeAfterExit   Boolean?  @db.Bit(1)
+  OverTimeInLunch     Boolean?  @db.Bit(1)
+  OverTimeInHoliday   Boolean?  @db.Bit(1)
+  Approve             Boolean?  @db.Bit(1)
+  ModificationDate    DateTime? @db.DateTime(0)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Employee], map: "iEmployee_Marking")
+  @@index([Shift], map: "iShift_Marking")
+}
+
+model mobile_announcement {
+  id                 Int                 @id @default(autoincrement())
+  subject            String              @db.VarChar(100)
+  content            String              @db.LongText
+  category           Int                 @db.SmallInt
+  sender             String?             @db.VarChar(50)
+  system_sender      String?             @db.VarChar(50)
+  create_time        DateTime?           @db.DateTime(6)
+  receiver_id        Int?
+  personnel_employee personnel_employee? @relation(fields: [receiver_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "mobile_announcement_receiver_id_ddf2a860_fk_personnel")
+
+  @@index([receiver_id], map: "mobile_announcement_receiver_id_ddf2a860_fk_personnel")
+}
+
+model mobile_appactionlog {
+  id             Int      @id @default(autoincrement())
+  user           String   @db.VarChar(20)
+  client         String?  @db.VarChar(50)
+  action         String?  @db.VarChar(50)
+  params         String?  @db.LongText
+  describe       String?  @db.LongText
+  request_status Int      @db.SmallInt
+  action_time    DateTime @db.DateTime(6)
+  remote_ip      String?  @db.VarChar(20)
+}
+
+model mobile_applist {
+  id              Int      @id @default(autoincrement())
+  username        String   @db.VarChar(50)
+  login_time      DateTime @db.DateTime(6)
+  last_active     DateTime @db.DateTime(6)
+  token           String   @db.VarChar(100)
+  device_token    String   @db.LongText
+  client_id       String   @db.VarChar(100)
+  client_category Int      @db.SmallInt
+  active          Int?     @db.SmallInt
+  enable          Int?     @db.SmallInt
+}
+
+model mobile_appnotification {
+  id                 Int                @id @default(autoincrement())
+  sender             String?            @db.VarChar(50)
+  system_sender      String?            @db.VarChar(50)
+  category           Int                @db.SmallInt
+  sub_category       Int?
+  content            String?            @db.LongText
+  source             Int?
+  notification_time  DateTime           @db.DateTime(6)
+  read_status        Int                @db.SmallInt
+  read_time          DateTime?          @db.DateTime(6)
+  receiver_id        Int
+  personnel_employee personnel_employee @relation(fields: [receiver_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "mobile_appnotificati_receiver_id_90c4a355_fk_personnel")
+
+  @@index([receiver_id], map: "mobile_appnotificati_receiver_id_90c4a355_fk_personnel")
+}
+
+model mobile_gpsfordepartment {
+  id                   Int                  @id @default(autoincrement())
+  create_time          DateTime?            @db.DateTime(6)
+  create_user          String?              @db.VarChar(150)
+  change_time          DateTime?            @db.DateTime(6)
+  change_user          String?              @db.VarChar(150)
+  status               Int                  @db.SmallInt
+  location             String               @db.VarChar(100)
+  longitude            Float
+  latitude             Float
+  distance             Int
+  start_date           DateTime             @db.Date
+  end_date             DateTime             @db.Date
+  department_id        Int
+  personnel_department personnel_department @relation(fields: [department_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "mobile_gpsfordepartm_department_id_988ccf22_fk_personnel")
+
+  @@index([department_id], map: "mobile_gpsfordepartm_department_id_988ccf22_fk_personnel")
+}
+
+model mobile_gpsforemployee {
+  id                 Int                @id @default(autoincrement())
+  create_time        DateTime?          @db.DateTime(6)
+  create_user        String?            @db.VarChar(150)
+  change_time        DateTime?          @db.DateTime(6)
+  change_user        String?            @db.VarChar(150)
+  status             Int                @db.SmallInt
+  location           String             @db.VarChar(100)
+  longitude          Float
+  latitude           Float
+  distance           Int
+  start_date         DateTime           @db.Date
+  end_date           DateTime           @db.Date
+  employee_id        Int
+  personnel_employee personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "mobile_gpsforemploye_employee_id_982b7cef_fk_personnel")
+
+  @@index([employee_id], map: "mobile_gpsforemploye_employee_id_982b7cef_fk_personnel")
+}
+
+model moduleinfo {
+  ID                  Int      @id @default(autoincrement())
+  Version             String?  @db.VarChar(100)
+  Name                String?  @db.VarChar(100)
+  AssemblyFileName    String?  @db.VarChar(100)
+  IsMain              Boolean? @db.Bit(1)
+  OptimisticLockField Int?
+}
+
+model note {
+  Oid                 String    @id @db.Char(38)
+  Author              String?   @db.VarChar(100)
+  DateTime            DateTime? @db.DateTime(0)
+  Text                String?   @db.LongText
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model payroll_deductionformula {
+  id                                       Int                                        @id @default(autoincrement())
+  name                                     String                                     @db.VarChar(30)
+  formula                                  String                                     @db.VarChar(100)
+  remark                                   String?                                    @db.LongText
+  payroll_salarystructure_deductionformula payroll_salarystructure_deductionformula[]
+}
+
+model payroll_emploan {
+  id                 Int                 @id @default(autoincrement())
+  create_time        DateTime?           @db.DateTime(6)
+  create_user        String?             @db.VarChar(150)
+  change_time        DateTime?           @db.DateTime(6)
+  change_user        String?             @db.VarChar(150)
+  status             Int                 @db.SmallInt
+  loan_amount        Float
+  loan_time          DateTime            @db.DateTime(6)
+  refund_cycle       Int                 @db.SmallInt
+  per_cycle_refund   Float
+  loan_clean_time    DateTime?           @db.DateTime(6)
+  remark             String?             @db.VarChar(300)
+  employee_id        Int?
+  personnel_employee personnel_employee? @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_emploan_employee_id_97a251ef_fk_personnel_employee_id")
+
+  @@index([employee_id], map: "payroll_emploan_employee_id_97a251ef_fk_personnel_employee_id")
+}
+
+model payroll_emppayrollprofile {
+  id                 Int                @id @default(autoincrement())
+  payment_mode       Int?               @db.SmallInt
+  payment_type       Int?               @db.SmallInt
+  bank_name          String?            @db.VarChar(30)
+  bank_account       String?            @db.VarChar(30)
+  personnel_id       String?            @db.VarChar(30)
+  agent_id           String?            @db.VarChar(30)
+  agent_account      String?            @db.VarChar(30)
+  employee_id        Int                @unique(map: "employee_id")
+  personnel_employee personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_emppayrollpr_employee_id_6c97078c_fk_personnel")
+}
+
+model payroll_exceptionformula {
+  id                                       Int                                        @id @default(autoincrement())
+  name                                     String                                     @db.VarChar(30)
+  exception_type                           Int                                        @db.SmallInt
+  formula                                  String                                     @db.VarChar(100)
+  remark                                   String?                                    @db.LongText
+  payroll_salarystructure_exceptionformula payroll_salarystructure_exceptionformula[]
+}
+
+model payroll_extradeduction {
+  id                 Int                 @id @default(autoincrement())
+  create_time        DateTime?           @db.DateTime(6)
+  create_user        String?             @db.VarChar(150)
+  change_time        DateTime?           @db.DateTime(6)
+  change_user        String?             @db.VarChar(150)
+  status             Int                 @db.SmallInt
+  amount             Float
+  issued_time        DateTime            @db.DateTime(6)
+  remark             String?             @db.VarChar(300)
+  employee_id        Int?
+  personnel_employee personnel_employee? @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_extradeducti_employee_id_53072441_fk_personnel")
+
+  @@index([employee_id], map: "payroll_extradeducti_employee_id_53072441_fk_personnel")
+}
+
+model payroll_extraincrease {
+  id                 Int                 @id @default(autoincrement())
+  create_time        DateTime?           @db.DateTime(6)
+  create_user        String?             @db.VarChar(150)
+  change_time        DateTime?           @db.DateTime(6)
+  change_user        String?             @db.VarChar(150)
+  status             Int                 @db.SmallInt
+  amount             Float
+  issued_time        DateTime            @db.DateTime(6)
+  remark             String?             @db.VarChar(300)
+  employee_id        Int?
+  personnel_employee personnel_employee? @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_extraincreas_employee_id_f902e6bb_fk_personnel")
+
+  @@index([employee_id], map: "payroll_extraincreas_employee_id_f902e6bb_fk_personnel")
+}
+
+model payroll_increasementformula {
+  id                                          Int                                           @id @default(autoincrement())
+  name                                        String                                        @db.VarChar(30)
+  formula                                     String                                        @db.VarChar(100)
+  remark                                      String?                                       @db.LongText
+  payroll_salarystructure_increasementformula payroll_salarystructure_increasementformula[]
+}
+
+model payroll_leaveformula {
+  id                                   Int                                    @id @default(autoincrement())
+  name                                 String                                 @db.VarChar(30)
+  formula                              String                                 @db.VarChar(100)
+  remark                               String?                                @db.LongText
+  category_id                          Int
+  att_leavecategory                    att_leavecategory                      @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_leaveformula_category_id_945b2054_fk_att_leave")
+  payroll_salarystructure_leaveformula payroll_salarystructure_leaveformula[]
+
+  @@index([category_id], map: "payroll_leaveformula_category_id_945b2054_fk_att_leave")
+}
+
+model payroll_monthlysalary {
+  id                           Int                @id @default(autoincrement())
+  calc_time                    DateTime?          @db.Date
+  basic_salary                 Float?
+  effective_date               DateTime?          @db.Date
+  format_dict                  String?            @db.LongText
+  ot1                          Float?
+  ot2                          Float?
+  ot3                          Float?
+  normal_ot                    Float?
+  weekend_ot                   Float?
+  holiday_ot                   Float?
+  late_time                    Float?
+  early_leave                  Float?
+  absent_time                  Float?
+  increase                     Float?
+  deduction                    Float?
+  leave                        String?            @db.LongText
+  ot1_formula                  String?            @db.LongText
+  ot2_formula                  String?            @db.LongText
+  ot3_formula                  String?            @db.LongText
+  normal_ot_formula            String?            @db.LongText
+  weekend_ot_formula           String?            @db.LongText
+  holiday_ot_formula           String?            @db.LongText
+  late_time_formula            String?            @db.LongText
+  early_leave_formula          String?            @db.LongText
+  absent_time_formula          String?            @db.LongText
+  increase_formula             String?            @db.LongText
+  deduction_formula            String?            @db.LongText
+  leave_formula                String?            @db.LongText
+  ot1_formula_name             String?            @db.LongText
+  ot2_formula_name             String?            @db.LongText
+  ot3_formula_name             String?            @db.LongText
+  normal_ot_formula_name       String?            @db.LongText
+  weekend_ot_formula_name      String?            @db.LongText
+  holiday_ot_formula_name      String?            @db.LongText
+  late_time_formula_name       String?            @db.LongText
+  early_leave_formula_name     String?            @db.LongText
+  absent_time_formula_name     String?            @db.LongText
+  increase_formula_name        String?            @db.LongText
+  deduction_formula_name       String?            @db.LongText
+  leave_formula_name           String?            @db.LongText
+  extra_increase               Float?
+  extra_deduction              Float?
+  total_loan_amount            Float?
+  refund_loan_amount           Float?
+  unrefund_loan_amount         Float?
+  loan_deduction               Float?
+  loan_increase                Float?
+  advance_increase             Float?
+  advance_deduction            Float?
+  reimbursement                Float?
+  total_increase_formula       String?            @db.LongText
+  total_increase_formula_name  String?            @db.LongText
+  total_increase_expression    String?            @db.LongText
+  total_increase               Float?
+  total_deduction_formula      String?            @db.LongText
+  total_deduction_formula_name String?            @db.LongText
+  total_deduction_expression   String?            @db.LongText
+  total_deduction              Float?
+  total_salary_expression      String?            @db.LongText
+  total_salary                 Float?
+  employee_id                  Int
+  personnel_employee           personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_monthlysalar_employee_id_97fdc6a9_fk_personnel")
+
+  @@index([employee_id], map: "payroll_monthlysalar_employee_id_97fdc6a9_fk_personnel")
+}
+
+model payroll_overtimeformula {
+  id                                      Int                                       @id @default(autoincrement())
+  name                                    String                                    @db.VarChar(30)
+  overtime_level                          Int                                       @db.SmallInt
+  formula                                 String                                    @db.VarChar(100)
+  remark                                  String?                                   @db.LongText
+  payroll_salarystructure_overtimeformula payroll_salarystructure_overtimeformula[]
+}
+
+model payroll_reimbursement {
+  id                 Int                 @id @default(autoincrement())
+  rmb_amount         Float
+  rmb_time           DateTime            @db.DateTime(6)
+  rmb_file           String?             @db.VarChar(200)
+  rmb_remark         String?             @db.VarChar(300)
+  employee_id        Int?
+  personnel_employee personnel_employee? @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_reimbursemen_employee_id_c4bbde36_fk_personnel")
+
+  @@index([employee_id], map: "payroll_reimbursemen_employee_id_c4bbde36_fk_personnel")
+}
+
+model payroll_salaryadvance {
+  id                 Int                 @id @default(autoincrement())
+  advance_amount     Float
+  advance_time       DateTime            @db.DateTime(6)
+  advance_remark     String?             @db.VarChar(300)
+  employee_id        Int?
+  personnel_employee personnel_employee? @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salaryadvanc_employee_id_2abd43e5_fk_personnel")
+
+  @@index([employee_id], map: "payroll_salaryadvanc_employee_id_2abd43e5_fk_personnel")
+}
+
+model payroll_salarystructure {
+  id                                          Int                                           @id @default(autoincrement())
+  create_time                                 DateTime?                                     @db.DateTime(6)
+  create_user                                 String?                                       @db.VarChar(150)
+  change_time                                 DateTime?                                     @db.DateTime(6)
+  change_user                                 String?                                       @db.VarChar(150)
+  status                                      Int                                           @db.SmallInt
+  salary_amount                               Float
+  effective_date                              DateTime                                      @db.Date
+  salary_remark                               String?                                       @db.VarChar(300)
+  employee_id                                 Int?
+  personnel_employee                          personnel_employee?                           @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salarystruct_employee_id_98996e15_fk_personnel")
+  payroll_salarystructure_deductionformula    payroll_salarystructure_deductionformula[]
+  payroll_salarystructure_exceptionformula    payroll_salarystructure_exceptionformula[]
+  payroll_salarystructure_increasementformula payroll_salarystructure_increasementformula[]
+  payroll_salarystructure_leaveformula        payroll_salarystructure_leaveformula[]
+  payroll_salarystructure_overtimeformula     payroll_salarystructure_overtimeformula[]
+
+  @@index([employee_id], map: "payroll_salarystruct_employee_id_98996e15_fk_personnel")
+}
+
+model payroll_salarystructure_deductionformula {
+  id                       Int                      @id @default(autoincrement())
+  salarystructure_id       Int
+  deductionformula_id      Int
+  payroll_deductionformula payroll_deductionformula @relation(fields: [deductionformula_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salarystruct_deductionformula_id_b174d5b6_fk_payroll_d")
+  payroll_salarystructure  payroll_salarystructure  @relation(fields: [salarystructure_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salarystruct_salarystructure_id_5ca7cdb5_fk_payroll_s")
+
+  @@unique([salarystructure_id, deductionformula_id], map: "payroll_salarystructure__salarystructure_id_deduc_794e8449_uniq")
+  @@index([deductionformula_id], map: "payroll_salarystruct_deductionformula_id_b174d5b6_fk_payroll_d")
+}
+
+model payroll_salarystructure_exceptionformula {
+  id                       Int                      @id @default(autoincrement())
+  salarystructure_id       Int
+  exceptionformula_id      Int
+  payroll_exceptionformula payroll_exceptionformula @relation(fields: [exceptionformula_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salarystruct_exceptionformula_id_8f6dadb3_fk_payroll_e")
+  payroll_salarystructure  payroll_salarystructure  @relation(fields: [salarystructure_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salarystruct_salarystructure_id_3c087208_fk_payroll_s")
+
+  @@unique([salarystructure_id, exceptionformula_id], map: "payroll_salarystructure__salarystructure_id_excep_a5e869ff_uniq")
+  @@index([exceptionformula_id], map: "payroll_salarystruct_exceptionformula_id_8f6dadb3_fk_payroll_e")
+}
+
+model payroll_salarystructure_increasementformula {
+  id                          Int                         @id @default(autoincrement())
+  salarystructure_id          Int
+  increasementformula_id      Int
+  payroll_increasementformula payroll_increasementformula @relation(fields: [increasementformula_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salarystruct_increasementformula__3cd77082_fk_payroll_i")
+  payroll_salarystructure     payroll_salarystructure     @relation(fields: [salarystructure_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salarystruct_salarystructure_id_8752401c_fk_payroll_s")
+
+  @@unique([salarystructure_id, increasementformula_id], map: "payroll_salarystructure__salarystructure_id_incre_749132b3_uniq")
+  @@index([increasementformula_id], map: "payroll_salarystruct_increasementformula__3cd77082_fk_payroll_i")
+}
+
+model payroll_salarystructure_leaveformula {
+  id                      Int                     @id @default(autoincrement())
+  salarystructure_id      Int
+  leaveformula_id         Int
+  payroll_leaveformula    payroll_leaveformula    @relation(fields: [leaveformula_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salarystruct_leaveformula_id_049f9024_fk_payroll_l")
+  payroll_salarystructure payroll_salarystructure @relation(fields: [salarystructure_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salarystruct_salarystructure_id_cf98fdd7_fk_payroll_s")
+
+  @@unique([salarystructure_id, leaveformula_id], map: "payroll_salarystructure__salarystructure_id_leave_4efdce30_uniq")
+  @@index([leaveformula_id], map: "payroll_salarystruct_leaveformula_id_049f9024_fk_payroll_l")
+}
+
+model payroll_salarystructure_overtimeformula {
+  id                      Int                     @id @default(autoincrement())
+  salarystructure_id      Int
+  overtimeformula_id      Int
+  payroll_overtimeformula payroll_overtimeformula @relation(fields: [overtimeformula_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salarystruct_overtimeformula_id_40ad89ef_fk_payroll_o")
+  payroll_salarystructure payroll_salarystructure @relation(fields: [salarystructure_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payroll_salarystruct_salarystructure_id_64f75042_fk_payroll_s")
+
+  @@unique([salarystructure_id, overtimeformula_id], map: "payroll_salarystructure__salarystructure_id_overt_0d0a0e81_uniq")
+  @@index([overtimeformula_id], map: "payroll_salarystruct_overtimeformula_id_40ad89ef_fk_payroll_o")
+}
+
+model persistentpermission {
+  Oid                  String  @id @db.Char(38)
+  SerializedPermission String? @db.MediumText
+  Role                 String? @db.Char(38)
+  OptimisticLockField  Int?
+  GCRecord             Int?
+
+  @@index([Role], map: "iRole_PersistentPermission")
+}
+
+model personnel_area {
+  id                           Int                            @id @default(autoincrement())
+  area_code                    String                         @unique(map: "area_code") @db.VarChar(30)
+  area_name                    String                         @db.VarChar(30)
+  is_default                   Boolean
+  parent_area_id               Int?
+  acc_acccombination           acc_acccombination[]
+  acc_accgroups                acc_accgroups[]
+  acc_accholiday               acc_accholiday[]
+  acc_accprivilege             acc_accprivilege[]
+  acc_acctimezone              acc_acctimezone[]
+  auth_user_auth_area          auth_user_auth_area[]
+  iclock_terminal              iclock_terminal[]
+  personnel_area               personnel_area?                @relation("personnel_areaTopersonnel_area", fields: [parent_area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_area_parent_area_id_39028fda_fk_personnel_area_id")
+  other_personnel_area         personnel_area[]               @relation("personnel_areaTopersonnel_area")
+  personnel_assignareaemployee personnel_assignareaemployee[]
+  personnel_employee_area      personnel_employee_area[]
+
+  @@index([parent_area_id], map: "personnel_area_parent_area_id_39028fda_fk_personnel_area_id")
+}
+
+model personnel_assignareaemployee {
+  id                 Int                @id @default(autoincrement())
+  assigned_time      DateTime           @db.DateTime(6)
+  area_id            Int
+  employee_id        Int
+  personnel_area     personnel_area     @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_assignarea_area_id_6f049d6a_fk_personnel")
+  personnel_employee personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_assignarea_employee_id_a3d4dd25_fk_personnel")
+
+  @@index([area_id], map: "personnel_assignarea_area_id_6f049d6a_fk_personnel")
+  @@index([employee_id], map: "personnel_assignarea_employee_id_a3d4dd25_fk_personnel")
+}
+
+model personnel_certification {
+  id                              Int                               @id @default(autoincrement())
+  cert_code                       String                            @unique(map: "cert_code") @db.VarChar(20)
+  cert_name                       String                            @unique(map: "cert_name") @db.VarChar(50)
+  personnel_employeecertification personnel_employeecertification[]
+}
+
+model personnel_company {
+  id                      Int                       @id @default(autoincrement())
+  co_code                 String                    @unique(map: "co_code") @db.VarChar(10)
+  co_name                 String                    @db.VarChar(50)
+  remark                  String?                   @db.LongText
+  is_default              Boolean
+  auth_user_auth_company  auth_user_auth_company[]
+  personnel_employee      personnel_employee[]
+  workflow_workflowengine workflow_workflowengine[]
+}
+
+model personnel_costcenters {
+  id                          Int                           @id @default(autoincrement())
+  cost_code                   String                        @unique(map: "cost_code") @db.VarChar(10)
+  cost_name                   String                        @db.VarChar(50)
+  remark                      String?                       @db.LongText
+  is_default                  Boolean
+  auth_user_auth_cost_centers auth_user_auth_cost_centers[]
+  personnel_employee          personnel_employee[]
+  workflow_workflowengine     workflow_workflowengine[]
+}
+
+model personnel_department {
+  id                         Int                       @id @default(autoincrement())
+  dept_code                  String                    @unique(map: "dept_code") @db.VarChar(50)
+  dept_name                  String                    @db.VarChar(100)
+  is_default                 Boolean
+  parent_dept_id             Int?
+  att_departmentschedule     att_departmentschedule[]
+  att_deptattrule            att_deptattrule[]
+  att_holiday                att_holiday[]
+  auth_user_auth_dept        auth_user_auth_dept[]
+  base_linenotifysetting     base_linenotifysetting[]
+  mobile_gpsfordepartment    mobile_gpsfordepartment[]
+  personnel_department       personnel_department?     @relation("personnel_departmentTopersonnel_department", fields: [parent_dept_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_department_parent_dept_id_d0b44024_fk_personnel")
+  other_personnel_department personnel_department[]    @relation("personnel_departmentTopersonnel_department")
+  personnel_employee         personnel_employee[]
+  workflow_nodeinstance      workflow_nodeinstance[]
+  workflow_workflowengine    workflow_workflowengine[]
+
+  @@index([parent_dept_id], map: "personnel_department_parent_dept_id_d0b44024_fk_personnel")
+}
+
+model personnel_employee {
+  id                                 Int                                  @id @default(autoincrement())
+  create_time                        DateTime?                            @db.DateTime(6)
+  create_user                        String?                              @db.VarChar(150)
+  change_time                        DateTime?                            @db.DateTime(6)
+  change_user                        String?                              @db.VarChar(150)
+  status                             Int                                  @db.SmallInt
+  emp_code                           String                               @unique(map: "emp_code") @db.VarChar(20)
+  first_name                         String?                              @db.VarChar(50)
+  last_name                          String?                              @db.VarChar(25)
+  nickname                           String?                              @db.VarChar(25)
+  passport                           String?                              @db.VarChar(30)
+  driver_license_automobile          String?                              @db.VarChar(30)
+  driver_license_motorcycle          String?                              @db.VarChar(30)
+  photo                              String?                              @db.VarChar(200)
+  self_password                      String?                              @db.VarChar(128)
+  device_password                    String?                              @db.VarChar(20)
+  dev_privilege                      Int?
+  card_no                            String?                              @db.VarChar(20)
+  acc_group                          String?                              @db.VarChar(5)
+  acc_timezone                       String?                              @db.VarChar(20)
+  gender                             String?                              @db.VarChar(1)
+  birthday                           DateTime?                            @db.Date
+  address                            String?                              @db.VarChar(200)
+  postcode                           String?                              @db.VarChar(10)
+  office_tel                         String?                              @db.VarChar(20)
+  contact_tel                        String?                              @db.VarChar(20)
+  mobile                             String?                              @db.VarChar(20)
+  national                           String?                              @db.VarChar(50)
+  religion                           String?                              @db.VarChar(20)
+  title                              String?                              @db.VarChar(20)
+  enroll_sn                          String?                              @db.VarChar(20)
+  ssn                                String?                              @db.VarChar(20)
+  update_time                        DateTime?                            @db.DateTime(6)
+  hire_date                          DateTime?                            @db.Date
+  verify_mode                        Int?
+  city                               String?                              @db.VarChar(20)
+  is_admin                           Boolean
+  emp_type_id                        Int?
+  enable_att                         Boolean
+  enable_overtime                    Boolean
+  enable_holiday                     Boolean
+  deleted                            Boolean
+  reserved                           Int?
+  del_tag                            Int?
+  app_status                         Int?                                 @db.SmallInt
+  app_role                           Int?                                 @db.SmallInt
+  email                              String?                              @db.VarChar(50)
+  last_login                         DateTime?                            @db.DateTime(6)
+  is_active                          Boolean
+  department_id                      Int?
+  position_id                        Int?
+  enable_payroll                     Boolean
+  emp_status                         Int?                                 @db.SmallInt
+  payroll_code                       String?                              @db.VarChar(10)
+  salary                             Int?
+  settlement_parameter               Int?                                 @db.SmallInt
+  company_id                         Int
+  cost_centers_id                    Int
+  web_status                         Int?                                 @db.SmallInt
+  acc_accprivilege                   acc_accprivilege[]
+  att_addbreakinshift                att_addbreakinshift[]
+  att_attschedule                    att_attschedule[]
+  att_changeschedule                 att_changeschedule[]
+  att_leave                          att_leave[]
+  att_manuallog                      att_manuallog[]
+  att_overtime                       att_overtime[]
+  att_payloadbase                    att_payloadbase[]
+  att_payloadmulpunchset             att_payloadmulpunchset[]
+  att_payloadpayrollconcept          att_payloadpayrollconcept[]
+  att_payloadpayrollconceptovertime  att_payloadpayrollconceptovertime[]
+  att_payloadpunch                   att_payloadpunch[]
+  att_punchadjustment                att_punchadjustment[]
+  att_tempschedule                   att_tempschedule[]
+  att_training                       att_training[]
+  ep_eptransaction                   ep_eptransaction[]
+  iclock_biodata                     iclock_biodata[]
+  iclock_biophoto                    iclock_biophoto[]
+  iclock_privatemessage              iclock_privatemessage[]
+  iclock_transaction                 iclock_transaction[]
+  mobile_announcement                mobile_announcement[]
+  mobile_appnotification             mobile_appnotification[]
+  mobile_gpsforemployee              mobile_gpsforemployee[]
+  payroll_emploan                    payroll_emploan[]
+  payroll_emppayrollprofile          payroll_emppayrollprofile?
+  payroll_extradeduction             payroll_extradeduction[]
+  payroll_extraincrease              payroll_extraincrease[]
+  payroll_monthlysalary              payroll_monthlysalary[]
+  payroll_reimbursement              payroll_reimbursement[]
+  payroll_salaryadvance              payroll_salaryadvance[]
+  payroll_salarystructure            payroll_salarystructure[]
+  personnel_assignareaemployee       personnel_assignareaemployee[]
+  personnel_company                  personnel_company                    @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employee_company_id_95b3fd72_fk_personnel_company_id")
+  personnel_costcenters              personnel_costcenters                @relation(fields: [cost_centers_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employee_cost_centers_id_c161b974_fk_personnel")
+  personnel_department               personnel_department?                @relation(fields: [department_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employee_department_id_068bbd08_fk_personnel")
+  personnel_employeetype             personnel_employeetype?              @relation(fields: [emp_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employee_emp_type_id_c3c167e6_fk_personnel")
+  personnel_position                 personnel_position?                  @relation(fields: [position_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employee_position_id_c9321343_fk_personnel_position_id")
+  personnel_employee_area            personnel_employee_area[]
+  personnel_employee_flow_role       personnel_employee_flow_role[]
+  personnel_employee_payroll_concept personnel_employee_payroll_concept[]
+  personnel_employeecertification    personnel_employeecertification[]
+  personnel_employeeprofile          personnel_employeeprofile?
+  personnel_resign                   personnel_resign?
+  staff_stafftoken                   staff_stafftoken?
+  workflow_nodeinstance              workflow_nodeinstance[]
+  workflow_workflowengine_employee   workflow_workflowengine_employee[]
+  workflow_workflowinstance          workflow_workflowinstance[]
+
+  @@index([company_id], map: "personnel_employee_company_id_95b3fd72")
+  @@index([cost_centers_id], map: "personnel_employee_cost_centers_id_c161b974")
+  @@index([department_id], map: "personnel_employee_department_id_068bbd08")
+  @@index([emp_type_id], map: "personnel_employee_emp_type_id_c3c167e6")
+  @@index([position_id], map: "personnel_employee_position_id_c9321343")
+}
+
+model personnel_employee_area {
+  id                 Int                @id @default(autoincrement())
+  employee_id        Int
+  area_id            Int
+  personnel_employee personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employee_a_employee_id_8e5cec21_fk_personnel")
+  personnel_area     personnel_area     @relation(fields: [area_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employee_area_area_id_64c21925_fk_personnel_area_id")
+
+  @@unique([employee_id, area_id], map: "personnel_employee_area_employee_id_area_id_00b3d777_uniq")
+  @@index([area_id], map: "personnel_employee_area_area_id_64c21925_fk_personnel_area_id")
+}
+
+model personnel_employee_fixedhour {
+  id             Int     @id @default(autoincrement())
+  emp_code       String? @db.VarChar(100)
+  pc_id          String? @db.VarChar(100)
+  pc_code        String? @db.VarChar(30)
+  pc_name        String? @db.VarChar(100)
+  emp_fixed_hour String? @db.VarChar(30)
+}
+
+model personnel_employee_flow_role {
+  id                    Int                   @id @default(autoincrement())
+  employee_id           Int
+  workflowrole_id       Int
+  personnel_employee    personnel_employee    @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employee_f_employee_id_c27f8a56_fk_personnel")
+  workflow_workflowrole workflow_workflowrole @relation(fields: [workflowrole_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employee_f_workflowrole_id_4704db32_fk_workflow_")
+
+  @@unique([employee_id, workflowrole_id], map: "personnel_employee_flow__employee_id_workflowrole_46b0e5e0_uniq")
+  @@index([workflowrole_id], map: "personnel_employee_f_workflowrole_id_4704db32_fk_workflow_")
+}
+
+model personnel_employee_payroll_concept {
+  id                       Int                      @id @default(autoincrement())
+  employee_id              Int
+  payrollconcept_id        Int
+  personnel_employee       personnel_employee       @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employee_p_employee_id_58d730ea_fk_personnel")
+  personnel_payrollconcept personnel_payrollconcept @relation(fields: [payrollconcept_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employee_p_payrollconcept_id_c9c31b1b_fk_personnel")
+
+  @@unique([employee_id, payrollconcept_id], map: "personnel_employee_payro_employee_id_payrollconce_8da1b9ad_uniq")
+  @@index([payrollconcept_id], map: "personnel_employee_p_payrollconcept_id_c9c31b1b_fk_personnel")
+}
+
+model personnel_employeecertification {
+  id                      Int                     @id @default(autoincrement())
+  expire_on               DateTime?               @db.Date
+  email_alert             Boolean
+  before                  Int?
+  certification_id        Int
+  employee_id             Int
+  personnel_certification personnel_certification @relation(fields: [certification_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employeece_certification_id_faabed40_fk_personnel")
+  personnel_employee      personnel_employee      @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employeece_employee_id_b7bd3867_fk_personnel")
+
+  @@unique([employee_id, certification_id], map: "personnel_employeecertif_employee_id_certificatio_7bcf4c7d_uniq")
+  @@index([certification_id], map: "personnel_employeece_certification_id_faabed40_fk_personnel")
+}
+
+model personnel_employeeprofile {
+  id                 Int                @id @default(autoincrement())
+  column_order       String             @db.LongText
+  preferences        String             @db.LongText
+  emp_id             Int                @unique(map: "emp_id")
+  personnel_employee personnel_employee @relation(fields: [emp_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_employeepr_emp_id_3a69c313_fk_personnel")
+}
+
+model personnel_employeetype {
+  id                 Int                  @id @default(autoincrement())
+  empType_code       String               @unique(map: "empType_code") @db.VarChar(10)
+  empType_name       String               @db.VarChar(50)
+  remark             String?              @db.LongText
+  is_default         Boolean
+  personnel_employee personnel_employee[]
+}
+
+model personnel_payrollconcept {
+  id                                 Int                                  @id @default(autoincrement())
+  pc_code                            String                               @unique(map: "pc_code") @db.VarChar(10)
+  pc_name                            String                               @db.VarChar(50)
+  pc_status                          Int?
+  pc_type                            Int
+  surcharge                          Int?
+  type_value                         String                               @db.LongText
+  fixed_hours                        String?                              @db.VarChar(30)
+  judgment_type                      Boolean
+  pc_re_name                         String?                              @db.VarChar(255)
+  type_of_leave                      String?                              @db.VarChar(50)
+  personnel_employee_payroll_concept personnel_employee_payroll_concept[]
+  workflow_workflowengine            workflow_workflowengine[]
+}
+
+model personnel_position {
+  id                       Int                  @id @default(autoincrement())
+  position_code            String               @unique(map: "position_code") @db.VarChar(100)
+  position_name            String               @db.VarChar(100)
+  is_default               Boolean
+  parent_position_id       Int?
+  personnel_employee       personnel_employee[]
+  personnel_position       personnel_position?  @relation("personnel_positionTopersonnel_position", fields: [parent_position_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_position_parent_position_id_a496a36b_fk_personnel")
+  other_personnel_position personnel_position[] @relation("personnel_positionTopersonnel_position")
+
+  @@index([parent_position_id], map: "personnel_position_parent_position_id_a496a36b_fk_personnel")
+}
+
+model personnel_resign {
+  id                 Int                @id @default(autoincrement())
+  resign_date        DateTime           @db.Date
+  resign_type        Int?
+  reason             String?            @db.VarChar(200)
+  disableatt         Boolean
+  employee_id        Int                @unique(map: "employee_id")
+  personnel_employee personnel_employee @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "personnel_resign_employee_id_dd9b7e08_fk_personnel_employee_id")
+}
+
+model position {
+  Oid                 String   @id @db.Char(38)
+  Code                String?  @db.VarChar(100)
+  Name                String?  @db.VarChar(100)
+  BaseSalary          Float?
+  GeneratesOverTime   Boolean? @db.Bit(1)
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model process {
+  Oid             String  @id @db.Char(38)
+  ProcessCategory String? @db.Char(38)
+  Status          Int?
+
+  @@index([ProcessCategory], map: "iProcessCategory_Process")
+}
+
+model processcategory {
+  Oid                 String  @id @db.Char(38)
+  Name                String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Name], map: "iName_ProcessCategory")
+}
+
+model reportdata {
+  OID                 Int      @id @default(autoincrement())
+  ObjectTypeName      String?  @db.MediumText
+  Content             Bytes?
+  Name                String?  @db.VarChar(100)
+  IsInplaceReport     Boolean? @db.Bit(1)
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model rolebase {
+  Oid                 String  @id @db.Char(38)
+  Name                String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+  ObjectType          Int?
+
+  @@index([ObjectType], map: "iObjectType_RoleBase")
+}
+
+model sequence {
+  Oid                  String   @id @db.Char(38)
+  Prefix               String?  @db.VarChar(100)
+  Suffix               String?  @db.VarChar(100)
+  Padding              Int?     @db.UnsignedInt
+  Increment            Int?     @db.UnsignedInt
+  NextNumber           Int?
+  SerializedObjectType String?  @db.VarChar(100)
+  MemberName           String?  @db.VarChar(100)
+  Active               Boolean? @db.Bit(1)
+  OptimisticLockField  Int?
+  GCRecord             Int?
+
+  @@index([Active], map: "iActive_Sequence")
+}
+
+model shift {
+  Oid                 String   @id @db.Char(38)
+  Name                String?  @db.VarChar(100)
+  NumberCycles        Int?
+  ShiftCycle          Int?
+  OverTimeBeforeEntry Boolean? @db.Bit(1)
+  OverTimeAfterExit   Boolean? @db.Bit(1)
+  OverTimeInLunch     Boolean? @db.Bit(1)
+  OverTimeInHoliday   Boolean? @db.Bit(1)
+  Holidays            Int?
+  AddOverTime         Int?
+  MinimumOverTime     Int?
+  Status              Int?
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model shifttimetable {
+  Oid                 String   @id @db.Char(38)
+  NumberDay           Int?
+  Day                 String?  @db.VarChar(100)
+  MustMarkingOut      Boolean? @db.Bit(1)
+  StartShiftMarkingIn Boolean? @db.Bit(1)
+  MarkingOptional     Boolean? @db.Bit(1)
+  Shift               String?  @db.Char(38)
+  Timetable           String?  @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Shift], map: "iShift_ShiftTimetable")
+  @@index([Timetable], map: "iTimetable_ShiftTimetable")
+}
+
+model staff_stafftoken {
+  key                String             @id @db.VarChar(40)
+  created            DateTime           @db.DateTime(6)
+  user_id            Int                @unique(map: "user_id")
+  personnel_employee personnel_employee @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "staff_stafftoken_user_id_39c937fa_fk_personnel_employee_id")
+}
+
+model sync_area {
+  id          Int       @id @default(autoincrement())
+  area_code   String    @db.VarChar(30)
+  area_name   String    @db.VarChar(30)
+  post_time   DateTime? @db.DateTime(6)
+  flag        Int       @db.SmallInt
+  update_time DateTime? @db.DateTime(6)
+  sync_ret    String?   @db.VarChar(200)
+
+  @@unique([area_code, area_name], map: "sync_area_area_code_area_name_200046d1_uniq")
+}
+
+model sync_department {
+  id          Int       @id @default(autoincrement())
+  dept_code   String    @db.VarChar(50)
+  dept_name   String    @db.VarChar(100)
+  post_time   DateTime? @db.DateTime(6)
+  flag        Int       @db.SmallInt
+  update_time DateTime? @db.DateTime(6)
+  sync_ret    String?   @db.VarChar(200)
+
+  @@unique([dept_code, dept_name], map: "sync_department_dept_code_dept_name_93923213_uniq")
+}
+
+model sync_employee {
+  id            Int       @id @default(autoincrement())
+  emp_code      String    @unique(map: "sync_employee_emp_code_521bf06d_uniq") @db.VarChar(20)
+  first_name    String?   @db.VarChar(50)
+  last_name     String?   @db.VarChar(25)
+  dept_code     String?   @db.VarChar(50)
+  dept_name     String?   @db.VarChar(100)
+  job_code      String?   @db.VarChar(100)
+  job_name      String?   @db.VarChar(100)
+  area_code     String?   @db.VarChar(30)
+  area_name     String?   @db.VarChar(30)
+  card_no       String?   @db.VarChar(20)
+  multi_area    Boolean
+  hire_date     DateTime? @db.Date
+  gender        String?   @db.VarChar(2)
+  birthday      DateTime? @db.Date
+  email         String?   @db.VarChar(100)
+  active_status Boolean
+  post_time     DateTime? @db.DateTime(6)
+  flag          Int       @db.SmallInt
+  update_time   DateTime? @db.DateTime(6)
+  sync_ret      String?   @db.VarChar(200)
+}
+
+model sync_job {
+  id          Int       @id @default(autoincrement())
+  job_code    String    @db.VarChar(100)
+  job_name    String    @db.VarChar(100)
+  post_time   DateTime? @db.DateTime(6)
+  flag        Int       @db.SmallInt
+  update_time DateTime? @db.DateTime(6)
+  sync_ret    String?   @db.VarChar(200)
+
+  @@unique([job_code, job_name], map: "sync_job_job_code_job_name_4ec5619e_uniq")
+}
+
+model taxclassification {
+  Oid                 String  @id @db.Char(38)
+  Code                String? @db.VarChar(100)
+  Name                String? @db.VarChar(100)
+  Group               String? @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Group], map: "iGroup_TaxClassification")
+}
+
+model taxclassification_excluding {
+  ExcludedTo          String? @db.Char(38)
+  TaxesExcluded       String? @db.Char(38)
+  OID                 String  @id @db.Char(38)
+  OptimisticLockField Int?
+
+  @@unique([ExcludedTo, TaxesExcluded], map: "iExcludedToTaxesExcluded_TaxClassification_Excluding")
+  @@index([ExcludedTo], map: "iExcludedTo_TaxClassification_Excluding")
+  @@index([TaxesExcluded], map: "iTaxesExcluded_TaxClassification_Excluding")
+}
+
+model taxclassificationgroup {
+  Oid                 String  @id @db.Char(38)
+  Name                String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+}
+
+model template {
+  Oid                 String  @id @db.Char(38)
+  Finger              Int?
+  FingerTemplate      String? @db.LongText
+  Employee            String? @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Employee], map: "iEmployee_Template")
+}
+
+model third {
+  Oid        String  @id @db.Char(38)
+  ThirdType  String? @db.Char(38)
+  Code       String? @db.VarChar(100)
+  Document   String? @db.VarChar(45)
+  CheckDigit String? @db.VarChar(1)
+  TaxName    String? @db.VarChar(100)
+  FirstName  String? @db.VarChar(100)
+  MiddleName String? @db.VarChar(100)
+  LastName   String? @db.VarChar(100)
+  MiddleLast String? @db.VarChar(100)
+
+  @@index([Code], map: "iCode_Third")
+  @@index([Document], map: "iDocument_Third")
+  @@index([ThirdType], map: "iThirdType_Third")
+}
+
+model thirdthirds_taxclassificationtaxclassifications {
+  TaxClassifications  String? @db.Char(38)
+  Thirds              String? @db.Char(38)
+  OID                 String  @id @db.Char(38)
+  OptimisticLockField Int?
+
+  @@unique([TaxClassifications, Thirds], map: "iTaxClassificationsThirds_ThirdThirds_TaxClassification_CE02C1C9")
+  @@index([TaxClassifications], map: "iTaxClassifications_ThirdThirds_TaxClassificationTaxCla_FDD4B4B4")
+  @@index([Thirds], map: "iThirds_ThirdThirds_TaxClassificationTaxClassifications")
+}
+
+model thirdtype {
+  Oid                 String   @id @db.Char(38)
+  Code                String?  @db.VarChar(2)
+  Name                String?  @db.VarChar(100)
+  LegalEntity         Boolean? @db.Bit(1)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([Code], map: "iCode_ThirdType")
+  @@index([Name], map: "iName_ThirdType")
+}
+
+model timetable {
+  Oid                 String  @id @db.Char(38)
+  Name                String? @db.VarChar(100)
+  TotalTime           Float?
+  DisplayName         String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+  ObjectType          Int?
+
+  @@index([ObjectType], map: "iObjectType_Timetable")
+}
+
+model timetablefixed {
+  Oid        String   @id @db.Char(38)
+  MarkingIn  Float?
+  MarkingOut Float?
+  Lunch      Boolean? @db.Bit(1)
+  LunchOut   Float?
+  LunchIn    Float?
+  Delay      Float?
+}
+
+model timetablevariable {
+  Oid               String @id @db.Char(38)
+  WorkingTime       Float?
+  DiscountTimeLunch Float?
+}
+
+model trigger {
+  Oid                  String  @id @db.Char(38)
+  SerializedObjectType String? @db.VarChar(100)
+  TriggerEvent         Int?
+  Process              String? @db.Char(38)
+  OptimisticLockField  Int?
+  GCRecord             Int?
+
+  @@index([Process], map: "iProcess_Trigger")
+}
+
+model workflow_abstractexception {
+  id                        Int                        @id @default(autoincrement())
+  audit_status              Int                        @db.SmallInt
+  revoke_reason             String?                    @db.LongText
+  att_changeschedule        att_changeschedule?
+  att_leave                 att_leave?
+  att_manuallog             att_manuallog?
+  att_overtime              att_overtime?
+  att_training              att_training?
+  workflow_workflowinstance workflow_workflowinstance?
+}
+
+model workflow_nodeinstance {
+  id                        Int                        @id @default(autoincrement())
+  name                      String                     @db.VarChar(200)
+  order                     Int                        @db.SmallInt
+  is_last_node              Boolean
+  is_next_node              Boolean
+  remark                    String?                    @db.VarChar(255)
+  apply_time                DateTime?                  @db.DateTime(6)
+  approver_admin_id         Int?
+  approver_employee_id      Int?
+  departments_id            Int?
+  node_engine_id            Int?
+  state                     Int                        @db.SmallInt
+  workflow_instance_id      Int?
+  personnel_employee        personnel_employee?        @relation(fields: [approver_employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_nodeinstanc_approver_employee_id_d36cd45d_fk_personnel")
+  personnel_department      personnel_department?      @relation(fields: [departments_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_nodeinstanc_departments_id_b0dc2bdb_fk_personnel")
+  workflow_workflownode     workflow_workflownode?     @relation(fields: [node_engine_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_nodeinstanc_node_engine_id_4533f12d_fk_workflow_")
+  workflow_workflowinstance workflow_workflowinstance? @relation(fields: [workflow_instance_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_nodeinstanc_workflow_instance_id_afe84fe4_fk_workflow_")
+  auth_user                 auth_user?                 @relation(fields: [approver_admin_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_nodeinstance_approver_admin_id_dff58806_fk_auth_user_id")
+
+  @@index([approver_employee_id], map: "workflow_nodeinstanc_approver_employee_id_d36cd45d_fk_personnel")
+  @@index([node_engine_id], map: "workflow_nodeinstanc_node_engine_id_4533f12d_fk_workflow_")
+  @@index([workflow_instance_id], map: "workflow_nodeinstanc_workflow_instance_id_afe84fe4_fk_workflow_")
+  @@index([approver_admin_id], map: "workflow_nodeinstance_approver_admin_id_dff58806_fk_auth_user_id")
+  @@index([departments_id], map: "workflow_nodeinstance_departments_id_b0dc2bdb")
+}
+
+model workflow_workflowengine {
+  id                               Int                                @id @default(autoincrement())
+  workflow_code                    String                             @unique(map: "workflow_code") @db.VarChar(50)
+  workflow_name                    String                             @db.VarChar(50)
+  start_date                       DateTime                           @db.Date
+  end_date                         DateTime                           @db.Date
+  description                      String                             @db.VarChar(50)
+  workflow_type                    Int                                @db.SmallInt
+  inform_type                      Int                                @db.SmallInt
+  del_flag                         Int?                               @db.SmallInt
+  content_type_id                  Int?
+  department_id                    Int?
+  company_id                       Int?
+  cost_centers_id                  Int?
+  payroll_concept_id               Int?
+  personnel_company                personnel_company?                 @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workfloweng_company_id_c42adcb0_fk_personnel")
+  django_content_type              django_content_type?               @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workfloweng_content_type_id_f7345c20_fk_django_co")
+  personnel_costcenters            personnel_costcenters?             @relation(fields: [cost_centers_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workfloweng_cost_centers_id_d381dd72_fk_personnel")
+  personnel_department             personnel_department?              @relation(fields: [department_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workfloweng_department_id_a21fe4bc_fk_personnel")
+  personnel_payrollconcept         personnel_payrollconcept?          @relation(fields: [payroll_concept_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workfloweng_payroll_concept_id_0a6c738a_fk_personnel")
+  workflow_workflowengine_employee workflow_workflowengine_employee[]
+  workflow_workflowinstance        workflow_workflowinstance[]
+  workflow_workflownode            workflow_workflownode[]
+
+  @@index([company_id], map: "workflow_workfloweng_company_id_c42adcb0_fk_personnel")
+  @@index([content_type_id], map: "workflow_workfloweng_content_type_id_f7345c20_fk_django_co")
+  @@index([cost_centers_id], map: "workflow_workfloweng_cost_centers_id_d381dd72_fk_personnel")
+  @@index([payroll_concept_id], map: "workflow_workfloweng_payroll_concept_id_0a6c738a_fk_personnel")
+  @@index([department_id], map: "workflow_workflowengine_departments_id_0f06d4c7")
+}
+
+model workflow_workflowengine_employee {
+  id                      Int                     @id @default(autoincrement())
+  workflowengine_id       Int
+  employee_id             Int
+  personnel_employee      personnel_employee      @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workfloweng_employee_id_803a409e_fk_personnel")
+  workflow_workflowengine workflow_workflowengine @relation(fields: [workflowengine_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workfloweng_workflowengine_id_6ebcc5f2_fk_workflow_")
+
+  @@unique([workflowengine_id, employee_id], map: "workflow_workflowengine__workflowengine_id_employ_8128deb2_uniq")
+  @@index([employee_id], map: "workflow_workfloweng_employee_id_803a409e_fk_personnel")
+}
+
+model workflow_workflowinstance {
+  id                         Int                         @id @default(autoincrement())
+  workflow_code              String                      @db.VarChar(255)
+  workflow_name              String                      @db.VarChar(255)
+  start_date                 DateTime                    @db.Date
+  end_date                   DateTime                    @db.Date
+  issue_date                 DateTime                    @db.Date
+  description                String                      @db.VarChar(255)
+  content_type               Int
+  inform_type                Int                         @db.SmallInt
+  del_flag                   Boolean
+  employee_id                Int
+  exception_id               Int?                        @unique(map: "exception_id")
+  workflow_engine_id         Int?
+  workflow_nodeinstance      workflow_nodeinstance[]
+  personnel_employee         personnel_employee          @relation(fields: [employee_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workflowins_employee_id_c7cff08e_fk_personnel")
+  workflow_abstractexception workflow_abstractexception? @relation(fields: [exception_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workflowins_exception_id_6c82a5d8_fk_workflow_")
+  workflow_workflowengine    workflow_workflowengine?    @relation(fields: [workflow_engine_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workflowins_workflow_engine_id_1e6ac40f_fk_workflow_")
+
+  @@index([employee_id], map: "workflow_workflowins_employee_id_c7cff08e_fk_personnel")
+  @@index([workflow_engine_id], map: "workflow_workflowins_workflow_engine_id_1e6ac40f_fk_workflow_")
+}
+
+model workflow_workflownode {
+  id                             Int                              @id @default(autoincrement())
+  node_code                      String                           @db.VarChar(30)
+  node_name                      String                           @db.VarChar(30)
+  order_id                       Int
+  approver_type                  Int?                             @db.SmallInt
+  notifier_type                  Int?                             @db.SmallInt
+  approver_by_overall            Boolean
+  notify_by_overall              Boolean
+  workflow_engine_id             Int?
+  workflow_engine_name           String                           @db.VarChar(50)
+  workflow_nodeinstance          workflow_nodeinstance[]
+  workflow_workflowengine        workflow_workflowengine?         @relation(fields: [workflow_engine_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workflownod_workflow_engine_id_04c8f470_fk_workflow_")
+  workflow_workflownode_approver workflow_workflownode_approver[]
+  workflow_workflownode_notifier workflow_workflownode_notifier[]
+
+  @@index([workflow_engine_id], map: "workflow_workflownode_workflow_engine_id_04c8f470")
+}
+
+model workflow_workflownode_approver {
+  id                    Int                   @id @default(autoincrement())
+  workflownode_id       Int
+  workflowrole_id       Int
+  workflow_workflownode workflow_workflownode @relation(fields: [workflownode_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workflownod_workflownode_id_d814c941_fk_workflow_")
+  workflow_workflowrole workflow_workflowrole @relation(fields: [workflowrole_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workflownod_workflowrole_id_c8e00d42_fk_workflow_")
+
+  @@unique([workflownode_id, workflowrole_id], map: "workflow_workflownode_ap_workflownode_id_workflow_7543ba37_uniq")
+  @@index([workflowrole_id], map: "workflow_workflownod_workflowrole_id_c8e00d42_fk_workflow_")
+}
+
+model workflow_workflownode_notifier {
+  id                    Int                   @id @default(autoincrement())
+  workflownode_id       Int
+  workflowrole_id       Int
+  workflow_workflownode workflow_workflownode @relation(fields: [workflownode_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workflownod_workflownode_id_57298016_fk_workflow_")
+  workflow_workflowrole workflow_workflowrole @relation(fields: [workflowrole_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "workflow_workflownod_workflowrole_id_73de7fc2_fk_workflow_")
+
+  @@unique([workflownode_id, workflowrole_id], map: "workflow_workflownode_no_workflownode_id_workflow_cac02b37_uniq")
+  @@index([workflowrole_id], map: "workflow_workflownod_workflowrole_id_73de7fc2_fk_workflow_")
+}
+
+model workflow_workflowrole {
+  id                             Int                              @id @default(autoincrement())
+  role_code                      String                           @unique(map: "role_code") @db.VarChar(30)
+  role_name                      String                           @unique(map: "role_name") @db.VarChar(50)
+  description                    String?                          @db.VarChar(200)
+  personnel_employee_flow_role   personnel_employee_flow_role[]
+  workflow_workflownode_approver workflow_workflownode_approver[]
+  workflow_workflownode_notifier workflow_workflownode_notifier[]
+}
+
+model xmlstore {
+  Oid                 String  @id @db.Char(38)
+  User                String? @db.Char(38)
+  Aspect              String? @db.VarChar(100)
+  XmlData             String? @db.LongText
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([User], map: "iUser_XmlStore")
+}
+
+model xmluser {
+  Oid                 String  @id @db.Char(38)
+  User                String? @db.Char(38)
+  OptimisticLockField Int?
+  GCRecord            Int?
+
+  @@index([User], map: "iUser_XmlUser")
+}
+
+model xpobjecttype {
+  OID          Int     @id @default(autoincrement())
+  TypeName     String? @unique(map: "iTypeName_XPObjectType") @db.VarChar(254)
+  AssemblyName String? @db.VarChar(254)
+}
+
+model xpweakreference {
+  Oid                 String  @id @db.Char(38)
+  TargetType          Int?
+  TargetKey           String? @db.VarChar(100)
+  OptimisticLockField Int?
+  GCRecord            Int?
+  ObjectType          Int?
+
+  @@index([ObjectType], map: "iObjectType_XPWeakReference")
+  @@index([TargetType], map: "iTargetType_XPWeakReference")
 }

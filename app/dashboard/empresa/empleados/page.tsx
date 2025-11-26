@@ -13,24 +13,35 @@ import {
 } from "@/components/ui/select";
 import { AdvancedFilterDialog } from "@/components/advanced-filtrer";
 import UpdateModal from "@/components/UpdateModal";
+import {
+  Search,
+  Filter,
+  X,
+  Users,
+  Building,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+} from "lucide-react";
 
-// Componente de controles de paginación local - CORREGIDO
-function PaginationControls({ 
-  currentPage, 
-  totalPages, 
-  totalItems, 
-  itemsPerPage, 
-  onPageChange, 
-  onItemsPerPageChange 
+// ---------------- PAGINACIÓN ---------------- //
+
+function PaginationControls({
+  currentPage,
+  totalPages,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
+  onItemsPerPageChange,
 }) {
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
-  // MOSTRAR SIEMPRE que haya datos, incluso si totalItems es 0
   if (totalItems === 0 && currentPage === 1) {
     return (
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white border-t border-gray-200">
-        <div className="text-sm text-gray-600">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-white border-t border-gray-200">
+        <div className="text-sm text-gray-500 flex items-center gap-2">
+          <FileText className="h-4 w-4" />
           No hay empleados para mostrar
         </div>
       </div>
@@ -40,8 +51,9 @@ function PaginationControls({
   if (totalItems === 0) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white border-t border-gray-200">
-      <div className="text-sm text-gray-600">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-white border-t border-gray-200">
+      <div className="text-sm text-gray-600 flex items-center gap-2">
+        <Users className="h-4 w-4" />
         Mostrando {startItem}-{endItem} de {totalItems} empleados
       </div>
 
@@ -49,43 +61,71 @@ function PaginationControls({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
+          <ChevronLeft className="h-4 w-4" />
           Anterior
         </button>
 
-        <span className="text-sm text-gray-600 mx-2">
-          Página {currentPage} de {totalPages}
-        </span>
+        <div className="flex items-center gap-1 mx-2">
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum;
+            if (totalPages <= 5) {
+              pageNum = i + 1;
+            } else if (currentPage <= 3) {
+              pageNum = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              pageNum = totalPages - 4 + i;
+            } else {
+              pageNum = currentPage - 2 + i;
+            }
+
+            return (
+              <button
+                key={pageNum}
+                onClick={() => onPageChange(pageNum)}
+                className={`w-8 h-8 text-sm rounded-lg transition-all duration-200 ${
+                  currentPage === pageNum
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+        </div>
 
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           Siguiente
+          <ChevronRight className="h-4 w-4" />
         </button>
       </div>
 
       <div className="flex items-center gap-2">
-        <label htmlFor="itemsPerPage" className="text-sm text-gray-600">
-          Empleados por página:
-        </label>
+        <label className="text-sm text-gray-600">Por página:</label>
         <select
-          id="itemsPerPage"
           value={itemsPerPage}
           onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-          className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
         >
           <option value={15}>15</option>
           <option value={25}>25</option>
-          <option value={35}>35</option>
           <option value={50}>50</option>
+          <option value={100}>100</option>
         </select>
       </div>
     </div>
   );
 }
+
+// ===========================================================
+//                PÁGINA PRINCIPAL DE EMPLEADOS
+// ===========================================================
 
 export default function EmpleadosPage() {
   const columnas = [
@@ -98,55 +138,50 @@ export default function EmpleadosPage() {
     "Valor Hora",
   ];
 
-  type Empleado = {
-    [key: string]: any;
-    "Número Lector": string;
-    Oid: string;
-    Documento: string;
-    "Nombre a mostrar": string;
-    Departamento: string;
-    "Turno Actual": string;
-    "Valor Hora": string;
-  };
-
-  // Estado general
-  const [datos, setDatos] = useState<Empleado[]>([]);
+  const [datos, setDatos] = useState([]);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Paginación local - ESTADO INICIAL CORREGIDO
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Modal Update
-  const [selectedEmpleado, setSelectedEmpleado] = useState<Empleado | null>(null);
+  const [selectedEmpleado, setSelectedEmpleado] = useState(null);
   const [openUpdate, setOpenUpdate] = useState(false);
 
-  // Filtros
   const [busqueda, setBusqueda] = useState("");
   const [departamento, setDepartamento] = useState("");
   const [openAdvanced, setOpenAdvanced] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState<any[]>([]);
+  const [advancedFilters, setAdvancedFilters] = useState([]);
 
   useEffect(() => setIsMounted(true), []);
 
   useEffect(() => {
     if (!isMounted) return;
 
-    async function fetchEmpleados() {
+    async function fetchData() {
       try {
         const res = await fetch("/api/empleados");
         if (!res.ok) throw new Error("Error al obtener empleados");
+
         const data = await res.json();
-        setDatos(data);
+
+        // 🔥 Solo empleados llenos (filtrados en backend PEEERO por si acaso)
+        const filtrados = data.filter(
+          (e) =>
+            e["Nombre a mostrar"] &&
+            e["Nombre a mostrar"].toString().trim() !== "" &&
+            e["Documento"] &&
+            e["Departamento"]
+        );
+
+        setDatos(filtrados);
       } catch (err) {
-        console.error("Error:", err);
+        console.error("Error cargando empleados:", err);
       }
     }
 
-    fetchEmpleados();
+    fetchData();
   }, [isMounted]);
 
-  // Aplicar filtros
   const datosFiltrados = useMemo(() => {
     let filtered = datos;
 
@@ -197,147 +232,116 @@ export default function EmpleadosPage() {
     return filtered;
   }, [datos, busqueda, departamento, advancedFilters]);
 
-  // Datos paginados
   const datosPaginados = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return datosFiltrados.slice(startIndex, startIndex + itemsPerPage);
   }, [datosFiltrados, currentPage, itemsPerPage]);
 
-  // Resetear a página 1 cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
   }, [busqueda, departamento, advancedFilters.length]);
 
-  // Departamentos (Select)
   const departamentos = useMemo(
     () => Array.from(new Set(datos.map((d) => d["Departamento"]))),
     [datos]
   );
 
-  // Limpieza de filtros
-  const handleClearAllFilters = () => {
-    setBusqueda("");
-    setDepartamento("");
-    setAdvancedFilters([]);
-    setCurrentPage(1);
-  };
-
-  // Al hacer click en fila
-  const handleRowClick = (empleado: Empleado) => {
-    setSelectedEmpleado(empleado);
-    setOpenUpdate(true);
-  };
-
-  // Manejar cambio de items por página
-  const handleItemsPerPageChange = (newItemsPerPage) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1);
-  };
-
-  // Calcular total de páginas
   const totalPages = Math.ceil(datosFiltrados.length / itemsPerPage);
 
   if (!isMounted) return <div className="p-8 text-center">Cargando...</div>;
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">📋 Empleados</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            {datosFiltrados.length} empleados encontrados
-            {datosFiltrados.length !== datos.length && ` (filtrados de ${datos.length} totales)`}
-          </p>
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <Users className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Gestión de Empleados
+            </h1>
+            <p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
+              {datosFiltrados.length} empleados encontrados
+            </p>
+          </div>
         </div>
+      </div>
 
-        <div className="flex gap-2">
-          {(busqueda || departamento || advancedFilters.length > 0) && (
-            <Button
-              variant="outline"
-              className="text-gray-600"
-              onClick={handleClearAllFilters}
-            >
-              Limpiar Filtros
-            </Button>
-          )}
+      {/* FILTROS */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+          <div className="flex-1">
+            <label className="text-sm font-medium text-gray-700 mb-1 block">
+              Búsqueda rápida
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Buscar por nombre o documento..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className="pl-10 bg-gray-50 border-gray-300"
+              />
+            </div>
+          </div>
+
+          <div className="w-full sm:w-60">
+            <label className="text-sm font-medium text-gray-700 mb-1 block">
+              Departamento
+            </label>
+            <Select value={departamento} onValueChange={setDepartamento}>
+              <SelectTrigger className="bg-gray-50 border-gray-300">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {departamentos.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      {d}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <Button
             variant="outline"
-            className="border-blue-500 text-blue-600"
             onClick={() => setOpenAdvanced(true)}
+            className="border-gray-300"
           >
-            ⚙️ Filtros Avanzados
+            <Filter className="h-4 w-4 mr-2" />
+            Filtros Avanzados
           </Button>
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="flex gap-3 flex-wrap">
-        <Input
-          placeholder="Buscar por nombre o documento..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="max-w-md"
-        />
-
-        <Select value={departamento} onValueChange={setDepartamento}>
-          <SelectTrigger className="w-[250px]">
-            <SelectValue placeholder="Filtrar por departamento" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {departamentos.map((dep) => (
-              <SelectItem key={dep} value={dep}>
-                {dep}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Tabla con paginación */}
-      <div className="border rounded-lg overflow-hidden bg-white">
-        {/* Tabla */}
+      {/* TABLA */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <Tabla
             columnas={columnas}
             datos={datosPaginados}
-            onRowClick={handleRowClick}
+            onRowClick={(empleado) => {
+              setSelectedEmpleado(empleado);
+              setOpenUpdate(true);
+            }}
           />
         </div>
-        
-        {/* Controles de paginación - SIEMPRE MOSTRAR */}
+
         <PaginationControls
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={datosFiltrados.length}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
-          onItemsPerPageChange={handleItemsPerPageChange}
+          onItemsPerPageChange={setItemsPerPage}
         />
       </div>
 
-      {/* Mensaje cuando no hay datos */}
-      {datosFiltrados.length === 0 && datos.length > 0 && (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <div className="text-gray-400 text-6xl mb-4">🔍</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No se encontraron empleados
-          </h3>
-          <p className="text-gray-500 mb-4">
-            No hay empleados que coincidan con los filtros aplicados.
-          </p>
-          <Button
-            variant="outline"
-            onClick={handleClearAllFilters}
-          >
-            Limpiar todos los filtros
-          </Button>
-        </div>
-      )}
-
-      {/* Update Modal */}
       {openUpdate && selectedEmpleado && (
         <UpdateModal
           type="empleado"
@@ -346,7 +350,6 @@ export default function EmpleadosPage() {
         />
       )}
 
-      {/* Filtros avanzados */}
       <AdvancedFilterDialog
         open={openAdvanced}
         onOpenChange={setOpenAdvanced}

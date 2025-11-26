@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Tabla from "../../../../components/Table";
 import UpdateModal from "@/components/UpdateModal";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { FileText, Calendar, Users, Shield, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ConceptoAsistencia {
   id?: string;
@@ -22,7 +25,7 @@ interface TipoPermiso {
   estado: string;
 }
 
-// Componente de controles de paginación local
+// Componente de controles de paginación mejorado
 function PaginationControls({ 
   currentPage, 
   totalPages, 
@@ -36,8 +39,9 @@ function PaginationControls({
 
   if (totalItems === 0 && currentPage === 1) {
     return (
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-3 bg-white border-t border-gray-200">
-        <div className="text-xs text-gray-600">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-white border-t border-gray-200">
+        <div className="text-sm text-gray-500 flex items-center gap-2">
+          <FileText className="h-4 w-4" />
           No hay {tableType === 'asistencia' ? 'conceptos de asistencia' : 'tipos de permisos'} para mostrar
         </div>
       </div>
@@ -47,8 +51,9 @@ function PaginationControls({
   if (totalItems === 0) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white border-t border-gray-200">
-      <div className="text-xs text-gray-600">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-white border-t border-gray-200">
+      <div className="text-sm text-gray-600 flex items-center gap-2">
+        <FileText className="h-4 w-4" />
         Mostrando {startItem}-{endItem} de {totalItems} {tableType === 'asistencia' ? 'conceptos' : 'permisos'}
       </div>
 
@@ -56,21 +61,49 @@ function PaginationControls({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
+          <ChevronLeft className="h-4 w-4" />
           Anterior
         </button>
 
-        <span className="text-xs text-gray-600 mx-1">
-          Pág. {currentPage} de {totalPages}
-        </span>
+        <div className="flex items-center gap-1 mx-2">
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum;
+            if (totalPages <= 5) {
+              pageNum = i + 1;
+            } else if (currentPage <= 3) {
+              pageNum = i + 1;
+            } else if (currentPage >= totalPages - 2) {
+              pageNum = totalPages - 4 + i;
+            } else {
+              pageNum = currentPage - 2 + i;
+            }
+
+            return (
+              <button
+                key={pageNum}
+                onClick={() => onPageChange(pageNum)}
+                className={`w-8 h-8 text-sm rounded-lg transition-all duration-200 ${
+                  currentPage === pageNum
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+          {totalPages > 5 && <span className="text-gray-400 mx-1">...</span>}
+        </div>
 
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           Siguiente
+          <ChevronRight className="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -194,7 +227,7 @@ export default function GestionConceptos() {
     'Nombre': concepto.nombre,
     'Fecha/Proga': concepto.factor,
     'Estado': (
-      <span className={`px-2 py-1 rounded text-xs ${
+      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${
         concepto.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
       }`}>
         {concepto.estado}
@@ -207,14 +240,14 @@ export default function GestionConceptos() {
     'Código Exportar': permiso.codigoExportar || '-',
     'Nombre': permiso.nombre,
     'Pago': (
-      <span className={`px-2 py-1 rounded text-xs ${
+      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${
         permiso.pago ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
       }`}>
         {permiso.pago ? 'Con pago' : 'Sin pago'}
       </span>
     ),
     'Estado': (
-      <span className={`px-2 py-1 rounded text-xs ${
+      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${
         permiso.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
       }`}>
         {permiso.estado}
@@ -252,82 +285,118 @@ export default function GestionConceptos() {
 
   if (cargando) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-lg">Cargando conceptos...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center mx-auto mb-4">
+            <FileText className="h-8 w-8 text-gray-400 animate-pulse" />
+          </div>
+          <p className="text-gray-500">Cargando conceptos...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow-md">
-      <h1 className="text-xl font-bold mb-4">Asistencia</h1>
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <Shield className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Gestión de Conceptos</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Administra conceptos de asistencia y tipos de permisos
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* CONTENEDOR DE LAS DOS TABLAS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         
         {/* TABLA DE CONCEPTOS DE ASISTENCIA */}
-        <div className="bg-gray-50 rounded-lg border border-gray-200">
-          <div className="p-3 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800">Conceptos de Asistencia</h2>
-          </div>
+        <Card className="shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
+          <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-600" />
+              Conceptos de Asistencia
+            </CardTitle>
+          </CardHeader>
           
-          {conceptosAsistencia.length > 0 ? (
-            <>
-              <div className="text-xs">
-                <Tabla 
-                  columnas={columnasAsistencia}
-                  datos={datosParaTablaAsistencia}
-                  onRowClick={handleRowClickAsistencia}
+          <CardContent className="p-0 bg-white">
+            {conceptosAsistencia.length > 0 ? (
+              <>
+                <div className="overflow-x-auto">
+                  <Tabla 
+                    columnas={columnasAsistencia}
+                    datos={datosParaTablaAsistencia}
+                    onRowClick={handleRowClickAsistencia}
+                  />
+                </div>
+                
+                <PaginationControls
+                  currentPage={currentPageAsistencia}
+                  totalPages={totalPagesAsistencia}
+                  totalItems={conceptosAsistencia.length}
+                  itemsPerPage={itemsPerPageAsistencia}
+                  onPageChange={setCurrentPageAsistencia}
+                  tableType="asistencia"
                 />
+              </>
+            ) : (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay conceptos de asistencia</h3>
+                <p className="text-gray-500">No se encontraron conceptos de asistencia en el sistema</p>
               </div>
-              
-              <PaginationControls
-                currentPage={currentPageAsistencia}
-                totalPages={totalPagesAsistencia}
-                totalItems={conceptosAsistencia.length}
-                itemsPerPage={itemsPerPageAsistencia}
-                onPageChange={setCurrentPageAsistencia}
-                tableType="asistencia"
-              />
-            </>
-          ) : (
-            <div className="text-center py-8 text-gray-500 text-sm">
-              No hay conceptos de asistencia para mostrar
-            </div>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* TABLA DE TIPOS DE PERMISOS */}
-        <div className="bg-gray-50 rounded-lg border border-gray-200">
-          <div className="p-3 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800">Tipos de Permisos</h2>
-          </div>
+        <Card className="shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
+          <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <Users className="h-5 w-5 text-green-600" />
+              Tipos de Permisos
+            </CardTitle>
+          </CardHeader>
           
-          {tiposPermisos.length > 0 ? (
-            <>
-              <div className="text-xs">
-                <Tabla 
-                  columnas={columnasPermisos}
-                  datos={datosParaTablaPermisos}
-                  onRowClick={handleRowClickPermisos}
+          <CardContent className="p-0 bg-white">
+            {tiposPermisos.length > 0 ? (
+              <>
+                <div className="overflow-x-auto">
+                  <Tabla 
+                    columnas={columnasPermisos}
+                    datos={datosParaTablaPermisos}
+                    onRowClick={handleRowClickPermisos}
+                  />
+                </div>
+                
+                <PaginationControls
+                  currentPage={currentPagePermisos}
+                  totalPages={totalPagesPermisos}
+                  totalItems={tiposPermisos.length}
+                  itemsPerPage={itemsPerPagePermisos}
+                  onPageChange={setCurrentPagePermisos}
+                  tableType="permiso"
                 />
+              </>
+            ) : (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay tipos de permisos</h3>
+                <p className="text-gray-500">No se encontraron tipos de permisos en el sistema</p>
               </div>
-              
-              <PaginationControls
-                currentPage={currentPagePermisos}
-                totalPages={totalPagesPermisos}
-                totalItems={tiposPermisos.length}
-                itemsPerPage={itemsPerPagePermisos}
-                onPageChange={setCurrentPagePermisos}
-                tableType="permiso"
-              />
-            </>
-          ) : (
-            <div className="text-center py-8 text-gray-500 text-sm">
-              No hay tipos de permisos para mostrar
-            </div>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* 🔹 Update Modal */}

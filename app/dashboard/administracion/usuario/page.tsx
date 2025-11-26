@@ -1,6 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Users, UserPlus, Save, Edit, Trash2, Search, Eye, EyeOff, RefreshCw, Shield, Key, UserCheck } from "lucide-react";
 
 interface UsuarioForm {
   Oid?: string;
@@ -26,10 +30,8 @@ interface UsuarioAPI {
 // Función para simular desencriptación (MD5 no es reversible, así que mostramos placeholder)
 const obtenerPasswordLegible = (passwordEncriptado: string | null): string => {
   if (!passwordEncriptado) return '';
-  // Si la contraseña está encriptada (MD5 hash), mostramos un placeholder
-  // En un caso real, no podrías desencriptar MD5, es solo para visualización
   if (passwordEncriptado.length === 32 && /^[a-fA-F0-9]{32}$/.test(passwordEncriptado)) {
-    return '********'; // Placeholder para contraseñas encriptadas
+    return '********';
   }
   return passwordEncriptado;
 };
@@ -50,7 +52,6 @@ export default function CrearUsuario() {
   const [mostrarModal, setMostrarModal] = useState(false);
   const [cargandoUsuarios, setCargandoUsuarios] = useState(true);
   const [busqueda, setBusqueda] = useState('');
-  const [rolesDisponibles, setRolesDisponibles] = useState<string[]>([]);
 
   // Cargar usuarios desde la API
   const cargarUsuarios = async () => {
@@ -64,8 +65,6 @@ export default function CrearUsuario() {
       
       const usuariosAPI: UsuarioAPI[] = await response.json();
       
-      
-      // Transformar datos de la API al formato del componente
       const usuariosTransformados: Usuario[] = usuariosAPI.map(usuario => ({
         Oid: usuario.Oid,
         HiddenUserName: usuario.HiddenUserName || '',
@@ -156,10 +155,8 @@ export default function CrearUsuario() {
       console.log('Usuario creado:', usuarioCreado);
       alert('✅ Usuario creado exitosamente');
       
-      // Recargar la lista de usuarios
       await cargarUsuarios();
       
-      // Resetear formulario
       setFormData({
         HiddenUserName: '',
         UserName: '',
@@ -198,10 +195,9 @@ export default function CrearUsuario() {
   };
 
   const handleEditarUsuario = (usuario: Usuario) => {
-    // Cuando editamos, mostramos la contraseña real si el usuario quiere cambiarla
     setUsuarioEditando({
       ...usuario,
-      StoredPassword: '', // Vaciamos para forzar nueva contraseña o mantener la actual
+      StoredPassword: '',
       confirmarStoredPassword: ''
     });
     setMostrarModal(true);
@@ -210,7 +206,6 @@ export default function CrearUsuario() {
   const handleGuardarEdicion = async () => {
     if (!usuarioEditando) return;
 
-    // Validaciones específicas para edición
     if (!usuarioEditando.HiddenUserName.trim()) {
       alert('El nombre completo es requerido');
       return;
@@ -220,7 +215,6 @@ export default function CrearUsuario() {
       return;
     }
 
-    // Si el usuario ingresó una nueva contraseña, validarla
     if (usuarioEditando.StoredPassword && usuarioEditando.StoredPassword !== '********') {
       if (usuarioEditando.StoredPassword.length < 6) {
         alert('La contraseña debe tener al menos 6 caracteres');
@@ -241,7 +235,6 @@ export default function CrearUsuario() {
         IsActive: usuarioEditando.IsActive,
       };
 
-      // Solo enviar la contraseña si el usuario la cambió
       if (usuarioEditando.StoredPassword && usuarioEditando.StoredPassword !== '********') {
         datosEnvio.StoredPassword = usuarioEditando.StoredPassword;
       }
@@ -294,10 +287,15 @@ export default function CrearUsuario() {
 
   const getEstadoBadge = (estado: boolean) => {
     return estado ? 
-      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Activo</span> :
-      <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Inactivo</span>;
+      <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1 w-fit">
+        <UserCheck className="h-3 w-3" />
+        Activo
+      </span> :
+      <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1 w-fit">
+        <Shield className="h-3 w-3" />
+        Inactivo
+      </span>;
   };
-
 
   const resetForm = () => {
     setFormData({
@@ -309,433 +307,414 @@ export default function CrearUsuario() {
     });
   };
 
-  // Combinar roles disponibles con los predeterminados para asegurar opciones
-  const todasLasOpcionesRol = [
-    ...new Set([...rolesDisponibles, 'Administradores', 'Supervisor', 'Usuario'])
-  ];
-
   return (
-    <div className="min-h-screen bg-gray-50 py-4 md:py-8 px-3 sm:px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 mb-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-800">👤 Gestión de Usuarios</h1>
-              <p className="text-gray-600 mt-1 text-sm md:text-base">
-                Crear y administrar usuarios del sistema
-              </p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <button
-                onClick={resetForm}
-                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-medium"
-              >
-                🆕 Nuevo Formulario
-              </button>
-            </div>
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <Users className="h-6 w-6 text-blue-600" />
           </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Crear y administrar usuarios del sistema
+            </p>
+          </div>
+        </div>
 
+        <Button
+          onClick={resetForm}
+          className="bg-gray-600 hover:bg-gray-700 text-white flex items-center gap-2 shadow-sm"
+        >
+          <UserPlus className="h-4 w-4" />
+          Nuevo Formulario
+        </Button>
+      </div>
+
+      {/* Formulario de Creación */}
+      <Card className="shadow-sm border border-gray-200 rounded-2xl">
+        <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+          <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-blue-600" />
+            Crear Nuevo Usuario
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Información Personal */}
-            <div className="bg-blue-50 p-4 md:p-6 rounded-lg border border-blue-200">
-              <h2 className="text-lg font-semibold text-blue-800 mb-4">📝 Información Personal</h2>
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-600" />
+                Información Personal
+              </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
                     Nombre Completo *
                   </label>
-                  <input
+                  <Input
                     type="text"
                     name="HiddenUserName"
                     value={formData.HiddenUserName}
                     onChange={handleChange}
                     required
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="Ingrese el nombre completo"
                   />
                 </div>
-              </div>
-            </div>
 
-            {/* Información de Cuenta */}
-            <div className="bg-green-50 p-4 md:p-6 rounded-lg border border-green-200">
-              <h2 className="text-lg font-semibold text-green-800 mb-4">🔐 Información de Cuenta</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
                     Nombre de Usuario *
                   </label>
                   <div className="flex gap-2">
-                    <input
+                    <Input
                       type="text"
                       name="UserName"
                       value={formData.UserName}
                       onChange={handleChange}
                       required
-                      className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       placeholder="Nombre de usuario"
                     />
-                    <button
+                    <Button
                       type="button"
                       onClick={generarUsername}
-                      className="px-4 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors font-medium"
-                      title="Generar nombre de usuario"
+                      variant="outline"
+                      className="whitespace-nowrap"
                     >
-                      🔄
-                    </button>
+                      Generar
+                    </Button>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Estado
-                  </label>
-                  <div className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-300">
-                    <input
-                      type="checkbox"
-                      name="IsActive"
-                      checked={formData.IsActive}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700 font-medium">Usuario activo</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+            {/* Información de Seguridad */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Key className="h-5 w-5 text-green-600" />
+                Información de Seguridad
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
                     Contraseña *
                   </label>
                   <div className="flex gap-2">
-                    <input
-                      type={mostrarPassword ? "text" : "password"}
-                      name="StoredPassword"
-                      value={formData.StoredPassword}
-                      onChange={handleChange}
-                      required
-                      className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      placeholder="Mínimo 6 caracteres"
-                    />
-                    <button
+                    <div className="relative flex-1">
+                      <Input
+                        type={mostrarPassword ? "text" : "password"}
+                        name="StoredPassword"
+                        value={formData.StoredPassword}
+                        onChange={handleChange}
+                        required
+                        placeholder="Mínimo 6 caracteres"
+                      />
+                    </div>
+                    <Button
                       type="button"
                       onClick={() => setMostrarPassword(!mostrarPassword)}
-                      className="px-4 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors font-medium"
-                      title={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      variant="outline"
                     >
-                      {mostrarPassword ? '🙈' : '👁️'}
-                    </button>
-                    <button
+                      {mostrarPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                    <Button
                       type="button"
                       onClick={generarPassword}
-                      className="px-4 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors font-medium"
-                      title="Generar contraseña segura"
+                      variant="outline"
                     >
-                      🎲
-                    </button>
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
                     Confirmar Contraseña *
                   </label>
-                  <input
+                  <Input
                     type={mostrarPassword ? "text" : "password"}
                     name="confirmarStoredPassword"
                     value={formData.confirmarStoredPassword}
                     onChange={handleChange}
                     required
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="Repetir contraseña"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Botones de Acción del Formulario */}
+            {/* Estado del Usuario */}
+            <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <input
+                type="checkbox"
+                name="IsActive"
+                checked={formData.IsActive}
+                onChange={handleChange}
+                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-700">Usuario activo</span>
+            </div>
+
+            {/* Botones de Acción */}
             <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
-              <button
+              <Button
                 type="submit"
                 disabled={enviando}
-                className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center shadow-sm"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
               >
                 {enviando ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creando Usuario...
-                  </>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
                 ) : (
-                  '👤 Crear Usuario'
+                  <UserPlus className="h-4 w-4" />
                 )}
-              </button>
+                {enviando ? 'Creando Usuario...' : 'Crear Usuario'}
+              </Button>
               
-              <button
+              <Button
                 type="button"
                 onClick={resetForm}
-                className="flex-1 bg-gray-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-700 transition-colors shadow-sm"
+                variant="outline"
+                className="flex-1"
               >
-                🔄 Limpiar
-              </button>
+                Limpiar Formulario
+              </Button>
             </div>
           </form>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Lista de Usuarios Existentes */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">📋 Usuarios del Sistema</h2>
-              <p className="text-gray-600 mt-1 text-sm">
-                {cargandoUsuarios ? 'Cargando...' : `${usuariosFiltrados.length} de ${usuarios.length} usuario(s)`}
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 mt-4 md:mt-0">
+      {/* Lista de Usuarios */}
+      <Card className="shadow-sm border border-gray-200 rounded-2xl">
+        <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              Usuarios del Sistema
+            </CardTitle>
+            
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <div className="relative">
-                <input
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
                   type="text"
                   placeholder="Buscar usuarios..."
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="pl-10 w-full md:w-64"
                 />
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                  🔍
-                </div>
               </div>
-              <button
+              <Button
                 onClick={cargarUsuarios}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                variant="outline"
+                className="flex items-center gap-2"
               >
-                🔄 Actualizar
-              </button>
+                <RefreshCw className="h-4 w-4" />
+                Actualizar
+              </Button>
             </div>
           </div>
-
+        </CardHeader>
+        
+        <CardContent className="p-0">
           {cargandoUsuarios ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Cargando usuarios...</p>
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-gray-400 animate-pulse" />
+              </div>
+              <p className="text-gray-500">Cargando usuarios...</p>
             </div>
           ) : usuariosFiltrados.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">😕</div>
-              <p className="text-gray-600 text-lg">No se encontraron usuarios</p>
-              <p className="text-gray-500 text-sm mt-2">
+            <div className="text-center py-16">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron usuarios</h3>
+              <p className="text-gray-500">
                 {busqueda ? 'Intenta con otros términos de búsqueda' : 'Crea el primer usuario usando el formulario superior'}
               </p>
             </div>
           ) : (
-            <>
-              {/* Tabla de Usuarios - Desktop */}
-              <div className="hidden lg:block overflow-x-auto rounded-lg border border-gray-200">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="p-4 text-left text-sm font-semibold text-gray-700">
-                        Usuario
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-gray-700">
-                        Estado
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-gray-700">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {usuariosFiltrados.map((usuario) => (
-                      <tr 
-                        key={usuario.Oid} 
-                        className="hover:bg-gray-50 transition-colors border-b border-gray-200 last:border-b-0"
-                      >
-                        <td className="p-4">
-                          <div>
-                            <div className="font-semibold text-gray-900">
-                              {usuario.HiddenUserName}
-                            </div>
-                            <div className="text-sm text-gray-500">@{usuario.UserName}</div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="p-4 text-left text-sm font-semibold text-gray-700">
+                      Usuario
+                    </th>
+                    <th className="p-4 text-left text-sm font-semibold text-gray-700">
+                      Estado
+                    </th>
+                    <th className="p-4 text-left text-sm font-semibold text-gray-700">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usuariosFiltrados.map((usuario) => (
+                    <tr 
+                      key={usuario.Oid} 
+                      className="hover:bg-gray-50 transition-colors border-b border-gray-200 last:border-b-0"
+                    >
+                      <td className="p-4">
+                        <div>
+                          <div className="font-semibold text-gray-900">
+                            {usuario.HiddenUserName}
                           </div>
-                        </td>
-                        <td className="p-4">
-                          {getEstadoBadge(usuario.IsActive)}
-                        </td>
-                        <td className="p-4">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleEditarUsuario(usuario)}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 rounded border border-blue-200 hover:border-blue-300 transition-colors"
-                            >
-                              ✏️ Editar
-                            </button>
-                            <button
-                              onClick={() => handleEliminarUsuario(usuario.Oid)}
-                              className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 rounded border border-red-200 hover:border-red-300 transition-colors"
-                            >
-                              🗑️ Eliminar
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Lista de Usuarios - Mobile */}
-              <div className="lg:hidden space-y-4">
-                {usuariosFiltrados.map((usuario) => (
-                  <div 
-                    key={usuario.Oid}
-                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          {usuario.HiddenUserName}
-                        </h3>
-                        <p className="text-sm text-gray-500">@{usuario.UserName}</p>
-                      </div>
-                      <div className="flex gap-2">
+                          <div className="text-sm text-gray-500">@{usuario.UserName}</div>
+                        </div>
+                      </td>
+                      <td className="p-4">
                         {getEstadoBadge(usuario.IsActive)}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 pt-3 border-t border-gray-200">
-                      <button
-                        onClick={() => handleEditarUsuario(usuario)}
-                        className="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
-                      >
-                        ✏️ Editar
-                      </button>
-                      <button
-                        onClick={() => handleEliminarUsuario(usuario.Oid)}
-                        className="flex-1 bg-red-600 text-white py-2 px-3 rounded text-sm font-medium hover:bg-red-700 transition-colors"
-                      >
-                        🗑️ Eliminar
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => handleEditarUsuario(usuario)}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <Edit className="h-3 w-3" />
+                            Editar
+                          </Button>
+                          <Button
+                            onClick={() => handleEliminarUsuario(usuario.Oid)}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            Eliminar
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Modal de Edición */}
       {mostrarModal && usuarioEditando && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">✏️ Editar Usuario</h2>
-                <button
-                  onClick={() => setMostrarModal(false)}
-                  className="text-gray-500 hover:text-gray-700 text-xl"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nombre Completo *
-                    </label>
-                    <input
-                      type="text"
-                      value={usuarioEditando.HiddenUserName}
-                      onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, HiddenUserName: e.target.value} : null)}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
-                    <input
-                      type="checkbox"
-                      checked={usuarioEditando.IsActive}
-                      onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, IsActive: e.target.checked} : null)}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700 font-medium">Usuario activo</span>
+          <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+              <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                <Edit className="h-5 w-5 text-blue-600" />
+                Editar Usuario
+              </CardTitle>
+            </CardHeader>
+            
+            <CardContent className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Nombre Completo *
                   </label>
+                  <Input
+                    type="text"
+                    value={usuarioEditando.HiddenUserName}
+                    onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, HiddenUserName: e.target.value} : null)}
+                  />
                 </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Nombre de Usuario *
+                  </label>
+                  <Input
+                    type="text"
+                    value={usuarioEditando.UserName}
+                    onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, UserName: e.target.value} : null)}
+                  />
+                </div>
+              </div>
 
-                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                  <h3 className="text-sm font-semibold text-yellow-800 mb-2">🔐 Cambiar Contraseña</h3>
-                  <p className="text-sm text-yellow-700 mb-3">
-                    Deje en blanco para mantener la contraseña actual
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nueva Contraseña
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type={mostrarPassword ? "text" : "password"}
-                          value={usuarioEditando.StoredPassword}
-                          onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, StoredPassword: e.target.value} : null)}
-                          className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          placeholder="Nueva contraseña (mín. 6 caracteres)"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setMostrarPassword(!mostrarPassword)}
-                          className="px-4 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors font-medium"
-                        >
-                          {mostrarPassword ? '🙈' : '👁️'}
-                        </button>
-                      </div>
-                    </div>
+              <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <input
+                  type="checkbox"
+                  checked={usuarioEditando.IsActive}
+                  onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, IsActive: e.target.checked} : null)}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Usuario activo</span>
+              </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Confirmar Contraseña
-                      </label>
-                      <input
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <h3 className="text-sm font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  Cambiar Contraseña
+                </h3>
+                <p className="text-sm text-yellow-700 mb-3">
+                  Deje en blanco para mantener la contraseña actual
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Nueva Contraseña
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
                         type={mostrarPassword ? "text" : "password"}
-                        value={usuarioEditando.confirmarStoredPassword}
-                        onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, confirmarStoredPassword: e.target.value} : null)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        placeholder="Confirmar nueva contraseña"
+                        value={usuarioEditando.StoredPassword}
+                        onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, StoredPassword: e.target.value} : null)}
+                        placeholder="Nueva contraseña (mín. 6 caracteres)"
                       />
+                      <Button
+                        type="button"
+                        onClick={() => setMostrarPassword(!mostrarPassword)}
+                        variant="outline"
+                      >
+                        {mostrarPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Confirmar Contraseña
+                    </label>
+                    <Input
+                      type={mostrarPassword ? "text" : "password"}
+                      value={usuarioEditando.confirmarStoredPassword}
+                      onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, confirmarStoredPassword: e.target.value} : null)}
+                      placeholder="Confirmar nueva contraseña"
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-8 pt-6 border-t border-gray-200">
-                <button
+              <div className="flex gap-3 pt-6 border-t border-gray-200">
+                <Button
                   onClick={handleGuardarEdicion}
                   disabled={enviando}
-                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
                 >
                   {enviando ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Guardando...
-                    </>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
                   ) : (
-                    '💾 Guardar Cambios'
+                    <Save className="h-4 w-4" />
                   )}
-                </button>
-                <button
+                  {enviando ? 'Guardando...' : 'Guardar Cambios'}
+                </Button>
+                <Button
                   onClick={() => setMostrarModal(false)}
-                  className="flex-1 bg-gray-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
+                  variant="outline"
+                  className="flex-1"
                 >
                   Cancelar
-                </button>
+                </Button>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

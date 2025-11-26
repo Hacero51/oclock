@@ -1,10 +1,359 @@
+'use client';
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Users, Clock, Calendar, Target, TrendingUp, AlertTriangle, CheckCircle, BarChart3 } from "lucide-react";
+import { useState, useEffect } from "react";
+
+// Datos de ejemplo para las gráficas
+const datosEjemplo = {
+  cumplimientoPorDepartamento: [
+    { departamento: 'Administración', cumplimiento: 95, empleados: 12 },
+    { departamento: 'Producción', cumplimiento: 78, empleados: 45 },
+    { departamento: 'Ventas', cumplimiento: 88, empleados: 18 },
+    { departamento: 'TI', cumplimiento: 92, empleados: 8 },
+    { departamento: 'RH', cumplimiento: 96, empleados: 6 },
+  ],
+  retrasosPorTurno: [
+    { turno: 'Mañana (6AM-2PM)', retrasos: 12, total: 45 },
+    { turno: 'Tarde (2PM-10PM)', retrasos: 8, total: 38 },
+    { turno: 'Noche (10PM-6AM)', retrasos: 5, total: 22 },
+  ],
+  marcacionesHoy: {
+    puntuales: 89,
+    retrasos: 15,
+    ausentes: 6,
+    total: 110
+  },
+  metricasGenerales: {
+    totalEmpleados: 125,
+    activosHoy: 104,
+    promedioCumplimiento: 87,
+    incidenciasMes: 42
+  }
+};
+
 export default function DashboardPage() {
+  const [datos, setDatos] = useState(datosEjemplo);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    // Simular carga de datos
+    const timer = setTimeout(() => {
+      setCargando(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Componente de barra de progreso para cumplimiento
+  const BarraProgreso = ({ porcentaje, color = "bg-blue-500" }) => (
+    <div className="w-full bg-gray-200 rounded-full h-2">
+      <div 
+        className={`h-2 rounded-full ${color} transition-all duration-500`}
+        style={{ width: `${porcentaje}%` }}
+      />
+    </div>
+  );
+
+  // Componente de gráfica de barras simple
+  const GraficaBarras = ({ datos, color = "bg-blue-500" }) => (
+    <div className="flex items-end justify-between h-32 gap-1 pt-4">
+      {datos.map((item, index) => (
+        <div key={index} className="flex flex-col items-center flex-1">
+          <div className="text-xs text-gray-500 mb-1 text-center">{item.label}</div>
+          <div
+            className={`w-full ${color} rounded-t transition-all duration-500`}
+            style={{ height: `${item.valor}%` }}
+          />
+          <div className="text-xs font-medium mt-1">{item.valor}%</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  if (cargando) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center mx-auto mb-4">
+            <BarChart3 className="h-8 w-8 text-gray-400 animate-pulse" />
+          </div>
+          <p className="text-gray-500">Cargando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold">Panel de control</h1>
-      <p className="mt-2 text-gray-600">
-        Bienvenido al panel principal de Oclock.
-      </p>
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <BarChart3 className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Panel de Control</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Bienvenido al dashboard principal de En Punto
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">Hoy:</span>
+          <span className="text-sm font-medium text-gray-700">
+            {new Date().toLocaleDateString('es-ES', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </span>
+        </div>
+      </div>
+
+      {/* Métricas Principales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <Users className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Total Empleados</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {datos.metricasGenerales.totalEmpleados}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-50 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Activos Hoy</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {datos.metricasGenerales.activosHoy}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-50 rounded-lg">
+                <Target className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Cumplimiento</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {datos.metricasGenerales.promedioCumplimiento}%
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-50 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Incidencias Mes</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {datos.metricasGenerales.incidenciasMes}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Gráficas y Estadísticas */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Cumplimiento por Departamento */}
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
+              Cumplimiento por Departamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            {datos.cumplimientoPorDepartamento.map((depto, index) => (
+              <div key={index} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">
+                    {depto.departamento}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-gray-900">
+                      {depto.cumplimiento}%
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      ({depto.empleados} emp.)
+                    </span>
+                  </div>
+                </div>
+                <BarraProgreso 
+                  porcentaje={depto.cumplimiento} 
+                  color={
+                    depto.cumplimiento >= 90 ? "bg-green-500" :
+                    depto.cumplimiento >= 80 ? "bg-blue-500" :
+                    depto.cumplimiento >= 70 ? "bg-yellow-500" : "bg-red-500"
+                  }
+                />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Retrasos por Turno */}
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-600" />
+              Retrasos por Turno
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {datos.retrasosPorTurno.map((turno, index) => (
+                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <div className="font-medium text-gray-900">{turno.turno}</div>
+                    <div className="text-sm text-gray-500">
+                      {turno.retrasos} retrasos de {turno.total} empleados
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-lg font-bold ${
+                      (turno.retrasos / turno.total) * 100 > 20 ? 'text-red-600' : 
+                      (turno.retrasos / turno.total) * 100 > 10 ? 'text-yellow-600' : 'text-green-600'
+                    }`}>
+                      {Math.round((turno.retrasos / turno.total) * 100)}%
+                    </div>
+                    <div className="text-xs text-gray-500">tasa retraso</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Estadísticas del Día */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-green-600" />
+              Marcaciones de Hoy
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Puntuales</span>
+                <span className="font-bold text-green-600">
+                  {datos.marcacionesHoy.puntuales}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Retrasos</span>
+                <span className="font-bold text-yellow-600">
+                  {datos.marcacionesHoy.retrasos}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Ausentes</span>
+                <span className="font-bold text-red-600">
+                  {datos.marcacionesHoy.ausentes}
+                </span>
+              </div>
+              <div className="pt-3 border-t border-gray-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">Total</span>
+                  <span className="font-bold text-gray-900">
+                    {datos.marcacionesHoy.total}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Gráfica de Cumplimiento Mensual */}
+        <Card className="shadow-sm border border-gray-200 rounded-2xl lg:col-span-2">
+          <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-purple-600" />
+              Tendencia Mensual de Cumplimiento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <GraficaBarras
+              datos={[
+                { label: 'Lun', valor: 85 },
+                { label: 'Mar', valor: 88 },
+                { label: 'Mié', valor: 82 },
+                { label: 'Jue', valor: 90 },
+                { label: 'Vie', valor: 87 },
+                { label: 'Sáb', valor: 92 },
+                { label: 'Dom', valor: 78 }
+              ]}
+              color="bg-purple-500"
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Alertas y Recomendaciones */}
+      <Card className="shadow-sm border border-gray-200 rounded-2xl">
+        <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+          <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-yellow-600" />
+            Alertas del Sistema
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
+              <div className="text-sm">
+                <span className="font-medium text-yellow-800">Departamento de Producción</span>
+                <span className="text-yellow-700"> tiene un 22% de retrasos esta semana</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <Clock className="h-4 w-4 text-blue-600 flex-shrink-0" />
+              <div className="text-sm">
+                <span className="font-medium text-blue-800">Turno de la tarde</span>
+                <span className="text-blue-700"> muestra mejoría en puntualidad (+8%)</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+              <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+              <div className="text-sm">
+                <span className="font-medium text-green-800">Cumplimiento general</span>
+                <span className="text-green-700"> ha aumentado un 5% este mes</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

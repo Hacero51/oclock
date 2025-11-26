@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Tabla from "@/components/Table";
 import UpdateModal from "@/components/UpdateModal";
+import { Button } from "@/components/ui/Button";
+import { FileText, Plus, Download } from "lucide-react";
 
 export default function PermisosIncapacidadesPage() {
   const columnas = ["Empleado", "Tipo", "Inicio", "Fin", "Pago"];
@@ -82,30 +84,44 @@ export default function PermisosIncapacidadesPage() {
   // Evitar render prematuro
   if (!isMounted) {
     return (
-      <div className="p-8 text-center text-gray-500">
-        Cargando Permisos e Incapacidades...
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center mx-auto mb-4">
+            <FileText className="h-8 w-8 text-gray-400 animate-pulse" />
+          </div>
+          <p className="text-gray-500">Cargando permisos e incapacidades...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* 🔹 Encabezado */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Permisos e Incapacidades</h1>
-          <p className="text-gray-600">Gestión de ausencias, incapacidades y vacaciones</p>
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <FileText className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Permisos e Incapacidades</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              {datos.length} registros encontrados
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* 🔹 Tabla */}
-      <Tabla 
-        columnas={columnas} 
-        datos={datos} 
-        onRowClick={handleRowClick} 
-      />
+      {/* Tabla */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <Tabla 
+          columnas={columnas} 
+          datos={datos} 
+          onRowClick={handleRowClick} 
+        />
+      </div>
 
-      {/* 🔹 Update Modal */}
+      {/* Update Modal */}
       {openUpdate && selectedPermiso && (
         <UpdateModal
           type="permisoseinca"

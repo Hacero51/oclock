@@ -1,6 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Settings, Save, Clock, Calendar, RefreshCw } from "lucide-react";
 
 interface ConfiguracionGrupo {
   id: string;
@@ -123,26 +127,44 @@ export default function PanelConfiguracionAdmin() {
     );
   };
 
+  const handleGuardarConfiguraciones = async () => {
+    setGuardando(true);
+    try {
+      // Simular guardado en API
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('Configuraciones guardadas:', configuraciones);
+      alert('Configuraciones guardadas exitosamente');
+    } catch (error) {
+      console.error('Error guardando configuraciones:', error);
+      alert('Error al guardar las configuraciones');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   const renderizarCampo = (config: ConfiguracionItem, grupoId: string) => {
     switch (config.tipo) {
       case 'time':
         return (
-          <input
-            type="time"
-            step="1"
-            value={config.valor}
-            onChange={(e) => handleConfigChange(grupoId, config.id, e.target.value + ':00')}
-            className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+          <div className="relative">
+            <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              type="time"
+              step="1"
+              value={config.valor.slice(0, 5)}
+              onChange={(e) => handleConfigChange(grupoId, config.id, e.target.value + ':00')}
+              className="pl-10 bg-gray-50 border-gray-300 focus:bg-white"
+            />
+          </div>
         );
       
       default:
         return (
-          <input
+          <Input
             type="text"
             value={config.valor}
             onChange={(e) => handleConfigChange(grupoId, config.id, e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="bg-gray-50 border-gray-300 focus:bg-white"
           />
         );
     }
@@ -150,129 +172,100 @@ export default function PanelConfiguracionAdmin() {
 
   if (cargando) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando configuraciones...</p>
+          <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center mx-auto mb-4">
+            <Settings className="h-8 w-8 text-gray-400 animate-pulse" />
+          </div>
+          <p className="text-gray-500">Cargando configuraciones...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 md:py-8 px-3 sm:px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6 mb-4 md:mb-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6">
-            <div className="mb-4 md:mb-0">
-              <h1 className="text-xl md:text-2xl font-bold text-gray-800">⚙️ Panel de Configuración</h1>
-              <p className="text-gray-600 mt-1 text-sm md:text-base">Administra los Parámetros de Tiempo del Sistema</p>
-            </div>
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <Settings className="h-6 w-6 text-blue-600" />
           </div>
-
-          {/* Tabla Principal - Versión Desktop */}
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-200">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="border border-gray-200 p-3 text-left text-sm font-semibold text-gray-700 w-1/3">
-                    Grupo
-                  </th>
-                  <th className="border border-gray-200 p-3 text-left text-sm font-semibold text-gray-700 w-1/3">
-                    Configuración
-                  </th>
-                  <th className="border border-gray-200 p-3 text-left text-sm font-semibold text-gray-700 w-1/4">
-                    Valor
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {configuraciones.map((grupo, grupoIndex) => (
-                  <React.Fragment key={grupo.id}>
-                    {/* Fila de Grupo */}
-                    <tr className="bg-blue-50">
-                      <td className="border border-gray-200 p-3 font-semibold text-blue-800">
-                        {grupo.nombre}
-                      </td>
-                      <td className="border border-gray-200 p-3 text-sm text-gray-600">
-                        Grupo de configuraciones
-                      </td>
-                      <td className="border border-gray-200 p-3">
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                          Recuperable: {grupo.recuperable}
-                        </span>
-                      </td>
-                    </tr>
-                    
-                    {/* Configuraciones del grupo */}
-                    {grupo.configuraciones.map((config) => (
-                      <tr 
-                        key={config.id} 
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="border border-gray-200 p-3 text-sm text-gray-500">
-                          {/* Espacio en blanco para alineación */}
-                        </td>
-                        <td className="border border-gray-200 p-3 text-sm text-gray-700">
-                          {config.nombre}
-                        </td>
-                        <td className="border border-gray-200 p-3">
-                          <div className="w-32">
-                            {renderizarCampo(config, grupo.id)}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    
-                    {/* Separador entre grupos */}
-                    {grupoIndex < configuraciones.length - 1 && (
-                      <tr>
-                        <td colSpan={3} className="border border-gray-200 p-2 bg-gray-100">
-                          <div className="h-px bg-gray-300"></div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Versión Mobile/Tablet */}
-          <div className="lg:hidden space-y-4">
-            {configuraciones.map((grupo) => (
-              <div key={grupo.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                {/* Header del Grupo Mobile */}
-                <div className="bg-blue-50 p-3 border-b border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-semibold text-blue-800 text-sm">{grupo.nombre}</h3>
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                      Recuperable: {grupo.recuperable}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Configuraciones Mobile */}
-                <div className="divide-y divide-gray-200">
-                  {grupo.configuraciones.map((config) => (
-                    <div key={config.id} className="p-3 hover:bg-gray-50">
-                      <div className="mb-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {config.nombre}
-                        </label>
-                        <div className="w-full">
-                          {renderizarCampo(config, grupo.id)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Panel de Configuración</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Administra los parámetros de tiempo del sistema
+            </p>
           </div>
         </div>
+
+        <Button
+          onClick={handleGuardarConfiguraciones}
+          disabled={guardando}
+          className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-sm"
+        >
+          {guardando ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {guardando ? 'Guardando...' : 'Guardar Cambios'}
+        </Button>
       </div>
+
+      {/* Configuraciones */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {configuraciones.map((grupo) => (
+          <Card key={grupo.id} className="shadow-sm border border-gray-200 rounded-2xl">
+            <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+              <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                {grupo.nombre}
+                <span className="ml-auto bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium">
+                  Recuperable: {grupo.recuperable}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            
+            <CardContent className="p-6 space-y-4">
+              {grupo.configuraciones.map((config) => (
+                <div key={config.id} className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {config.nombre}
+                  </label>
+                  {renderizarCampo(config, grupo.id)}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Información Adicional */}
+      <Card className="shadow-sm border border-gray-200 rounded-2xl">
+        <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+          <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+            <Settings className="h-5 w-5 text-gray-600" />
+            Información de Configuración
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Los cambios se aplican inmediatamente</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Configuraciones basadas en tiempo 24h</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <span>Recuperable desde respaldo</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

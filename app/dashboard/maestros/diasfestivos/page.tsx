@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { Calendar, Plus, Save, Edit, Trash2 } from "lucide-react";
+import { Calendar, Plus, Save, Edit, Trash2, FileText } from "lucide-react";
 import Tabla from "@/components/Table";
 
 interface DiaFestivo {
@@ -193,7 +193,7 @@ export default function DiasFestivosPage() {
     'Día': festivo.dia,
     'Nombre': festivo.nombre,
     'Estado': (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${
+      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${
         festivo.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
       }`}>
         {festivo.estado}
@@ -205,67 +205,105 @@ export default function DiasFestivosPage() {
 
   if (cargando) {
     return (
-      <div className="p-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg">Cargando días festivos...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center mx-auto mb-4">
+            <Calendar className="h-8 w-8 text-gray-400 animate-pulse" />
+          </div>
+          <p className="text-gray-500">Cargando días festivos...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Encabezado */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
-          <Calendar className="text-blue-700" size={28} />
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <Calendar className="h-6 w-6 text-blue-600" />
+          </div>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800">Días Festivos</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Días Festivos</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Gestión de días festivos y feriados nacionales
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <select
-            value={filtroAnio}
-            onChange={(e) => setFiltroAnio(e.target.value)}
-            className="p-2 border border-gray-300 rounded"
-          >
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
-          </select>
+        <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Año:</label>
+            <select
+              value={filtroAnio}
+              onChange={(e) => setFiltroAnio(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+            >
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+            </select>
+          </div>
+      
         </div>
       </div>
 
-      {/* Información */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="text-sm text-blue-600">Total días festivos {filtroAnio}</div>
-            <div className="text-2xl font-bold text-blue-800">{diasFestivosFiltrados.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-green-50 border-green-200">
-          <CardContent className="p-4">
-            <div className="text-sm text-green-600">Días activos</div>
-            <div className="text-2xl font-bold text-green-800">
-              {diasFestivosFiltrados.filter(d => d.estado === 'Activo').length}
+      {/* Cards de Información */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <Calendar className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Total días festivos {filtroAnio}</div>
+                <div className="text-2xl font-bold text-gray-900">{diasFestivosFiltrados.length}</div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-purple-50 border-purple-200">
-          <CardContent className="p-4">
-            <div className="text-sm text-purple-600">Año consultado</div>
-            <div className="text-2xl font-bold text-purple-800">{filtroAnio}</div>
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-50 rounded-lg">
+                <FileText className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Días activos</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {diasFestivosFiltrados.filter(d => d.estado === 'Activo').length}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-50 rounded-lg">
+                <Calendar className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Año consultado</div>
+                <div className="text-2xl font-bold text-gray-900">{filtroAnio}</div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Tabla */}
-      <Card className="shadow-md border">
-        <CardContent>
+      <Card className="shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
+        <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+          <CardTitle className="text-lg text-gray-900">
+            Lista de Días Festivos {filtroAnio}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 bg-white">
           {diasFestivosFiltrados.length > 0 ? (
             <Tabla 
               columnas={columnasTabla}
@@ -273,8 +311,16 @@ export default function DiasFestivosPage() {
               onRowClick={() => {}}
             />
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              No hay días festivos registrados para el año {filtroAnio}
+            <div className="text-center py-16">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Calendar className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No hay días festivos registrados
+              </h3>
+              <p className="text-gray-500">
+                No se encontraron días festivos para el año {filtroAnio}
+              </p>
             </div>
           )}
         </CardContent>

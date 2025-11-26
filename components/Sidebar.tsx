@@ -1,5 +1,6 @@
 "use client";
 
+import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -15,7 +16,14 @@ import {
   CalendarCheck2,
   Folders,
   ShieldUser,
-  LogOut
+  LogOut,
+  Home,
+  Users,
+  MapPin,
+  FolderTree,
+  Calendar,
+  FileText,
+  Settings
 } from "lucide-react";
 
 const menuItems = [
@@ -23,27 +31,27 @@ const menuItems = [
     title: "Empresa",
     icon: Building2,
     subItems: [
-      { title: "Empleados", path: "/dashboard/empresa/empleados" },
-      { title: "Sucursales", path: "/dashboard/empresa/sucursales" },
-      { title: "Departamentos", path: "/dashboard/empresa/departamentos" },
-      { title: "Centros de Costos", path: "/dashboard/empresa/centrocostos" },
+      { title: "Empleados", path: "/dashboard/empresa/empleados", icon: Users },
+      { title: "Sucursales", path: "/dashboard/empresa/sucursales", icon: MapPin },
+      { title: "Departamentos", path: "/dashboard/empresa/departamentos", icon: FolderTree },
+      { title: "Centros de Costos", path: "/dashboard/empresa/centrocostos", icon: FolderTree },
     ],
   },
   {
     title: "Turnos",
     icon: CalendarSync,
     subItems: [
-      { title: "Turnos", path: "/dashboard/turnos/turnos" },
-      { title: "Horarios", path: "/dashboard/turnos/horarios" },
+      { title: "Turnos", path: "/dashboard/turnos/turnos", icon: Calendar },
+      { title: "Horarios", path: "/dashboard/turnos/horarios", icon: Clock },
     ],
   },
   {
-    title: "Asistenia",
+    title: "Asistencia",
     icon: CalendarCheck2,
     subItems: [
-      { title: "Registros", path: "/dashboard/asistencia/registros" },
-      { title: "Marcaciones", path: "/dashboard/asistencia/marcaciones" },
-      { title: "Permisos e Incapacidades", path: "/dashboard/asistencia/permisoseincapacidades" },
+      { title: "Registros", path: "/dashboard/asistencia/registros", icon: FileText },
+      { title: "Marcaciones", path: "/dashboard/asistencia/marcaciones", icon: Fingerprint },
+      { title: "Permisos e Incapacidades", path: "/dashboard/asistencia/permisoseincapacidades", icon: FileText },
     ],
   },
   {
@@ -53,23 +61,23 @@ const menuItems = [
   },
   {
     title: "Reportes",
-    icon: Clock,
-    subItems: [{ title: "Informes", path: "/dashboard/reportes/informes" }],
+    icon: FileText,
+    subItems: [{ title: "Informes", path: "/dashboard/reportes/informes", icon: FileText }],
   },
   {
     title: "Maestros",
     icon: Folders,
     subItems: [
-      { title: "Asistencia", path: "/dashboard/maestros/asistencia" },
-      { title: "Dias Festivos", path: "/dashboard/maestros/diasfestivos" },
+      { title: "Asistencia", path: "/dashboard/maestros/asistencia", icon: CalendarCheck2 },
+      { title: "Días Festivos", path: "/dashboard/maestros/diasfestivos", icon: Calendar },
     ],
   },
   {
-    title: "Administracion",
+    title: "Administración",
     icon: ShieldUser,
     subItems: [
-      { title: "Configuracion", path: "/dashboard/administracion/configuracion" },
-      { title: "Usuario", path: "/dashboard/administracion/usuario" },
+      { title: "Configuración", path: "/dashboard/administracion/configuracion", icon: Settings },
+      { title: "Usuario", path: "/dashboard/administracion/usuario", icon: Users },
     ],
   },
 ];
@@ -82,36 +90,32 @@ export default function Sidebar({ collapsed, setCollapsed }) {
 
   const toggleItem = (title) => setOpenItem(openItem === title ? null : title);
 
-  const handleLogout = () => {
-    window.location.href = "/login";
-  };
-
   return (
     <aside
       onMouseEnter={() => collapsed && setHoverExpand(true)}
       onMouseLeave={() => collapsed && setHoverExpand(false)}
-      className={`fixed left-0 top-0 h-screen bg-red-900 border-r border-red-700 shadow-xl z-40 flex flex-col transition-all duration-300
+      className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-red-900 to-red-800 border-r border-red-700 shadow-2xl z-40 flex flex-col transition-all duration-300
         ${isExpanded ? "w-72" : "w-20"}`}
     >
       {/* Encabezado */}
-      <div className={`flex items-center justify-between p-10 border-b border-red-700 ${isExpanded ? "px-6" : "px-3"}`}>
-
-        {/* Logo click → dashboard */}
-        <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
-          <div className="p-1 rounded-lg shadow-sm">
+      <div className={`flex items-center justify-between p-4 border-b border-red-700/50 ${isExpanded ? "px-5" : "px-3"}`}>
+        {/* Logo y nombre */}
+        <Link href="/dashboard" className="flex items-center gap-3 cursor-pointer group">
+          <div className="p-1.5 bg-white/10 rounded-xl shadow-lg group-hover:bg-white/20 transition-all">
             <Image
               src="/logo.png"
               alt="Logo"
-              width={isExpanded ? 90 : 80}
-              height={isExpanded ? 90 : 80}
-              className="rounded"
+              width={isExpanded ? 45 : 40}
+              height={isExpanded ? 45 : 40}
+              className="rounded-lg"
+              priority
             />
           </div>
 
           {isExpanded && (
-            <div>
-              <h1 className="text-lg font-semibold text-white">En Punto</h1>
-              <h3 className="text-xs text-red-200">Panel de Administración</h3>
+            <div className="flex flex-col">
+              <h1 className="text-lg font-bold text-white tracking-tight">En Punto</h1>
+              <h3 className="text-xs text-red-200/80 font-medium">Sistema de Gestión</h3>
             </div>
           )}
         </Link>
@@ -119,14 +123,23 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         {/* Botón colapsar */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded hover:bg-red-800 transition text-white"
+          className="p-2 rounded-lg hover:bg-red-700/50 transition-all text-white hover:scale-105"
         >
           {isExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
         </button>
       </div>
 
       {/* Menú */}
-      <nav className="flex-1 overflow-y-auto mt-3 px-2">
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        {/* Dashboard Home */}
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-3 w-full rounded-xl px-3 py-3 hover:bg-red-700/50 transition-all text-white group mb-2"
+        >
+          <Home size={20} className="text-red-200 group-hover:text-white transition-colors" />
+          {isExpanded && <span className="font-medium">Dashboard</span>}
+        </Link>
+
         {menuItems.map((item) => {
           const isOpen = openItem === item.title;
           const Icon = item.icon;
@@ -136,24 +149,24 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               {item.path ? (
                 <Link
                   href={item.path}
-                  className="flex items-center justify-between w-full rounded-md px-3 py-3 hover:bg-red-800 transition text-white"
+                  className="flex items-center justify-between w-full rounded-xl px-3 py-3 hover:bg-red-700/50 transition-all text-white group"
                 >
                   <div className="flex items-center gap-3">
-                    <Icon size={isExpanded ? 22 : 20} className="text-red-200" />
+                    <Icon size={20} className="text-red-200 group-hover:text-white transition-colors" />
                     {isExpanded && <span className="font-medium">{item.title}</span>}
                   </div>
                 </Link>
               ) : (
                 <button
                   onClick={() => toggleItem(item.title)}
-                  className="flex items-center justify-between w-full rounded-md px-3 py-3 hover:bg-red-800 transition text-white"
+                  className="flex items-center justify-between w-full rounded-xl px-3 py-3 hover:bg-red-700/50 transition-all text-white group"
                 >
                   <div className="flex items-center gap-3">
-                    <Icon size={isExpanded ? 22 : 20} className="text-red-200" />
+                    <Icon size={20} className="text-red-200 group-hover:text-white transition-colors" />
                     {isExpanded && <span className="font-medium">{item.title}</span>}
                   </div>
                   {isExpanded && item.subItems && (
-                    <div className="text-red-200">
+                    <div className="text-red-200 group-hover:text-white transition-colors transform transition-transform">
                       {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
                   )}
@@ -161,16 +174,20 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               )}
 
               {isExpanded && isOpen && item.subItems && (
-                <div className="ml-6 mt-1 space-y-1 border-l-2 border-red-600 pl-3">
-                  {item.subItems.map((sub) => (
-                    <Link
-                      key={sub.title}
-                      href={sub.path}
-                      className="block px-3 py-2 rounded text-sm text-red-200 hover:bg-red-800 hover:text-white transition"
-                    >
-                      {sub.title}
-                    </Link>
-                  ))}
+                <div className="ml-4 mt-1 space-y-1 border-l-2 border-red-600/50 pl-4">
+                  {item.subItems.map((sub) => {
+                    const SubIcon = sub.icon;
+                    return (
+                      <Link
+                        key={sub.title}
+                        href={sub.path}
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-200 hover:bg-red-700/30 hover:text-white transition-all group"
+                      >
+                        <SubIcon size={16} className="text-red-300 group-hover:text-white transition-colors" />
+                        <span>{sub.title}</span>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -179,27 +196,28 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       </nav>
 
       {/* Botón salir */}
-      <button
-        onClick={handleLogout}
-        className={`w-full flex items-center gap-3 text-left px-3 py-2 rounded-md hover:bg-red-800 text-red-200 transition ${
-          !isExpanded ? "justify-center" : ""
-        }`}
-      >
-        <LogOut size={isExpanded ? 18 : 20} />
-        {isExpanded && <span>Salir</span>}
-      </button>
+      <div className="p-4 border-t border-red-700/50">
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className={`w-full flex items-center gap-3 text-left px-3 py-3 rounded-xl hover:bg-red-700 text-red-200 hover:text-white transition-all group ${
+            !isExpanded ? "justify-center" : ""
+          }`}
+        >
+          <LogOut size={20} className="group-hover:scale-110 transition-transform" />
+          {isExpanded && <span className="font-medium">Cerrar Sesión</span>}
+        </button>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-red-700 space-y-3">
+        {/* Footer */}
         {isExpanded && (
-          <div className="text-center">
-            <p className="text-xs text-red-300">Versión 1.0</p>
-            <p className="text-xs text-red-400 mt-1">© 2025 En Punto</p>
-            <p className="text-xs text-red-400 mt-1">INR</p>
+          <div className="mt-4 text-center space-y-2">
+            <div className="bg-red-700/30 rounded-lg p-3">
+              <p className="text-xs text-red-300 font-medium">Versión 1.0</p>
+              <p className="text-xs text-red-400/80 mt-1">© 2025 INR En Punto</p>
+              <p className="text-xs text-red-400/60 mt-1">Todos los derechos reservados</p>
+            </div>
           </div>
         )}
       </div>
     </aside>
   );
 }
-

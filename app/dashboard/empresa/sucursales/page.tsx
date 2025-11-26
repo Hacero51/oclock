@@ -3,6 +3,15 @@
 import { useState, useEffect } from "react";
 import Tabla from "../../../../components/Table";
 import UpdateModal from "@/components/UpdateModal";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { 
+  Building, 
+  Search, 
+  Plus,
+  Download,
+  Filter
+} from "lucide-react";
 
 export default function SucursalesPage() {
   const columnas = ["Código", "Nombre a mostrar", "Tercero", "Correo"];
@@ -15,11 +24,12 @@ export default function SucursalesPage() {
     "Correo": string;
   };
 
-   // Modal Update
+  // Modal Update
   const [selectedSucursal, setSelectedSucursal] = useState<Sucursal | null>(null);
   const [openUpdate, setOpenUpdate] = useState(false);
   const [datos, setDatos] = useState<Sucursal[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
 
   // Evitar error de hidratación
   useEffect(() => {
@@ -42,7 +52,14 @@ export default function SucursalesPage() {
     fetchSucursales();
   }, [isMounted]);
 
-    // Al hacer click en fila
+  // Filtrar datos por búsqueda
+  const datosFiltrados = datos.filter(sucursal =>
+    sucursal["Nombre a mostrar"]?.toLowerCase().includes(busqueda.toLowerCase()) ||
+    sucursal["Código"]?.toLowerCase().includes(busqueda.toLowerCase()) ||
+    sucursal["Correo"]?.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
+  // Al hacer click en fila
   const handleRowClick = (sucursales: Sucursal) => {
     setSelectedSucursal(sucursales);
     setOpenUpdate(true);
@@ -58,23 +75,40 @@ export default function SucursalesPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
       {/* 🔹 Encabezado */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">Sucursales</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <Building className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Sucursales</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              {datosFiltrados.length} sucursales encontradas
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* 🔹 Tabla */}
-      <Tabla columnas={columnas} datos={datos}  onRowClick={handleRowClick} />
 
-            {/* Update Modal */}
-            {openUpdate && selectedSucursal && (
-              <UpdateModal
-                type="sucursal"
-                data={selectedSucursal}
-                onClose={() => setOpenUpdate(false)}
-              />
-            )}
+      {/* 🔹 Tabla */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <Tabla 
+          columnas={columnas} 
+          datos={datosFiltrados}  
+          onRowClick={handleRowClick} 
+        />
+      </div>
+
+      {/* Update Modal */}
+      {openUpdate && selectedSucursal && (
+        <UpdateModal
+          type="sucursal"
+          data={selectedSucursal}
+          onClose={() => setOpenUpdate(false)}
+        />
+      )}
     </div>
   );
 }

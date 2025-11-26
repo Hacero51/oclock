@@ -2,6 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileText, Download, Calendar, BarChart3, Building, Users } from "lucide-react";
 
 type TipoInforme = 'nomina' | 'nominaofima' | 'asistencia';
 
@@ -260,78 +265,200 @@ export default function ExportacionInformes() {
     link.click();
   };
 
+  // Iconos para cada tipo de informe
+  const getTipoIcono = (tipo: TipoInforme) => {
+    switch (tipo) {
+      case 'nomina': return <Users className="h-5 w-5" />;
+      case 'nominaofima': return <Building className="h-5 w-5" />;
+      case 'asistencia': return <BarChart3 className="h-5 w-5" />;
+      default: return <FileText className="h-5 w-5" />;
+    }
+  };
+
+  const getTipoColor = (tipo: TipoInforme) => {
+    switch (tipo) {
+      case 'nomina': return 'text-blue-600';
+      case 'nominaofima': return 'text-green-600';
+      case 'asistencia': return 'text-purple-600';
+      default: return 'text-gray-600';
+    }
+  };
+
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md m-6">
-      <h2 className="text-2xl font-bold mb-4">📑 Exportación de Informes</h2>
-
-      {/* FILTROS */}
-      <div className="flex flex-wrap gap-3 items-center mb-6">
-        <select
-          value={filtros.tipoInforme}
-          onChange={(e) => handleFiltroChange('tipoInforme', e.target.value)}
-          className="p-2 border border-gray-300 rounded"
-        >
-          <option value="nomina">Exportación Nómina</option>
-          <option value="nominaofima">Exportación Nómina Ofima ERP</option>
-          <option value="asistencia">Resumen con Asistencia</option>
-        </select>
-
-        <input
-          type="date"
-          value={filtros.fechaInicio}
-          onChange={(e) => handleFiltroChange('fechaInicio', e.target.value)}
-          className="p-2 border border-gray-300 rounded"
-        />
-        <input
-          type="date"
-          value={filtros.fechaFin}
-          onChange={(e) => handleFiltroChange('fechaFin', e.target.value)}
-          className="p-2 border border-gray-300 rounded"
-        />
-      </div>
-
-      {/* SECCIONES */}
-      {filtros.tipoInforme === 'nomina' && (
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">💼 Exportación Nómina</h3>
-          <div className="flex gap-3">
-            <button onClick={exportarExcelNomina} disabled={cargando} className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded">
-              📊 Excel
-            </button>
-            <button onClick={exportarPlanoNomina} disabled={cargando} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded">
-              📄 Plano
-            </button>
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <FileText className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Exportación de Informes</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Genera y exporta reportes del sistema
+            </p>
           </div>
         </div>
+      </div>
+
+      {/* Filtros */}
+      <Card className="shadow-sm border border-gray-200 rounded-2xl">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg text-gray-900">Configuración del Informe</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tipo de Informe
+              </label>
+              <Select
+                value={filtros.tipoInforme}
+                onValueChange={(value) => handleFiltroChange('tipoInforme', value)}
+              >
+                <SelectTrigger className="bg-gray-50 border-gray-300 focus:bg-white">
+                  <SelectValue placeholder="Seleccionar tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nomina">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Exportación Nómina
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="nominaofima">
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      Exportación Nómina Ofima ERP
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="asistencia">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Resumen con Asistencia
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha Inicio
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  type="date"
+                  value={filtros.fechaInicio}
+                  onChange={(e) => handleFiltroChange('fechaInicio', e.target.value)}
+                  className="pl-10 bg-gray-50 border-gray-300 focus:bg-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha Fin
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  type="date"
+                  value={filtros.fechaFin}
+                  onChange={(e) => handleFiltroChange('fechaFin', e.target.value)}
+                  className="pl-10 bg-gray-50 border-gray-300 focus:bg-white"
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Secciones de Exportación */}
+      {filtros.tipoInforme === 'nomina' && (
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <Users className={`h-5 w-5 ${getTipoColor('nomina')}`} />
+              Exportación Nómina
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Button 
+                onClick={exportarExcelNomina} 
+                disabled={cargando} 
+                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 shadow-sm"
+              >
+                <Download className="h-4 w-4" />
+                Exportar Excel
+              </Button>
+              <Button 
+                onClick={exportarPlanoNomina} 
+                disabled={cargando} 
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-sm"
+              >
+                <FileText className="h-4 w-4" />
+                Exportar Plano
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {filtros.tipoInforme === 'nominaofima' && (
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">🏢 Exportación Nómina Ofima ERP</h3>
-          <div className="flex gap-3">
-            <button onClick={exportarExcelOfima} disabled={cargando} className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded">
-              📊 Excel
-            </button>
-            <button onClick={exportarPlanoOfima} disabled={cargando} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded">
-              📄 Plano
-            </button>
-          </div>
-        </div>
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <Building className={`h-5 w-5 ${getTipoColor('nominaofima')}`} />
+              Exportación Nómina Ofima ERP
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Button 
+                onClick={exportarExcelOfima} 
+                disabled={cargando} 
+                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 shadow-sm"
+              >
+                <Download className="h-4 w-4" />
+                Exportar Excel
+              </Button>
+              <Button 
+                onClick={exportarPlanoOfima} 
+                disabled={cargando} 
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-sm"
+              >
+                <FileText className="h-4 w-4" />
+                Exportar Plano
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {filtros.tipoInforme === 'asistencia' && (
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Resumen de Asistencia</h3>
-          <div className="flex gap-3">
-            <button
-              onClick={exportarPlanoAsistencia}
-              disabled={cargando}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded"
-            >
-              📄 Exportar
-            </button>
-          </div>
-        </div>
+        <Card className="shadow-sm border border-gray-200 rounded-2xl">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <BarChart3 className={`h-5 w-5 ${getTipoColor('asistencia')}`} />
+              Resumen de Asistencia
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Button
+                onClick={exportarPlanoAsistencia}
+                disabled={cargando}
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-sm"
+              >
+                <Download className="h-4 w-4" />
+                Exportar Reporte
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

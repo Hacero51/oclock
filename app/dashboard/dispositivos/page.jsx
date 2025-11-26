@@ -206,20 +206,14 @@ export default function DispositivosPage() {
     return (
       <div 
         ref={el => menuRefs.current[dispositivo.id] = el}
-        className="fixed bg-white rounded-md shadow-lg border border-gray-200 z-50 min-w-[160px]"
-        style={{
-          top: 'auto',
-          bottom: 'auto',
-          left: 'auto',
-          right: 'auto'
-        }}
+        className="absolute right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-200 z-50 min-w-[180px] overflow-hidden"
       >
         <div className="py-1">
           {/* Conectar/Desconectar */}
           {estaConectado ? (
             <button
               onClick={() => desconectarDispositivo(dispositivo.id)}
-              className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-all duration-200"
             >
               <PowerOff size={16} className="mr-3" />
               Desconectar
@@ -227,7 +221,7 @@ export default function DispositivosPage() {
           ) : (
             <button
               onClick={() => conectarDispositivo(dispositivo.id)}
-              className="flex items-center w-full px-4 py-2 text-sm text-green-600 hover:bg-green-50 transition-colors"
+              className="flex items-center w-full px-4 py-3 text-sm text-green-600 hover:bg-green-50 transition-all duration-200"
             >
               <Power size={16} className="mr-3" />
               Conectar
@@ -237,7 +231,7 @@ export default function DispositivosPage() {
           {/* Descargar Registros */}
           <button
             onClick={() => descargarRegistros(dispositivo.id)}
-            className="flex items-center w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+            className="flex items-center w-full px-4 py-3 text-sm text-blue-600 hover:bg-blue-50 transition-all duration-200"
           >
             <Download size={16} className="mr-3" />
             Descargar Registros
@@ -267,18 +261,16 @@ export default function DispositivosPage() {
           variant="ghost"
           size="sm"
           onClick={(e) => toggleMenu(dispositivo.id, e)}
-          className="h-8 w-8 p-0 hover:bg-gray-100 relative"
+          className="h-8 w-8 p-0 hover:bg-gray-100 rounded-lg transition-all duration-200"
         >
           <MoreVertical size={16} />
         </Button>
         
         {menuAbierto === dispositivo.id && (
-          <div className="absolute top-full right-0 mt-1 z-50">
-            <MenuDesplegable 
-              dispositivo={dispositivo}
-              onClose={() => setMenuAbierto(null)}
-            />
-          </div>
+          <MenuDesplegable 
+            dispositivo={dispositivo}
+            onClose={() => setMenuAbierto(null)}
+          />
         )}
       </div>
     )
@@ -288,9 +280,8 @@ export default function DispositivosPage() {
     'Número de Dispositivo', 
     'Nombre', 
     'Última Descarga', 
-    'Acciones',
-    'Estado de Conexión'
-
+    'Estado de Conexión',
+    'Acciones'
   ];
 
   // Función para manejar el click en una fila
@@ -299,14 +290,16 @@ export default function DispositivosPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Encabezado */}
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
-          <Fingerprint className="text-blue-700" size={28} />
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <Fingerprint className="h-6 w-6 text-blue-600" />
+          </div>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800">Dispositivos</h1>
-            <p className="text-sm text-gray-600">
+            <h1 className="text-2xl font-bold text-gray-900">Dispositivos</h1>
+            <p className="text-sm text-gray-600 mt-1">
               {dispositivos.length} dispositivos registrados
             </p>
           </div>
@@ -315,26 +308,28 @@ export default function DispositivosPage() {
         <Button
           onClick={sincronizarDispositivos}
           disabled={sincronizando}
-          className="bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-2"
+          className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-sm"
         >
           <RefreshCcw size={18} className={sincronizando ? "animate-spin" : ""} />
-          {sincronizando ? "Sincronizando..." : "Actualizar (F5)"}
+          {sincronizando ? "Sincronizando..." : "Actualizar"}
         </Button>
       </div>
 
       {/* Tabla de Dispositivos */}
-      <Card className="shadow-md border">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg text-gray-700">
+      <Card className="shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
+        <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+          <CardTitle className="text-lg text-gray-900">
             Lista de Dispositivos
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="relative">
+        <CardContent className="p-0 bg-white">
           {cargando ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700 mx-auto"></div>
-              <p className="text-gray-500 mt-2">Cargando dispositivos...</p>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Fingerprint className="h-8 w-8 text-gray-400 animate-pulse" />
+              </div>
+              <p className="text-gray-500">Cargando dispositivos...</p>
             </div>
           ) : dispositivos.length > 0 ? (
             <div className="relative">
@@ -345,30 +340,16 @@ export default function DispositivosPage() {
               />
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              <Fingerprint size={48} className="mx-auto text-gray-300 mb-4" />
-              <p>No hay dispositivos registrados</p>
+            <div className="text-center py-16">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Fingerprint className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay dispositivos registrados</h3>
+              <p className="text-gray-500 mb-4">No se encontraron dispositivos en el sistema</p>
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Atajos de teclado */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-800 mb-3">Atajos de Teclado</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <kbd className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono">F5</kbd>
-            <span className="text-gray-600">Actualizar</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <kbd className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono">Ctrl</kbd>
-            <span className="text-gray-600">+</span>
-            <kbd className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono">D</kbd>
-            <span className="text-gray-600">Cerrar</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

@@ -13,10 +13,10 @@ export const authOptions = {
       },
 
       async authorize(credentials) {
-        console.log("🔵 Recibiendo login:", credentials);
+        //console.log("🔵 Recibiendo login:", credentials);
 
         if (!credentials?.username || !credentials?.password) {
-          console.log("❌ Faltan credenciales");
+          //console.log("❌ Faltan credenciales");
           return null;
         }
 
@@ -27,14 +27,14 @@ export const authOptions = {
           .digest("hex")
           .toUpperCase();
 
-        console.log("🟡 Password MD5 generado:", hashedPassword);
+        //console.log("🟡 Password MD5 generado:", hashedPassword);
 
         // Buscar usuario en BD
         const user = await prisma.euser.findFirst({
           where: { UserName: credentials.username },
         });
 
-        console.log("🟣 Resultado de búsqueda en BD:", user);
+        //console.log("🟣 Resultado de búsqueda en BD:", user);
 
         if (!user) {
           console.log("❌ Usuario no encontrado");
@@ -43,7 +43,7 @@ export const authOptions = {
 
         // Comparar hash
         if (user.StoredPassword !== hashedPassword) {
-          console.log("❌ Contraseña incorrecta");
+          //console.log("❌ Contraseña incorrecta");
           return null;
         }
 
@@ -66,7 +66,7 @@ export const authOptions = {
         token.id = user.id;
         token.username = user.username;
       }
-      console.log("🔶 JWT token:", token);
+      //console.log("🔶 JWT token:", token);
       return token;
     },
 
@@ -75,7 +75,7 @@ export const authOptions = {
         id: token.id,
         username: token.username,
       };
-      console.log("🟩 Sesión generada:", session);
+      //console.log("🟩 Sesión generada:", session);
       return session;
     },
   },

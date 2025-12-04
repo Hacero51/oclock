@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Tabla from "../../../../components/Table";
 import UpdateModal from "@/components/UpdateModal";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input.JSX";
 import { Button } from "@/components/ui/Button";
 import { 
   Building, 

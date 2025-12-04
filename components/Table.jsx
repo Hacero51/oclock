@@ -3,28 +3,28 @@ import PropTypes from "prop-types";
 function Tabla({ columnas, datos, onRowClick }) {
   return (
     <div className="w-full">
-      
+
       {/* Tabla Desktop */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm hidden md:block">
-        <table className="w-full text-sm text-gray-700">
-          <thead className="bg-blue-900 text-white">
+      <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200 shadow-sm bg-white">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-gray-50/80 border-b border-gray-200">
             <tr>
               {columnas.map((col) => (
-                <th key={col} className="px-4 py-2 text-left font-medium">
+                <th key={col} className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   {col}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-100">
             {datos.map((fila, i) => (
               <tr
                 key={i}
-                className="hover:bg-blue-50 cursor-pointer transition-colors"
+                className="hover:bg-indigo-50/30 cursor-pointer transition-colors duration-200 group"
                 onClick={() => onRowClick && onRowClick(fila)}
               >
                 {columnas.map((col) => (
-                  <td key={col} className="px-4 py-2 border-t">
+                  <td key={col} className="px-6 py-4 text-gray-700 font-medium group-hover:text-indigo-900">
                     {fila[col]}
                   </td>
                 ))}
@@ -35,17 +35,17 @@ function Tabla({ columnas, datos, onRowClick }) {
       </div>
 
       {/* Vista Mobile */}
-      <div className="md:hidden space-y-3 mt-3">
+      <div className="md:hidden space-y-4 mt-4">
         {datos.map((fila, i) => (
           <div
             key={i}
-            className="border rounded-lg p-4 shadow bg-white cursor-pointer hover:bg-gray-50"
+            className="border border-gray-200 rounded-xl p-5 shadow-sm bg-white cursor-pointer hover:shadow-md transition-all duration-200 active:scale-[0.99]"
             onClick={() => onRowClick && onRowClick(fila)}
           >
             {columnas.map((col) => (
-              <div key={col} className="flex justify-between py-1">
-                <span className="text-gray-500 text-xs">{col}:</span>
-                <span className="text-gray-900 font-medium ml-3 text-right">
+              <div key={col} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                <span className="text-gray-500 text-xs font-semibold uppercase tracking-wide">{col}</span>
+                <span className="text-gray-900 font-medium ml-4 text-right">
                   {fila[col]}
                 </span>
               </div>

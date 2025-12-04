@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input.JSX";
 import { Calendar, Plus, Save, Edit, Trash2, FileText } from "lucide-react";
 import Tabla from "@/components/Table";
 

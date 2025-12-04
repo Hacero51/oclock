@@ -16,7 +16,7 @@ export default function CreateModal({ type, onClose }) {
   if (!type) return null;
 
   const sizes = {
-    empleado: "max-w-6xl h-[90vh]",
+    Empleado: "max-w-6xl h-[90vh]",
     dispositivo: "max-w-5xl h-[80vh]",
     horariofijo: "max-w-4xl h-[70vh]",
     turno: "max-w-4xl h-[70vh]",
@@ -30,7 +30,7 @@ export default function CreateModal({ type, onClose }) {
 
 
   const forms = {
-    empleado: <EmpleadoForm onClose={onClose} />,
+    Empleado: <EmpleadoForm onClose={onClose} />,
     cargo: <CargoForm onClose={onClose} />,
     centrocosto: <CentroCostoForm onClose={onClose} />,
     diafestivo: <DiaFestivoForm onClose={onClose} />,

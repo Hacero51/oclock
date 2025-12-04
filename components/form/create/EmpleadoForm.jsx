@@ -1,551 +1,691 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Label } from "@/components/ui/Label";
-import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
-import { useState, useRef } from "react";
-import { 
-  User, 
-  Building,
-  DollarSign,
-  Camera,
-  Upload,
-  Circle,
-  X
-} from "lucide-react";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { Switch } from "@/components/ui/Switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Badge } from "@/components/ui/Badge";
+import { Loader2, Save, X, User, Clock, Phone, FileText, Camera, Upload, Briefcase } from "lucide-react";
 
 export default function EmpleadoForm({ onClose }) {
-  const [preview, setPreview] = useState(null);
-  const [activeTab, setActiveTab] = useState("empleado");
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [showCameraOptions, setShowCameraOptions] = useState(false);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const [form, setForm] = useState({
+    Document: "",
+    FullName: "",
+    FirstName: "",
+    MiddleName: "",
+    LastName: "",
+    MiddleLast: "",
+    Email: "",
+    Birthday: "",
+    Nacionalidad: "",
+    Genero: "",
+    Direccion: "",
+    Sucursal: "",
+    Departamento: "",
+    CentroCosto: "",
+    TurnoActual: "",
+    RotacionActual: "1",
+    ContratoActual: "",
+    Salario: "",
+    Estado: "activo",
+    Cargo: "",
+    Jefe: "",
+    TiempoExtra: false,
+    ValorHora: "",
+    PhotoUrl: "",
+  });
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-  } = useForm();
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [catalogos, setCatalogos] = useState({
+    sucursales: [],
+    departamentos: [],
+    centrosCosto: [],
+    turnos: [],
+  });
 
-  const onSubmit = (data) => {
-    console.log("Empleado guardado:", data);
-    onClose?.();
-  };
+  const [loading, setLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
 
-  // Funciones para la cámara
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: "user",
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        } 
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setIsCameraActive(true);
-        setShowCameraOptions(false);
+  // CARGAR CATÁLOGOS
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/empleados/data");
+        const json = await res.json();
+        setCatalogos(json);
+      } catch (error) {
+        console.error("Error cargando catálogos:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error al acceder a la cámara:", error);
-      alert("No se pudo acceder a la cámara. Por favor, verifica los permisos.");
-      setShowCameraOptions(false);
     }
+    fetchData();
+  }, []);
+
+  // MANEJO DEL FORMULARIO
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setIsCameraActive(false);
+  const handleSelect = (name, value) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const takePhoto = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      
-      context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      
-      const photoDataUrl = canvas.toDataURL('image/png');
-      setPreview(photoDataUrl);
-      setValue("foto", photoDataUrl);
-      stopCamera();
-    }
-  };
-
-  // Funciones para subir archivo
-  const handleFileUpload = (e) => {
+  // MANEJO DE FOTO
+  const handlePhotoChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validar tipo de archivo
       if (!file.type.startsWith('image/')) {
-        alert('Por favor, selecciona un archivo de imagen válido.');
+        alert('Por favor seleccione una imagen válida');
         return;
       }
 
-      // Validar tamaño (5MB máximo)
       if (file.size > 5 * 1024 * 1024) {
-        alert('La imagen no debe superar los 5MB.');
+        alert('La imagen no debe superar 5MB');
         return;
       }
 
       const reader = new FileReader();
-      reader.onload = () => {
-        setPreview(reader.result);
-        setValue("foto", reader.result);
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+        setForm(prev => ({ ...prev, PhotoUrl: reader.result }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
+  const handleRemovePhoto = () => {
+    setPhotoPreview(null);
+    setForm(prev => ({ ...prev, PhotoUrl: "" }));
   };
 
-  // Funciones generales para la foto
-  const removePhoto = () => {
-    setPreview(null);
-    setValue("foto", "");
-    if (isCameraActive) {
-      stopCamera();
+  // ENVIAR CREATE (POST)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaveLoading(true);
+
+    // Mapeo a camelCase para la API POST
+    const payload = {
+      documento: form.Document,
+      fullName: form.FullName,
+      email: form.Email,
+      fechaNacimiento: form.Birthday,
+      nacionalidad: form.Nacionalidad,
+      genero: form.Genero,
+      direccion: form.Direccion,
+      sucursal: form.Sucursal,
+      departamento: form.Departamento,
+      centroCosto: form.CentroCosto,
+      turnoActual: form.TurnoActual,
+      rotacionActual: form.RotacionActual,
+      contratoActual: form.ContratoActual,
+      estado: form.Estado,
+      salario: form.Salario,
+      tiempoExtra: form.TiempoExtra,
+      valorHora: form.ValorHora,
+      cargo: form.Cargo,
+      jefe: form.Jefe,
+      photoUrl: form.PhotoUrl
+    };
+
+    try {
+      const res = await fetch("/api/empleados", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error("Error creando empleado");
+      }
+
+      const event = new CustomEvent('showToast', {
+        detail: {
+          message: '✅ Empleado creado con éxito',
+          type: 'success'
+        }
+      });
+      window.dispatchEvent(event);
+
+      setTimeout(() => {
+        onClose();
+      }, 1000);
+    } catch (error) {
+      console.error(error);
+      const event = new CustomEvent('showToast', {
+        detail: {
+          message: '❌ Error creando empleado',
+          type: 'error'
+        }
+      });
+      window.dispatchEvent(event);
+    } finally {
+      setSaveLoading(false);
     }
-    setShowCameraOptions(false);
   };
 
-  const cancelCamera = () => {
-    stopCamera();
-    setShowCameraOptions(false);
-  };
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 space-y-4">
+        <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+        <p className="text-sm text-gray-500 font-medium">Cargando catálogos...</p>
+      </div>
+    );
+  }
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="space-y-6 w-full max-w-6xl mx-auto"
-    >
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Información Personal
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Columna 1 - Información básica */}
-            <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="nombre" className="text-sm font-medium">
-                  Nombre <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="nombre"
-                  {...register("nombre", { required: "Campo requerido" })}
-                  placeholder="Nombre"
-                  className="w-full"
-                />
-                {errors.nombre && (
-                  <p className="text-xs text-red-500">
-                    {errors.nombre.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="segundoNombre" className="text-sm font-medium">
-                  Segundo Nombre
-                </Label>
-                <Input
-                  id="segundoNombre"
-                  {...register("segundoNombre")}
-                  placeholder="Segundo nombre"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="apellido" className="text-sm font-medium">
-                  Apellido
-                </Label>
-                <Input 
-                  id="apellido"
-                  {...register("apellido")} 
-                  placeholder="Apellido" 
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="segundoApellido" className="text-sm font-medium">
-                  Segundo Apellido
-                </Label>
-                <Input
-                  id="segundoApellido"
-                  {...register("segundoApellido")}
-                  placeholder="Segundo apellido"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="documento" className="text-sm font-medium">
-                  Documento
-                </Label>
-                <Input 
-                  id="documento"
-                  {...register("documento")} 
-                  placeholder="Documento" 
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Correo electrónico
-                </Label>
-                <Input
-                  id="email"
-                  {...register("email")}
-                  placeholder="correo@empresa.com"
-                  type="email"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="fechaNacimiento" className="text-sm font-medium">
-                  Fecha de Nacimiento
-                </Label>
-                <Input 
-                  id="fechaNacimiento"
-                  type="date" 
-                  {...register("fechaNacimiento")} 
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="genero" className="text-sm font-medium">
-                  Género
-                </Label>
-                <select
-                  id="genero"
-                  {...register("genero")}
-                  className="border rounded-md px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-300 focus:border-blue-300 transition-colors"
-                >
-                  <option value="">Seleccione...</option>
-                  <option value="masculino">Masculino</option>
-                  <option value="femenino">Femenino</option>
-                  <option value="otro">Otro</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nacionalidad" className="text-sm font-medium">
-                  Nacionalidad
-                </Label>
-                <Input
-                  id="nacionalidad"
-                  {...register("nacionalidad")}
-                  placeholder="Nacionalidad"
-                />
-              </div>
-
-              <div className="md:col-span-2 lg:col-span-3 space-y-2">
-                <Label htmlFor="direccion" className="text-sm font-medium">
-                  Dirección
-                </Label>
-                <Input 
-                  id="direccion"
-                  {...register("direccion")} 
-                  placeholder="Dirección completa" 
-                />
-              </div>
+    <div className="w-full max-w-7xl mx-auto bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* HEADER */}
+      <div className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-green-700 px-8 py-6 border-b-4 border-emerald-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl border-2 border-white/30">
+              <User className="h-7 w-7 text-white" />
             </div>
-
-            {/* Columna 2 - Foto del empleado */}
-            <div className="flex flex-col items-center space-y-4 p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
-              {/* Vista previa de la foto o cámara */}
-              <div className="w-40 h-48 bg-white border border-gray-300 rounded-lg flex items-center justify-center overflow-hidden shadow-sm relative">
-                {preview ? (
-                  <>
-                    <img
-                      src={preview}
-                      alt="Foto del empleado"
-                      className="object-cover w-full h-full"
-                    />
-                    <button
-                      type="button"
-                      onClick={removePhoto}
-                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </>
-                ) : isCameraActive ? (
-                  <div className="relative w-full h-full">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 border-2 border-red-500 border-dashed pointer-events-none"></div>
-                  </div>
-                ) : (
-                  <div className="text-center text-gray-400">
-                    <User className="w-12 h-12 mx-auto mb-2" />
-                    <span className="text-xs">Sin foto</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Input de archivo oculto */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-
-              {/* Controles de foto */}
-              <div className="flex flex-col gap-2 w-full">
-                {!preview && !isCameraActive && !showCameraOptions && (
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      type="button"
-                      onClick={() => setShowCameraOptions(true)}
-                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      <Camera className="w-4 h-4" />
-                      Agregar Foto
-                    </Button>
-                    <p className="text-xs text-gray-500 text-center">
-                      Opcional - Puede omitir este campo
-                    </p>
-                  </div>
-                )}
-
-                {showCameraOptions && (
-                  <div className="flex flex-col gap-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        onClick={startCamera}
-                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-xs"
-                      >
-                        <Camera className="w-3 h-3" />
-                        Usar Cámara
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={triggerFileInput}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                      >
-                        <Upload className="w-3 h-3" />
-                        Subir Archivo
-                      </Button>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={() => setShowCameraOptions(false)}
-                      variant="outline"
-                      className="text-xs"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                )}
-
-                {isCameraActive && (
-                  <div className="flex gap-2 justify-center">
-                    <Button
-                      type="button"
-                      onClick={takePhoto}
-                      className="bg-green-600 hover:bg-green-700 text-white p-3"
-                    >
-                      <Circle className="w-5 h-5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={cancelCamera}
-                      variant="outline"
-                      className="text-xs"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                )}
-
-                {preview && (
-                  <div className="flex gap-2 justify-center">
-                    <Button
-                      type="button"
-                      onClick={() => setShowCameraOptions(true)}
-                      variant="outline"
-                      className="flex items-center gap-2 text-xs"
-                    >
-                      <Camera className="w-3 h-3" />
-                      Cambiar Foto
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Información adicional */}
-              <div className="text-xs text-gray-500 text-center space-y-1">
-                {preview ? (
-                  <p>Foto lista para guardar</p>
-                ) : isCameraActive ? (
-                  <p>Sonría! Presione el botón para capturar</p>
-                ) : showCameraOptions ? (
-                  <p>Elija cómo agregar la foto</p>
-                ) : (
-                  <>
-                    <p>Formato: PNG, JPG</p>
-                    <p>Máximo: 5MB</p>
-                  </>
-                )}
-              </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white">Crear Nuevo Empleado</h2>
+              <p className="text-emerald-100 mt-1 text-sm">
+                Registre un nuevo empleado en el sistema
+              </p>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Datos Laborales */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Building className="w-5 h-5" />
-              Información Laboral
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="sucursal" className="text-sm font-medium">
-                Sucursal
-              </Label>
-              <Input 
-                id="sucursal"
-                {...register("sucursal")} 
-                placeholder="Sucursal" 
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="departamento" className="text-sm font-medium">
-                Departamento
-              </Label>
-              <Input 
-                id="departamento"
-                {...register("departamento")} 
-                placeholder="Departamento" 
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="centroCosto" className="text-sm font-medium">
-                Centro de Costo
-              </Label>
-              <Input
-                id="centroCosto"
-                {...register("centroCosto")}
-                placeholder="Centro de costo"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="cargo" className="text-sm font-medium">
-                Cargo
-              </Label>
-              <Input 
-                id="cargo"
-                {...register("cargo")} 
-                placeholder="Cargo" 
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="turnoActual" className="text-sm font-medium">
-                Turno Actual
-              </Label>
-              <Input
-                id="turnoActual"
-                {...register("turnoActual")}
-                placeholder="Ej: PLANTA 6AM-2PM"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="salario" className="text-sm font-medium flex items-center gap-1">
-                <DollarSign className="w-4 h-4" />
-                Salario Base
-              </Label>
-              <Input 
-                id="salario"
-                type="number" 
-                step="0.01" 
-                {...register("salario")} 
-                placeholder="0.00"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="estado" className="text-sm font-medium">
-                Estado
-              </Label>
-              <select
-                id="estado"
-                {...register("estado")}
-                className="border rounded-md px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-300 focus:border-blue-300 transition-colors"
-              >
-                <option value="">Seleccione...</option>
-                <option value="activo">Activo</option>
-                <option value="inactivo">Inactivo</option>
-                <option value="vacaciones">Vacaciones</option>
-                <option value="licencia">Licencia</option>
-              </select>
-            </div>
-            
-            <div className="flex items-center space-x-3 pt-6">
-              <input 
-                id="tiempoExtra"
-                type="checkbox" 
-                {...register("tiempoExtra")} 
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-              />
-              <Label htmlFor="tiempoExtra" className="text-sm font-medium cursor-pointer">
-                Habilitar Tiempo Extra
-              </Label>
-            </div>
-          </CardContent>
-        </Card>
-      </Tabs>
-
-      {/* Botones de acción */}
-      <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onClose}
-          className="px-6 py-2"
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="submit"
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 shadow-md"
-        >
-          Guardar Empleado
-        </Button>
+          </div>
+          <Badge className="px-5 py-2 text-sm font-bold bg-white text-emerald-700 rounded-xl shadow-lg">
+            Nuevo Registro
+          </Badge>
+        </div>
       </div>
-    </form>
+
+      <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        <Tabs defaultValue="employee" className="w-full">
+          {/* TABS NAVIGATION */}
+          <div className="bg-white border-b-2 border-gray-200 px-6">
+            <TabsList className="bg-transparent h-14 gap-2">
+              <TabsTrigger
+                value="employee"
+                className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Empleado
+              </TabsTrigger>
+              <TabsTrigger
+                value="attendance"
+                className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
+                disabled
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                Asistencia
+              </TabsTrigger>
+              <TabsTrigger
+                value="contact"
+                className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
+                disabled
+              >
+                <Phone className="h-4 w-4 mr-2" />
+                Contacto
+              </TabsTrigger>
+              <TabsTrigger
+                value="documents"
+                className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
+                disabled
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Documentos
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <div className="p-8">
+            {/* TAB: EMPLEADO */}
+            <TabsContent value="employee" className="mt-0">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* COLUMNA IZQUIERDA - FORMULARIO */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* INFORMACIÓN PERSONAL */}
+                  <Card className="border-2 border-emerald-100 shadow-lg">
+                    <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-100">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-emerald-600 rounded-lg">
+                          <User className="h-5 w-5 text-white" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-800">Información Personal</h3>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6 bg-white">
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Nombre a mostrar:</Label>
+                          <Input
+                            name="FullName"
+                            value={form.FullName}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            placeholder="Ej. Juan Pérez"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Fecha de Nacimiento:</Label>
+                          <Input
+                            name="Birthday"
+                            type="date"
+                            value={form.Birthday}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Nombre:</Label>
+                          <Input
+                            name="FirstName"
+                            value={form.FirstName}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Nacionalidad:</Label>
+                          <Input
+                            name="Nacionalidad"
+                            value={form.Nacionalidad}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            placeholder="Ej. Colombiana"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Segundo nombre:</Label>
+                          <Input
+                            name="MiddleName"
+                            value={form.MiddleName}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Género:</Label>
+                          <Select value={form.Genero} onValueChange={(v) => handleSelect("Genero", v)}>
+                            <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="m">Masculino</SelectItem>
+                              <SelectItem value="f">Femenino</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Apellido:</Label>
+                          <Input
+                            name="LastName"
+                            value={form.LastName}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                          />
+                        </div>
+
+                        <div className="space-y-2 col-span-2">
+                          <Label className="text-sm font-bold text-gray-700">Correo electrónico:</Label>
+                          <Input
+                            name="Email"
+                            type="email"
+                            value={form.Email}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            placeholder="juan@empresa.com"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Segundo apellido:</Label>
+                          <Input
+                            name="MiddleLast"
+                            value={form.MiddleLast}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Dirección:</Label>
+                          <Input
+                            name="Direccion"
+                            value={form.Direccion}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            placeholder="..."
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Documento:</Label>
+                          <Input
+                            name="Document"
+                            value={form.Document}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            placeholder="Ej. 123456789"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* INFORMACIÓN LABORAL */}
+                  <Card className="border-2 border-blue-100 shadow-lg">
+                    <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-100">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-blue-600 rounded-lg">
+                          <Briefcase className="h-5 w-5 text-white" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-800">Información Laboral</h3>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6 bg-white">
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Sucursal:</Label>
+                          <Select value={form.Sucursal} onValueChange={(v) => handleSelect("Sucursal", v)}>
+                            <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {catalogos.sucursales.map((s) => (
+                                <SelectItem key={s.Oid} value={s.Oid}>{s.Description}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Turno Actual:</Label>
+                          <Select value={form.TurnoActual} onValueChange={(v) => handleSelect("TurnoActual", v)}>
+                            <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {catalogos.turnos.map((t) => (
+                                <SelectItem key={t.Oid} value={t.Oid}>{t.Name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Departamento:</Label>
+                          <Select value={form.Departamento} onValueChange={(v) => handleSelect("Departamento", v)}>
+                            <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {catalogos.departamentos.map((d) => (
+                                <SelectItem key={d.Oid} value={d.Oid}>{d.Name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Rotación Actual:</Label>
+                          <Input
+                            name="RotacionActual"
+                            type="number"
+                            value={form.RotacionActual}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Centro de Costo:</Label>
+                          <Select value={form.CentroCosto} onValueChange={(v) => handleSelect("CentroCosto", v)}>
+                            <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {catalogos.centrosCosto.map((c) => (
+                                <SelectItem key={c.Oid} value={c.Oid}>{c.Name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Contrato Actual:</Label>
+                          <Select value={form.ContratoActual} onValueChange={(v) => handleSelect("ContratoActual", v)}>
+                            <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="indefinido">Indefinido</SelectItem>
+                              <SelectItem value="fijo">Término Fijo</SelectItem>
+                              <SelectItem value="obra">Obra o Labor</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Cargo:</Label>
+                          <Input
+                            name="Cargo"
+                            value={form.Cargo}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            placeholder="Ej. Vendedor"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Salario Base:</Label>
+                          <Input
+                            name="Salario"
+                            type="number"
+                            value={form.Salario}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            placeholder="0.00"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Jefe:</Label>
+                          <Select value={form.Jefe} onValueChange={(v) => handleSelect("Jefe", v)}>
+                            <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Ninguno</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Estado:</Label>
+                          <Select value={form.Estado} onValueChange={(v) => handleSelect("Estado", v)}>
+                            <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="activo">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-3 h-3 rounded-full bg-emerald-500" />
+                                  Activo
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="inactivo">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-3 h-3 rounded-full bg-rose-500" />
+                                  Inactivo
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-gray-700">Valor Hora:</Label>
+                          <Input
+                            name="ValorHora"
+                            type="number"
+                            value={form.ValorHora}
+                            onChange={handleChange}
+                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            placeholder="0.00"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-3 h-11 px-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                            <Switch
+                              checked={form.TiempoExtra}
+                              onCheckedChange={(checked) => setForm(prev => ({ ...prev, TiempoExtra: checked }))}
+                            />
+                            <Label className="text-sm font-bold text-gray-700 cursor-pointer">
+                              Tiempo Extra
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* COLUMNA DERECHA - FOTO */}
+                <div className="lg:col-span-1">
+                  <Card className="border-2 border-gray-200 shadow-lg sticky top-6">
+                    <CardContent className="p-6">
+                      <div className="aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden relative">
+                        {photoPreview ? (
+                          <>
+                            <img
+                              src={photoPreview}
+                              alt="Foto empleado"
+                              className="w-full h-full object-cover"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={handleRemovePhoto}
+                              className="absolute top-2 right-2 h-8 w-8 p-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="h-16 w-16 text-gray-400 mb-3" />
+                            <p className="text-sm font-semibold text-gray-500 mb-4">Sin imagen</p>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="mt-4 space-y-2">
+                        <input
+                          type="file"
+                          id="photo-upload"
+                          accept="image/*"
+                          onChange={handlePhotoChange}
+                          className="hidden"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                          onClick={() => document.getElementById('photo-upload').click()}
+                        >
+                          <Upload className="mr-2 h-4 w-4" />
+                          Subir Foto
+                        </Button>
+                        <p className="text-xs text-gray-500 text-center">
+                          JPG, PNG o GIF (máx. 5MB)
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* TAB: ASISTENCIA */}
+            <TabsContent value="attendance" className="mt-0">
+              <Card className="border-2 border-gray-200">
+                <CardContent className="p-12 text-center">
+                  <Clock className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 font-medium">Información de asistencia disponible próximamente</p>
+                  <p className="text-sm text-gray-400 mt-2">Se conectará con el módulo de marcaciones</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB: CONTACTO */}
+            <TabsContent value="contact" className="mt-0">
+              <Card className="border-2 border-gray-200">
+                <CardContent className="p-12 text-center">
+                  <Phone className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 font-medium">Información de contacto disponible próximamente</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB: DOCUMENTOS */}
+            <TabsContent value="documents" className="mt-0">
+              <Card className="border-2 border-gray-200">
+                <CardContent className="p-12 text-center">
+                  <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 font-medium">Documentos disponibles próximamente</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </div>
+        </Tabs>
+
+        {/* FOOTER ACCIONES */}
+        <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-8 py-5 border-t-2 border-gray-300 flex justify-end gap-4 shadow-inner">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={saveLoading}
+            className="h-12 px-8 border-2 border-gray-400 hover:bg-white hover:border-gray-500 font-semibold"
+          >
+            <X className="mr-2 h-5 w-5" />
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            disabled={saveLoading}
+            className="h-12 px-10 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold shadow-xl border-2 border-emerald-700"
+          >
+            {saveLoading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-5 w-5" />
+                Crear Empleado
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

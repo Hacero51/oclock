@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input.JSX";
 import { Settings, Save, Clock, Calendar, RefreshCw } from "lucide-react";
 
 interface ConfiguracionGrupo {

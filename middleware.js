@@ -11,8 +11,8 @@ export async function middleware(req) {
 
   const { pathname } = req.nextUrl;
 
-  console.log("Middleware ejecutándose. Ruta:", pathname);
-  console.log("Token leído:", token);
+  //console.log("Middleware ejecutándose. Ruta:", pathname);
+  //console.log("Token leído:", token);
 
   // Rutas públicas
   const publicRoutes = ["/login", "/"];
@@ -20,7 +20,7 @@ export async function middleware(req) {
 
   // Si no está autenticado y no está entrando a una ruta pública
   if (!token && !isPublic) {
-    console.log("No autenticado — Redirigiendo a login");
+    //console.log("No autenticado — Redirigiendo a login");
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
@@ -36,7 +36,7 @@ export async function middleware(req) {
   );
 
   if (isAdminRoute && token?.username !== ADMIN_USERNAME) {
-    console.log("❌ Usuario NO es admin. Redirigiendo…");
+    //console.log("❌ Usuario NO es admin. Redirigiendo…");
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

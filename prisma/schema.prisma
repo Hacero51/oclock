@@ -5,6 +5,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
+   url      = env("DATABASE_URL")
 }
 
 model acc_acccombination {
@@ -1656,6 +1657,8 @@ model employee {
   @@index([Department], map: "iDepartment_Employee")
   @@index([Nationality], map: "iNationality_Employee")
   @@index([Position], map: "iPosition_Employee")
+
+ person eperson @relation(fields: [Oid], references: [Oid])
 }
 
 model eorganization {
@@ -1737,6 +1740,7 @@ model eperson {
   Email      String?   @db.MediumText
 
   @@index([Document], map: "iDocument_ePerson")
+  employee employee? 
 }
 
 model ephonenumber {

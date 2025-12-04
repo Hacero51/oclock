@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from "react";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input.JSX";
 import { Button } from "@/components/ui/Button";
 import {
   Select,

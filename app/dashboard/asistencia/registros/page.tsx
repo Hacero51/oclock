@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from "react";
-import { Input } from "@/components/ui/Input.JSX";
+import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import {
   Select,
@@ -11,12 +11,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Tabla from "@/components/Table";
-import { 
-  Clock, 
-  Search, 
-  Filter, 
-  Download, 
-  X, 
+import {
+  Clock,
+  Search,
+  Filter,
+  Download,
+  X,
   Calendar,
   User,
   FileText,
@@ -25,13 +25,13 @@ import {
 } from "lucide-react";
 
 // Componente de controles de paginación mejorado
-function PaginationControls({ 
-  currentPage, 
-  totalPages, 
-  totalItems, 
-  itemsPerPage, 
-  onPageChange, 
-  onItemsPerPageChange 
+function PaginationControls({
+  currentPage,
+  totalPages,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
+  onItemsPerPageChange
 }) {
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
@@ -83,11 +83,10 @@ function PaginationControls({
               <button
                 key={pageNum}
                 onClick={() => onPageChange(pageNum)}
-                className={`w-8 h-8 text-sm rounded-lg transition-all duration-200 ${
-                  currentPage === pageNum
+                className={`w-8 h-8 text-sm rounded-lg transition-all duration-200 ${currentPage === pageNum
                     ? "bg-blue-600 text-white shadow-sm"
                     : "text-gray-600 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 {pageNum}
               </button>
@@ -254,7 +253,7 @@ export default function RegistroTiempoForm() {
           lector: "mosquera",
         },
       ];
-      
+
       setRegistros(datosEjemplo);
     }, 1000);
 
@@ -268,13 +267,13 @@ export default function RegistroTiempoForm() {
       const dia = partes[1];
       const mes = partes[3];
       const año = partes[5];
-      
+
       const meses: Record<string, string> = {
         'ENERO': '01', 'FEBRERO': '02', 'MARZO': '03', 'ABRIL': '04',
         'MAYO': '05', 'JUNIO': '06', 'JULIO': '07', 'AGOSTO': '08',
         'SEPTIEMBRE': '09', 'OCTUBRE': '10', 'NOVIEMBRE': '11', 'DICIEMBRE': '12'
       };
-      
+
       const mesNumero = meses[mes] || '01';
       return `${año}-${mesNumero}-${dia.padStart(2, '0')}`;
     }
@@ -351,11 +350,10 @@ export default function RegistroTiempoForm() {
       'Empleado': registro.empleado,
       'Tiempo': registro.tiempo,
       'Tipo': (
-        <span className={`px-2 py-1 rounded text-xs font-medium ${
-          registro.tipo === "Entrada" 
-            ? "bg-green-100 text-green-800" 
+        <span className={`px-2 py-1 rounded text-xs font-medium ${registro.tipo === "Entrada"
+            ? "bg-green-100 text-green-800"
             : "bg-red-100 text-red-800"
-        }`}>
+          }`}>
           {registro.tipo}
         </span>
       ),
@@ -371,12 +369,12 @@ export default function RegistroTiempoForm() {
   }, [registrosPaginados]);
 
   const columnas = [
-    'Empleado', 
-    'Tiempo', 
-    'Tipo', 
-    'Año', 
-    'Mes', 
-    'Método de Verificación', 
+    'Empleado',
+    'Tiempo',
+    'Tipo',
+    'Año',
+    'Mes',
+    'Método de Verificación',
     'Lector'
   ];
 
@@ -450,8 +448,8 @@ export default function RegistroTiempoForm() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Empleado
             </label>
-            <Select 
-              value={filtros.empleado} 
+            <Select
+              value={filtros.empleado}
               onValueChange={(value) => handleFiltroChange("empleado", value)}
             >
               <SelectTrigger className="bg-gray-50 border-gray-300 focus:bg-white">
@@ -490,8 +488,8 @@ export default function RegistroTiempoForm() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tipo
             </label>
-            <Select 
-              value={filtros.tipo} 
+            <Select
+              value={filtros.tipo}
               onValueChange={(value) => handleFiltroChange("tipo", value)}
             >
               <SelectTrigger className="bg-gray-50 border-gray-300 focus:bg-white">
@@ -512,7 +510,7 @@ export default function RegistroTiempoForm() {
         {/* Tabla */}
         <div className="overflow-x-auto">
           {datosParaTabla.length > 0 ? (
-            <Tabla 
+            <Tabla
               columnas={columnas}
               datos={datosParaTabla}
               onRowClick={handleRowClick}
@@ -526,8 +524,8 @@ export default function RegistroTiempoForm() {
                 No se encontraron registros
               </h3>
               <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                {registros.length === 0 
-                  ? "No hay registros en el sistema." 
+                {registros.length === 0
+                  ? "No hay registros en el sistema."
                   : "No hay registros que coincidan con los filtros aplicados."
                 }
               </p>
@@ -544,7 +542,7 @@ export default function RegistroTiempoForm() {
             </div>
           )}
         </div>
-        
+
         {/* Controles de paginación */}
         <PaginationControls
           currentPage={currentPage}

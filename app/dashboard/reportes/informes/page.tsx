@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input.JSX";
+import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, Calendar, BarChart3, Building, Users } from "lucide-react";
 
@@ -141,13 +141,13 @@ export default function ExportacionInformes() {
 
     const fechaInicio = new Date(filtros.fechaInicio);
     const anio = fechaInicio.getFullYear();
-    
+
     // Calcular quincena anual (1-24)
     const mes = fechaInicio.getMonth(); // 0-11
     const dia = fechaInicio.getDate();
     const quincenaMes = dia <= 15 ? 1 : 2;
     const quincenaAnual = (mes * 2) + quincenaMes;
-    
+
     return {
       anio: anio.toString(),
       quincenaAnual: quincenaAnual.toString().padStart(3, '0')
@@ -386,17 +386,17 @@ export default function ExportacionInformes() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-3">
-              <Button 
-                onClick={exportarExcelNomina} 
-                disabled={cargando} 
+              <Button
+                onClick={exportarExcelNomina}
+                disabled={cargando}
                 className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 shadow-sm"
               >
                 <Download className="h-4 w-4" />
                 Exportar Excel
               </Button>
-              <Button 
-                onClick={exportarPlanoNomina} 
-                disabled={cargando} 
+              <Button
+                onClick={exportarPlanoNomina}
+                disabled={cargando}
                 className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-sm"
               >
                 <FileText className="h-4 w-4" />
@@ -417,17 +417,17 @@ export default function ExportacionInformes() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-3">
-              <Button 
-                onClick={exportarExcelOfima} 
-                disabled={cargando} 
+              <Button
+                onClick={exportarExcelOfima}
+                disabled={cargando}
                 className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 shadow-sm"
               >
                 <Download className="h-4 w-4" />
                 Exportar Excel
               </Button>
-              <Button 
-                onClick={exportarPlanoOfima} 
-                disabled={cargando} 
+              <Button
+                onClick={exportarPlanoOfima}
+                disabled={cargando}
                 className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-sm"
               >
                 <FileText className="h-4 w-4" />

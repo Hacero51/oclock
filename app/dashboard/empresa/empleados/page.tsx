@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AdvancedFilterDialog } from "@/components/advanced-filtrer";
+import type { Condition } from "@/components/advanced-filtrer";
 import UpdateModal from "@/components/UpdateModal";
 import {
   Search,
@@ -24,7 +25,54 @@ import {
 } from "lucide-react";
 import { useContext } from "react";
 import { DashboardContext } from "@/app/dashboard/layout";
+
+// ---------------- INTERFACES ---------------- //
+
+interface EmpleadoAPI {
+  ReaderNumber?: string;
+  "Número Lector"?: string;
+  AcNumber?: string;
+  Oid: string;
+  Document?: string;
+  DocumentNumber?: string;
+  Documento?: string;
+  DisplayName?: string;
+  FullName?: string;
+  "Nombre a mostrar"?: string;
+  DepartmentName?: string;
+  Department?: string;
+  Departamento?: string;
+  CurrentShiftName?: string;
+  CurrentShift?: string;
+  "Turno Actual"?: string;
+  ValorHora?: string | number;
+  "Valor Hora"?: string | number;
+  Status?: number;
+  StatusId?: number;
+}
+
+interface EmpleadoNormalizado {
+  "Número Lector": string;
+  Oid: string;
+  Documento: string;
+  "Nombre a mostrar": string;
+  Departamento: string;
+  "Turno Actual": string;
+  "Valor Hora": string | number;
+  Status: number | null;
+  [key: string]: string | number | null;
+}
+
 // ---------------- PAGINACIÓN ---------------- //
+
+interface PaginationControlsProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (itemsPerPage: number) => void;
+}
 
 function PaginationControls({
   currentPage,
@@ -33,7 +81,7 @@ function PaginationControls({
   itemsPerPage,
   onPageChange,
   onItemsPerPageChange,
-}) {
+}: PaginationControlsProps) {
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
@@ -52,16 +100,16 @@ function PaginationControls({
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-white border-t border-gray-200">
-      <div className="text-sm text-gray-600 flex items-center gap-2">
-        <Users className="h-4 w-4" />
-        Mostrando {startItem}-{endItem} de {totalItems} empleados
+      <div className="text-sm text-gray-500 font-medium flex items-center gap-2">
+        <Users className="h-4 w-4 text-gray-400" />
+        Mostrando <span className="text-gray-900 font-bold">{startItem}-{endItem}</span> de <span className="text-gray-900 font-bold">{totalItems}</span> empleados
       </div>
 
       <div className="flex items-center gap-2">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          className="flex items-center gap-1 px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 transition-all duration-200 shadow-sm"
         >
           <ChevronLeft className="h-4 w-4" />
           Anterior
@@ -84,9 +132,9 @@ function PaginationControls({
               <button
                 key={pageNum}
                 onClick={() => onPageChange(pageNum)}
-                className={`w-8 h-8 text-sm rounded-lg transition-all duration-200 ${currentPage === pageNum
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
+                className={`w-9 h-9 text-sm font-medium rounded-lg transition-all duration-200 flex items-center justify-center ${currentPage === pageNum
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-indigo-100"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-indigo-600 border border-transparent hover:border-gray-200"
                   }`}
               >
                 {pageNum}
@@ -98,7 +146,7 @@ function PaginationControls({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          className="flex items-center gap-1 px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 transition-all duration-200 shadow-sm"
         >
           Siguiente
           <ChevronRight className="h-4 w-4" />
@@ -134,7 +182,7 @@ export default function EmpleadosPage() {
     "Valor Hora",
   ];
   const { estadoEmpleados } = useContext(DashboardContext);
-  const [datos, setDatos] = useState([]);
+  const [datos, setDatos] = useState<EmpleadoNormalizado[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -146,7 +194,7 @@ export default function EmpleadosPage() {
   const [busqueda, setBusqueda] = useState("");
   const [departamento, setDepartamento] = useState("");
   const [openAdvanced, setOpenAdvanced] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState([]);
+  const [advancedFilters, setAdvancedFilters] = useState<Condition[]>([]);
 
   useEffect(() => setIsMounted(true), []);
 
@@ -158,7 +206,7 @@ export default function EmpleadosPage() {
         const res = await fetch("/api/empleados");
         if (!res.ok) throw new Error("Error al obtener empleados");
 
-        const data = await res.json();
+        const data: EmpleadoAPI[] = await res.json();
 
         // Normaliza los nombres que tu frontend usa (ajusta si tu API tiene otros keys)
         const normalizados = data.map((e) => ({
@@ -219,7 +267,7 @@ export default function EmpleadosPage() {
     if (advancedFilters.length > 0) {
       filtered = filtered.filter((empleado) =>
         advancedFilters.every((filter) => {
-          const { field, operator, value, connector } = filter;
+          const { field, operator, value } = filter;
           if (!value) return true;
           const empleadoValue = empleado[field]?.toString().toLowerCase() || "";
           const filterValue = value.toLowerCase();
@@ -242,7 +290,7 @@ export default function EmpleadosPage() {
               condition = true;
           }
 
-          return connector === "No" ? !condition : condition;
+          return condition;
         })
       );
     }
@@ -271,20 +319,29 @@ export default function EmpleadosPage() {
   if (!isMounted) return <div className="p-8 text-center">Cargando...</div>;
 
   return (
-    <div className="space-y-8 p-8 bg-gray-50/50 min-h-screen font-sans">
+    <div className="space-y-8 p-6 sm:p-8 bg-gray-50/30 min-h-screen font-sans max-w-[1600px] mx-auto">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 ring-1 ring-gray-50">
-            <Users className="h-6 w-6 text-indigo-600" />
+        <div className="flex items-center gap-5">
+          <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 ring-4 ring-gray-50/50">
+            <Users className="h-8 w-8 text-indigo-600" />
           </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">
               Gestión de Empleados
             </h1>
-            <p className="text-sm text-gray-500 mt-1 flex items-center gap-2 font-medium">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-              {datosFiltrados.length} empleados activos
+            <p className="text-sm text-gray-500 mt-2 flex items-center gap-2 font-medium">
+              <span className="flex h-2.5 w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-gray-600">
+                {datosFiltrados.length} empleados activos
+              </span>
+              <span className="text-gray-300">|</span>
+              <span className="text-gray-400 font-normal">
+                Administración de personal
+              </span>
             </p>
           </div>
         </div>
@@ -293,10 +350,10 @@ export default function EmpleadosPage() {
       </div>
 
       {/* FILTROS */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 transition-all duration-300 hover:shadow-md">
+      <div className="bg-blue-500 rounded-2xl shadow-sm border border-gray-100 p-6 transition-all duration-300 hover:shadow-md">
         <div className="flex flex-col lg:flex-row gap-6 items-end">
           <div className="flex-1 w-full">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+            <label className="text-xs font-semibold text-white-500 uppercase tracking-wider mb-2 block">
               Búsqueda rápida
             </label>
             <div className="relative group">
@@ -311,7 +368,7 @@ export default function EmpleadosPage() {
           </div>
 
           <div className="w-full lg:w-72">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+            <label className="text-xs font-semibold text-white-500 uppercase tracking-wider mb-2 block">
               Departamento
             </label>
             <Select value={departamento} onValueChange={setDepartamento}>
@@ -335,21 +392,21 @@ export default function EmpleadosPage() {
           <Button
             variant="outline"
             onClick={() => setOpenAdvanced(true)}
-            className="h-11 px-6 border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all duration-200 font-medium"
+            className="h-11 px-6 text-white-500 border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-all duration-200 font-medium"
           >
-            <Filter className="h-4 w-4 mr-2" />
+            <Filter className="h-4 w-4 mr-2 text-white-500" />
             Filtros Avanzados
           </Button>
         </div>
       </div>
 
       {/* TABLA */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-blue-900 rounded-2xl shadow-sm border border-blue-100 overflow-hidden">
         <div className="overflow-x-auto">
           <Tabla
             columnas={columnas}
             datos={datosPaginados}
-            onRowClick={async (empleado) => {
+            onRowClick={async (empleado: EmpleadoNormalizado) => {
               try {
                 const res = await fetch(`/api/empleados/${empleado.Oid}`);
 

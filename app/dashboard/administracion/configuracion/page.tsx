@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input.JSX";
+import { Input } from "@/components/ui/Input";
 import { Settings, Save, Clock, Calendar, RefreshCw } from "lucide-react";
 
 interface ConfiguracionGrupo {
@@ -30,10 +30,10 @@ export default function PanelConfiguracionAdmin() {
   useEffect(() => {
     const cargarConfiguraciones = async () => {
       setCargando(true);
-      
+
       // Simular carga de API
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       const datosIniciales: ConfiguracionGrupo[] = [
         {
           id: 'grupo-Asistencia',
@@ -113,15 +113,15 @@ export default function PanelConfiguracionAdmin() {
   }, []);
 
   const handleConfigChange = (grupoId: string, configId: string, nuevoValor: string) => {
-    setConfiguraciones(prev => 
-      prev.map(grupo => 
-        grupo.id === grupoId 
+    setConfiguraciones(prev =>
+      prev.map(grupo =>
+        grupo.id === grupoId
           ? {
-              ...grupo,
-              configuraciones: grupo.configuraciones.map(config =>
-                config.id === configId ? { ...config, valor: nuevoValor } : config
-              )
-            }
+            ...grupo,
+            configuraciones: grupo.configuraciones.map(config =>
+              config.id === configId ? { ...config, valor: nuevoValor } : config
+            )
+          }
           : grupo
       )
     );
@@ -157,7 +157,7 @@ export default function PanelConfiguracionAdmin() {
             />
           </div>
         );
-      
+
       default:
         return (
           <Input
@@ -226,7 +226,7 @@ export default function PanelConfiguracionAdmin() {
                 </span>
               </CardTitle>
             </CardHeader>
-            
+
             <CardContent className="p-6 space-y-4">
               {grupo.configuraciones.map((config) => (
                 <div key={config.id} className="space-y-2">

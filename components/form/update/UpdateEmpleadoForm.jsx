@@ -199,20 +199,20 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
   return (
     <div className="w-full max-w-7xl mx-auto bg-gradient-to-br from-gray-50 to-gray-100">
       {/* HEADER */}
-      <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 px-8 py-6 border-b-4 border-indigo-800">
+      <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 px-4 md:px-8 py-4 md:py-6 border-b-4 border-indigo-800">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl border-2 border-white/30">
-              <User className="h-7 w-7 text-white" />
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="p-2 md:p-4 bg-white/20 backdrop-blur-sm rounded-2xl border-2 border-white/30">
+              <User className="h-5 w-5 md:h-7 md:w-7 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">Editar Empleado</h2>
-              <p className="text-indigo-100 mt-1 text-sm">
+              <h2 className="text-lg md:text-2xl font-bold text-white">Editar Empleado</h2>
+              <p className="text-indigo-100 mt-1 text-xs md:text-sm hidden sm:block">
                 Actualice la información del empleado
               </p>
             </div>
           </div>
-          <Badge className="px-5 py-2 text-sm font-bold bg-white text-indigo-700 rounded-xl shadow-lg">
+          <Badge className="px-3 md:px-5 py-1 md:py-2 text-xs md:text-sm font-bold bg-white text-indigo-700 rounded-xl shadow-lg">
             Doc: {form.Document || "N/A"}
           </Badge>
         </div>
@@ -221,43 +221,43 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
         <Tabs defaultValue="employee" className="w-full">
           {/* TABS NAVIGATION */}
-          <div className="bg-white border-b-2 border-gray-200 px-6">
-            <TabsList className="bg-transparent h-14 gap-2">
+          <div className="bg-white border-b-2 border-gray-200 px-2 md:px-6">
+            <TabsList className="bg-transparent h-12 md:h-14 gap-1 md:gap-2 w-full flex-wrap md:flex-nowrap">
               <TabsTrigger
                 value="employee"
-                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
+                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex-1 md:flex-initial"
               >
-                <User className="h-4 w-4 mr-2" />
+                <User className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 Empleado
               </TabsTrigger>
               <TabsTrigger
                 value="attendance"
-                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
+                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex-1 md:flex-initial"
                 disabled
               >
-                <Clock className="h-4 w-4 mr-2" />
+                <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 Asistencia
               </TabsTrigger>
               <TabsTrigger
                 value="contact"
-                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
+                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex-1 md:flex-initial"
                 disabled
               >
-                <Phone className="h-4 w-4 mr-2" />
+                <Phone className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 Contacto
               </TabsTrigger>
               <TabsTrigger
                 value="documents"
-                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
+                className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex-1 md:flex-initial"
                 disabled
               >
-                <FileText className="h-4 w-4 mr-2" />
+                <FileText className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 Documentos
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <div className="p-8">
+          <div className="p-4 md:p-8">
             {/* TAB: EMPLEADO */}
             <TabsContent value="employee" className="mt-0">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -274,7 +274,7 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6 bg-white">
-                      <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                         <div className="space-y-2">
                           <Label className="text-sm font-bold text-gray-700">Nombre a mostrar:</Label>
                           <Input
@@ -407,7 +407,7 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6 bg-white">
-                      <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                         <div className="space-y-2">
                           <Label className="text-sm font-bold text-gray-700">Sucursal:</Label>
                           <Select value={form.Sucursal} onValueChange={(v) => handleSelect("Sucursal", v)}>
@@ -666,30 +666,30 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
         </Tabs>
 
         {/* FOOTER ACCIONES */}
-        <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-8 py-5 border-t-2 border-gray-300 flex justify-end gap-4 shadow-inner">
+        <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-4 md:px-8 py-4 md:py-5 border-t-2 border-gray-300 flex flex-col sm:flex-row justify-end gap-3 md:gap-4 shadow-inner">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
             disabled={saveLoading}
-            className="h-12 px-8 border-2 border-gray-400 hover:bg-white hover:border-gray-500 font-semibold"
+            className="h-10 md:h-12 px-6 md:px-8 border-2 border-gray-400 hover:bg-white hover:border-gray-500 font-semibold text-sm md:text-base w-full sm:w-auto"
           >
-            <X className="mr-2 h-5 w-5" />
+            <X className="mr-2 h-4 w-4 md:h-5 md:w-5" />
             Cancelar
           </Button>
           <Button
             type="submit"
             disabled={saveLoading}
-            className="h-12 px-10 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold shadow-xl border-2 border-indigo-700"
+            className="h-10 md:h-12 px-8 md:px-10 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold shadow-xl border-2 border-indigo-700 text-sm md:text-base w-full sm:w-auto"
           >
             {saveLoading ? (
               <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 md:h-5 md:w-5 animate-spin" />
                 Guardando...
               </>
             ) : (
               <>
-                <Save className="mr-2 h-5 w-5" />
+                <Save className="mr-2 h-4 w-4 md:h-5 md:w-5" />
                 Guardar Cambios
               </>
             )}

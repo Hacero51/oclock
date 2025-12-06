@@ -9,9 +9,9 @@ interface DialogProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export const Dialog: React.FC<DialogProps> = ({ 
-  open, 
-  onOpenChange, 
+export const Dialog: React.FC<DialogProps> = ({
+  open,
+  onOpenChange,
   children,
   size = 'md'
 }) => {
@@ -54,7 +54,7 @@ export const Dialog: React.FC<DialogProps> = ({
   };
 
   return createPortal(
-    <div 
+    <div
       className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
@@ -67,8 +67,8 @@ export const Dialog: React.FC<DialogProps> = ({
 };
 
 // Resto de componentes igual que antes...
-export const DialogContent = ({ children }: { children: React.ReactNode }) => {
-  return <div className="flex flex-col h-full">{children}</div>;
+export const DialogContent = ({ children, className }: { children: React.ReactNode; className?: string }) => {
+  return <div className={`flex flex-col h-full ${className || ''}`}>{children}</div>;
 };
 
 export const DialogHeader = ({ children }: { children: React.ReactNode }) => {
@@ -79,17 +79,17 @@ export const DialogHeader = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const DialogTitle = ({ children }: { children: React.ReactNode }) => {
+export const DialogTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => {
   return (
-    <h2 className="text-lg font-semibold leading-none tracking-tight">
+    <h2 className={`text-lg font-semibold leading-none tracking-tight ${className || ''}`}>
       {children}
     </h2>
   );
 };
 
-export const DialogFooter = ({ children }: { children: React.ReactNode }) => {
+export const DialogFooter = ({ children, className }: { children: React.ReactNode; className?: string }) => {
   return (
-    <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 p-6 border-t">
+    <div className={`flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 p-6 border-t ${className || ''}`}>
       {children}
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from "react";
-import { Input } from "@/components/ui/Input.JSX";
+import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import {
   Select,
@@ -12,12 +12,12 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import Tabla from "@/components/Table";
-import { 
-  Clock, 
-  Search, 
-  Filter, 
-  Download, 
-  X, 
+import {
+  Clock,
+  Search,
+  Filter,
+  Download,
+  X,
   User,
   Calendar,
   CheckCircle2,
@@ -28,13 +28,13 @@ import {
 } from "lucide-react";
 
 // Componente de controles de paginación mejorado
-function PaginationControls({ 
-  currentPage, 
-  totalPages, 
-  totalItems, 
-  itemsPerPage, 
-  onPageChange, 
-  onItemsPerPageChange 
+function PaginationControls({
+  currentPage,
+  totalPages,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
+  onItemsPerPageChange
 }) {
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
@@ -86,11 +86,10 @@ function PaginationControls({
               <button
                 key={pageNum}
                 onClick={() => onPageChange(pageNum)}
-                className={`w-8 h-8 text-sm rounded-lg transition-all duration-200 ${
-                  currentPage === pageNum
+                className={`w-8 h-8 text-sm rounded-lg transition-all duration-200 ${currentPage === pageNum
                     ? "bg-blue-600 text-white shadow-sm"
                     : "text-gray-600 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 {pageNum}
               </button>
@@ -195,28 +194,28 @@ const validarSalida = (salida: string, entrada: string, marcacion: any) => {
   const fechaEntrada = parsearFechaHora(entrada) ? new Date(parsearFechaHora(entrada)) : null;
   const fechaActual = new Date();
   if (fechaEntrada && fechaSalida < fechaEntrada) {
-    return { 
-      valido: false, 
-      mensaje: "La salida no puede ser anterior a la entrada" 
+    return {
+      valido: false,
+      mensaje: "La salida no puede ser anterior a la entrada"
     };
   }
   if (fechaSalida > fechaActual) {
-    return { 
-      valido: false, 
-      mensaje: "La salida no puede ser posterior a la fecha y hora actual" 
+    return {
+      valido: false,
+      mensaje: "La salida no puede ser posterior a la fecha y hora actual"
     };
   }
   const diferenciaDias = (fechaActual.getTime() - fechaSalida.getTime()) / (1000 * 60 * 60 * 24);
   if (diferenciaDias > 30) {
-    return { 
-      valido: false, 
-      mensaje: "No se pueden registrar salidas con más de 30 días de antigüedad" 
+    return {
+      valido: false,
+      mensaje: "No se pueden registrar salidas con más de 30 días de antigüedad"
     };
   }
   if (fechaEntrada) {
     const mismoDia = fechaSalida.getDate() === fechaEntrada.getDate() &&
-                    fechaSalida.getMonth() === fechaEntrada.getMonth() &&
-                    fechaSalida.getFullYear() === fechaEntrada.getFullYear();
+      fechaSalida.getMonth() === fechaEntrada.getMonth() &&
+      fechaSalida.getFullYear() === fechaEntrada.getFullYear();
     if (!mismoDia) {
       return {
         valido: false,
@@ -377,7 +376,7 @@ export default function FormMarcaciones() {
   const iniciarEdicionSalida = (marcacion: Marcacion) => {
     if (marcacion.estado === "Incompleto" || !marcacion.salida) {
       setEditandoId(marcacion.id);
-      const salidaInicial = marcacion.salida 
+      const salidaInicial = marcacion.salida
         ? parsearFechaHora(marcacion.salida)
         : obtenerFechaActual();
       setSalidaEditada(salidaInicial);
@@ -408,13 +407,13 @@ export default function FormMarcaciones() {
       return;
     }
     const nuevaSalidaFormateada = formatearFechaHora(salidaEditada);
-    setMarcaciones(prev => prev.map(m => 
-      m.id === marcacion.id 
-        ? { 
-            ...m, 
-            salida: nuevaSalidaFormateada,
-            estado: "OK"
-          } 
+    setMarcaciones(prev => prev.map(m =>
+      m.id === marcacion.id
+        ? {
+          ...m,
+          salida: nuevaSalidaFormateada,
+          estado: "OK"
+        }
         : m
     ));
     setEditandoId(null);
@@ -431,8 +430,8 @@ export default function FormMarcaciones() {
 
   // Manejar cambio de checkbox
   const handleCheckboxChange = (marcacionId: string, campo: string, valor: boolean) => {
-    setMarcaciones(prev => prev.map(m => 
-      m.id === marcacionId 
+    setMarcaciones(prev => prev.map(m =>
+      m.id === marcacionId
         ? { ...m, [campo]: valor }
         : m
     ));
@@ -467,16 +466,16 @@ export default function FormMarcaciones() {
               min={obtenerFechaMinima(marcacion.entrada)}
             />
             <div className="flex gap-1">
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={() => guardarSalida(marcacion)}
                 className="bg-green-600 hover:bg-green-700 text-white"
                 disabled={!!errorValidacion}
               >
                 <CheckCircle2 className="h-3 w-3" />
               </Button>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="outline"
                 onClick={cancelarEdicion}
               >
@@ -492,12 +491,11 @@ export default function FormMarcaciones() {
           )}
         </div>
       ) : (
-        <div 
-          className={`cursor-pointer p-2 rounded-lg border transition-all duration-200 ${
-            (marcacion.estado === "Incompleto" || !marcacion.salida) 
-              ? "bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100" 
+        <div
+          className={`cursor-pointer p-2 rounded-lg border transition-all duration-200 ${(marcacion.estado === "Incompleto" || !marcacion.salida)
+              ? "bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100"
               : "text-gray-700 border-gray-200 bg-gray-50 hover:bg-gray-100"
-          }`}
+            }`}
           onClick={() => iniciarEdicionSalida(marcacion)}
           title={marcacion.estado === "Incompleto" ? "Click para editar salida" : "Salida completa"}
         >
@@ -505,19 +503,19 @@ export default function FormMarcaciones() {
         </div>
       ),
       'Inicia Turno': (
-        <div 
+        <div
           className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
           onClick={() => iniciarEdicionCheckbox(marcacion.id)}
           title="Click para editar"
         >
-          <Checkbox 
-            checked={marcacion.iniciaTurno} 
+          <Checkbox
+            checked={marcacion.iniciaTurno}
             onCheckedChange={(checked) => handleCheckboxChange(marcacion.id, 'iniciaTurno', checked === true)}
             disabled={editandoCheckbox !== marcacion.id}
           />
           {editandoCheckbox === marcacion.id && (
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="ghost"
               className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
               onClick={(e) => {
@@ -531,19 +529,19 @@ export default function FormMarcaciones() {
         </div>
       ),
       'Tiempo Extra Después': (
-        <div 
+        <div
           className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
           onClick={() => iniciarEdicionCheckbox(marcacion.id)}
           title="Click para editar"
         >
-          <Checkbox 
-            checked={marcacion.tiempoExtraDespues} 
+          <Checkbox
+            checked={marcacion.tiempoExtraDespues}
             onCheckedChange={(checked) => handleCheckboxChange(marcacion.id, 'tiempoExtraDespues', checked === true)}
             disabled={editandoCheckbox !== marcacion.id}
           />
           {editandoCheckbox === marcacion.id && (
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="ghost"
               className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
               onClick={(e) => {
@@ -557,19 +555,19 @@ export default function FormMarcaciones() {
         </div>
       ),
       'Tiempo Extra Festivo': (
-        <div 
+        <div
           className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
           onClick={() => iniciarEdicionCheckbox(marcacion.id)}
           title="Click para editar"
         >
-          <Checkbox 
-            checked={marcacion.tiempoExtraFestivo} 
+          <Checkbox
+            checked={marcacion.tiempoExtraFestivo}
             onCheckedChange={(checked) => handleCheckboxChange(marcacion.id, 'tiempoExtraFestivo', checked === true)}
             disabled={editandoCheckbox !== marcacion.id}
           />
           {editandoCheckbox === marcacion.id && (
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="ghost"
               className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
               onClick={(e) => {
@@ -583,19 +581,19 @@ export default function FormMarcaciones() {
         </div>
       ),
       'Autorizar': (
-        <div 
+        <div
           className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
           onClick={() => iniciarEdicionCheckbox(marcacion.id)}
           title="Click para editar"
         >
-          <Checkbox 
-            checked={marcacion.autorizar} 
+          <Checkbox
+            checked={marcacion.autorizar}
             onCheckedChange={(checked) => handleCheckboxChange(marcacion.id, 'autorizar', checked === true)}
             disabled={editandoCheckbox !== marcacion.id}
           />
           {editandoCheckbox === marcacion.id && (
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="ghost"
               className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
               onClick={(e) => {
@@ -611,13 +609,12 @@ export default function FormMarcaciones() {
       'Estado': (
         <div className="flex justify-center">
           <span
-            className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
-              marcacion.estado === "OK"
+            className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${marcacion.estado === "OK"
                 ? "bg-green-100 text-green-800"
                 : marcacion.estado === "Incompleto"
-                ? "bg-yellow-100 text-yellow-800"
-                : "bg-red-100 text-red-800"
-            }`}
+                  ? "bg-yellow-100 text-yellow-800"
+                  : "bg-red-100 text-red-800"
+              }`}
           >
             {marcacion.estado === "OK" && <CheckCircle2 className="h-3 w-3" />}
             {marcacion.estado === "Incompleto" && <AlertCircle className="h-3 w-3" />}
@@ -629,15 +626,15 @@ export default function FormMarcaciones() {
   }, [marcacionesPaginadas, editandoId, salidaEditada, errorValidacion, editandoCheckbox]);
 
   const columnasTabla = [
-    'Empleado', 
-    'Turno', 
-    'Fecha', 
-    'Entrada', 
-    'Salida', 
-    'Inicia Turno', 
-    'Tiempo Extra Después', 
-    'Tiempo Extra Festivo', 
-    'Autorizar', 
+    'Empleado',
+    'Turno',
+    'Fecha',
+    'Entrada',
+    'Salida',
+    'Inicia Turno',
+    'Tiempo Extra Después',
+    'Tiempo Extra Festivo',
+    'Autorizar',
     'Estado'
   ];
 
@@ -766,7 +763,7 @@ export default function FormMarcaciones() {
           </div>
 
           <div className="flex items-end">
-            <Button 
+            <Button
               className="bg-blue-600 hover:bg-blue-700 text-white w-full flex items-center gap-2"
             >
               <Search className="h-4 w-4" />
@@ -781,10 +778,10 @@ export default function FormMarcaciones() {
         {/* Tabla */}
         <div className="overflow-x-auto">
           {datosParaTabla.length > 0 ? (
-            <Tabla 
+            <Tabla
               columnas={columnasTabla}
               datos={datosParaTabla}
-              onRowClick={() => {}}
+              onRowClick={() => { }}
             />
           ) : (
             <div className="text-center py-16">
@@ -795,8 +792,8 @@ export default function FormMarcaciones() {
                 No se encontraron marcaciones
               </h3>
               <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                {marcaciones.length === 0 
-                  ? "No hay marcaciones en el sistema." 
+                {marcaciones.length === 0
+                  ? "No hay marcaciones en el sistema."
                   : "No hay marcaciones que coincidan con los filtros aplicados."
                 }
               </p>
@@ -813,7 +810,7 @@ export default function FormMarcaciones() {
             </div>
           )}
         </div>
-        
+
         {/* Controles de paginación */}
         <PaginationControls
           currentPage={currentPage}

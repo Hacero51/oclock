@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Plus, Trash2, Filter } from "lucide-react";
 
-interface Condition { 
+export interface Condition {
   id: number;
   field: string;
   operator: string;
@@ -35,7 +35,7 @@ export function AdvancedFilterDialog({
 
   const camposDisponibles = [
     "Departamento",
-    "Nombre a mostrar", 
+    "Nombre a mostrar",
     "Documento",
     "Turno Actual",
   ];
@@ -49,11 +49,11 @@ export function AdvancedFilterDialog({
   const addCondition = () => {
     setConditions((prev) => [
       ...prev,
-      { 
-        id: Date.now(), 
-        field: "Departamento", 
-        operator: "igual", 
-        value: "" 
+      {
+        id: Date.now(),
+        field: "Departamento",
+        operator: "igual",
+        value: ""
       },
     ]);
   };
@@ -170,7 +170,7 @@ export function AdvancedFilterDialog({
             className="w-full flex items-center justify-center gap-2 border-dashed border-2 border-gray-300 hover:border-gray-400"
             onClick={addCondition}
           >
-            <Plus className="h-4 w-4" /> 
+            <Plus className="h-4 w-4" />
             Agregar Condición
           </Button>
         </div>
@@ -183,16 +183,16 @@ export function AdvancedFilterDialog({
           >
             Vaciar Todos
           </Button>
-          
+
           <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={cancel}
               className="flex-1"
             >
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={applyFilters}
               className="flex-1 bg-blue-600 hover:bg-blue-700"
             >

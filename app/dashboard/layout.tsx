@@ -6,9 +6,9 @@ import Navbar from "@/components/Navbar";
 import CreateModal from "@/components/CreateModal";
 
 export const DashboardContext = createContext({
-  openCreate: (type: string) => {},
+  openCreate: (type: string) => { },
   estadoEmpleados: "todos",
-  setEstadoEmpleados: (v: string) => {},
+  setEstadoEmpleados: (v: string) => { },
 });
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -25,8 +25,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         setEstadoEmpleados,
       }}
     >
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        
+      <div className="flex h-screen bg-gray-50 overflow-y-auto">
+
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
         <div
@@ -37,9 +37,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             onOpenCreate={(t) => setCreateType(t)}
           />
 
-          <main className="flex-1 p-6 overflow-y-auto"> {/* Cambiado a overflow-y-auto */}
-            <div className="bg-white border rounded-lg shadow-sm h-full flex flex-col min-h-0"> {/* Agregado min-h-0 y rounded-lg */}
-              <div className="flex-1 overflow-y-auto p-4"> {/* Agregado overflow-y-auto y padding */}
+          <main className="flex-1 p-6 overflow-y-auto">
+            <div className="bg-white border rounded-lg shadow-sm h-full flex flex-col min-h-0">
+              <div className="flex-1 overflow-y-auto p-4">
                 {children}
               </div>
             </div>

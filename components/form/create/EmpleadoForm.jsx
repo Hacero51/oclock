@@ -45,6 +45,8 @@ export default function EmpleadoForm({ onClose }) {
     departamentos: [],
     centrosCosto: [],
     turnos: [],
+    cargos: [],
+    empleados: [],
   });
 
   const [loading, setLoading] = useState(false);
@@ -57,9 +59,12 @@ export default function EmpleadoForm({ onClose }) {
         setLoading(true);
         const res = await fetch("/api/empleados/data");
         const json = await res.json();
+        //console.log('📥 Datos recibidos en el formulario:', json);
+        //console.log('  - Cargos recibidos:', json.cargos?.length || 0);
+        //console.log('  - Empleados recibidos:', json.empleados?.length || 0);
         setCatalogos(json);
       } catch (error) {
-        console.error("Error cargando catálogos:", error);
+        //console.error("Error cargando catálogos:", error);
       } finally {
         setLoading(false);
       }
@@ -173,101 +178,89 @@ export default function EmpleadoForm({ onClose }) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 space-y-4">
-        <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
-        <p className="text-sm text-gray-500 font-medium">Cargando catálogos...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full max-w-7xl mx-auto bg-gradient-to-br from-gray-50 to-gray-100">
       {/* HEADER */}
-      <div className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-green-700 px-8 py-6 border-b-4 border-emerald-800">
+      <div className="bg-gradient-to-r from-red-600  to-blue-700 px-4 md:px-8 py-4 md:py-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl border-2 border-white/30">
-              <User className="h-7 w-7 text-white" />
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="p-2 md:p-4 bg-white/20 backdrop-blur-sm rounded-2xl border-2 border-white/30">
+              <User className="h-5 w-5 md:h-7 md:w-7 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">Crear Nuevo Empleado</h2>
-              <p className="text-emerald-100 mt-1 text-sm">
+              <h2 className="text-lg md:text-2xl font-bold text-white">Crear Nuevo Empleado</h2>
+              <p className="text-white-900 mt-1 text-xs md:text-sm hidden sm:block">
                 Registre un nuevo empleado en el sistema
               </p>
             </div>
           </div>
-          <Badge className="px-5 py-2 text-sm font-bold bg-white text-emerald-700 rounded-xl shadow-lg">
-            Nuevo Registro
-          </Badge>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
         <Tabs defaultValue="employee" className="w-full">
           {/* TABS NAVIGATION */}
-          <div className="bg-white border-b-2 border-gray-200 px-6">
-            <TabsList className="bg-transparent h-14 gap-2">
+          <div className="bg-white border-b-2 border-gray-200 px-2 md:px-6">
+            <TabsList className="bg-transparent h-12 md:h-14 gap-1 md:gap-2 w-full flex-wrap md:flex-nowrap">
               <TabsTrigger
                 value="employee"
-                className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex-1 md:flex-initial"
               >
-                <User className="h-4 w-4 mr-2" />
+                <User className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 Empleado
               </TabsTrigger>
               <TabsTrigger
                 value="attendance"
-                className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
-                disabled
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex-1 md:flex-initial"
               >
-                <Clock className="h-4 w-4 mr-2" />
+                <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 Asistencia
               </TabsTrigger>
               <TabsTrigger
                 value="contact"
-                className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
-                disabled
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex-1 md:flex-initial"
+
               >
-                <Phone className="h-4 w-4 mr-2" />
+                <Phone className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 Contacto
               </TabsTrigger>
               <TabsTrigger
                 value="documents"
-                className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-6 py-2.5 rounded-t-lg font-semibold transition-all"
-                disabled
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex-1 md:flex-initial"
+
               >
-                <FileText className="h-4 w-4 mr-2" />
+                <FileText className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 Documentos
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <div className="p-8">
+          <div className="p-4 md:p-8">
             {/* TAB: EMPLEADO */}
             <TabsContent value="employee" className="mt-0">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* COLUMNA IZQUIERDA - FORMULARIO */}
                 <div className="lg:col-span-2 space-y-6">
                   {/* INFORMACIÓN PERSONAL */}
-                  <Card className="border-2 border-emerald-100 shadow-lg">
-                    <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-100">
+                  <Card className="border-2 border-blue-100 shadow-lg">
+                    <CardHeader className="bg-gradient-to-r from-blue-50 to-red-50 border-b-2 border-blue-100">
                       <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-emerald-600 rounded-lg">
+                        <div className="p-2 bg-blue-600 rounded-lg">
                           <User className="h-5 w-5 text-white" />
                         </div>
                         <h3 className="text-lg font-bold text-gray-800">Información Personal</h3>
                       </div>
                     </CardHeader>
                     <CardContent className="p-6 bg-white">
-                      <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                         <div className="space-y-2">
                           <Label className="text-sm font-bold text-gray-700">Nombre a mostrar:</Label>
                           <Input
                             name="FullName"
                             value={form.FullName}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                             placeholder="Ej. Juan Pérez"
                             required
                           />
@@ -280,7 +273,7 @@ export default function EmpleadoForm({ onClose }) {
                             type="date"
                             value={form.Birthday}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                           />
                         </div>
 
@@ -290,7 +283,7 @@ export default function EmpleadoForm({ onClose }) {
                             name="FirstName"
                             value={form.FirstName}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                           />
                         </div>
 
@@ -300,7 +293,7 @@ export default function EmpleadoForm({ onClose }) {
                             name="Nacionalidad"
                             value={form.Nacionalidad}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                             placeholder="Ej. Colombiana"
                           />
                         </div>
@@ -311,7 +304,7 @@ export default function EmpleadoForm({ onClose }) {
                             name="MiddleName"
                             value={form.MiddleName}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                           />
                         </div>
 
@@ -334,7 +327,7 @@ export default function EmpleadoForm({ onClose }) {
                             name="LastName"
                             value={form.LastName}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                           />
                         </div>
 
@@ -345,7 +338,7 @@ export default function EmpleadoForm({ onClose }) {
                             type="email"
                             value={form.Email}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                             placeholder="juan@empresa.com"
                           />
                         </div>
@@ -356,7 +349,7 @@ export default function EmpleadoForm({ onClose }) {
                             name="MiddleLast"
                             value={form.MiddleLast}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                           />
                         </div>
 
@@ -366,7 +359,7 @@ export default function EmpleadoForm({ onClose }) {
                             name="Direccion"
                             value={form.Direccion}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                             placeholder="..."
                           />
                         </div>
@@ -377,7 +370,7 @@ export default function EmpleadoForm({ onClose }) {
                             name="Document"
                             value={form.Document}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                             placeholder="Ej. 123456789"
                             required
                           />
@@ -397,7 +390,7 @@ export default function EmpleadoForm({ onClose }) {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6 bg-white">
-                      <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                         <div className="space-y-2">
                           <Label className="text-sm font-bold text-gray-700">Sucursal:</Label>
                           <Select value={form.Sucursal} onValueChange={(v) => handleSelect("Sucursal", v)}>
@@ -447,7 +440,7 @@ export default function EmpleadoForm({ onClose }) {
                             type="number"
                             value={form.RotacionActual}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                           />
                         </div>
 
@@ -481,13 +474,16 @@ export default function EmpleadoForm({ onClose }) {
 
                         <div className="space-y-2">
                           <Label className="text-sm font-bold text-gray-700">Cargo:</Label>
-                          <Input
-                            name="Cargo"
-                            value={form.Cargo}
-                            onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
-                            placeholder="Ej. Vendedor"
-                          />
+                          <Select value={form.Cargo} onValueChange={(v) => handleSelect("Cargo", v)}>
+                            <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {catalogos.cargos.map((c) => (
+                                <SelectItem key={c.Oid} value={c.Oid}>{c.Name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div className="space-y-2">
@@ -497,7 +493,7 @@ export default function EmpleadoForm({ onClose }) {
                             type="number"
                             value={form.Salario}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                             placeholder="0.00"
                           />
                         </div>
@@ -510,6 +506,9 @@ export default function EmpleadoForm({ onClose }) {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">Ninguno</SelectItem>
+                              {catalogos.empleados.map((e) => (
+                                <SelectItem key={e.Oid} value={e.Oid}>{e.Name}</SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
@@ -523,7 +522,7 @@ export default function EmpleadoForm({ onClose }) {
                             <SelectContent>
                               <SelectItem value="activo">
                                 <div className="flex items-center gap-2">
-                                  <span className="w-3 h-3 rounded-full bg-emerald-500" />
+                                  <span className="w-3 h-3 rounded-full bg-blue-500" />
                                   Activo
                                 </div>
                               </SelectItem>
@@ -544,16 +543,17 @@ export default function EmpleadoForm({ onClose }) {
                             type="number"
                             value={form.ValorHora}
                             onChange={handleChange}
-                            className="h-11 border-2 border-gray-300 focus:border-emerald-500 bg-gray-50 focus:bg-white"
+                            className="h-11 border-2 border-gray-300 focus:border-blue-500 bg-gray-50 focus:bg-white"
                             placeholder="0.00"
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <div className="flex items-center space-x-3 h-11 px-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                          <div className="flex items-center space-x-3 h-11 px-4 bg-blue-50 rounded-lg border-2 border-blue-200">
                             <Switch
                               checked={form.TiempoExtra}
                               onCheckedChange={(checked) => setForm(prev => ({ ...prev, TiempoExtra: checked }))}
+                              className="bg-blue-200"
                             />
                             <Label className="text-sm font-bold text-gray-700 cursor-pointer">
                               Tiempo Extra
@@ -606,7 +606,7 @@ export default function EmpleadoForm({ onClose }) {
                         <Button
                           type="button"
                           variant="outline"
-                          className="w-full border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                          className="w-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50"
                           onClick={() => document.getElementById('photo-upload').click()}
                         >
                           <Upload className="mr-2 h-4 w-4" />
@@ -656,30 +656,30 @@ export default function EmpleadoForm({ onClose }) {
         </Tabs>
 
         {/* FOOTER ACCIONES */}
-        <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-8 py-5 border-t-2 border-gray-300 flex justify-end gap-4 shadow-inner">
+        <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-4 md:px-8 py-4 md:py-5 border-t-2 border-gray-300 flex flex-col sm:flex-row justify-end gap-3 md:gap-4 shadow-inner">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
             disabled={saveLoading}
-            className="h-12 px-8 border-2 border-gray-400 hover:bg-white hover:border-gray-500 font-semibold"
+            className="h-10 md:h-12 px-6 md:px-8 border-2 border-gray-400 hover:bg-white hover:border-gray-500 font-semibold text-sm md:text-base w-full sm:w-auto"
           >
-            <X className="mr-2 h-5 w-5" />
+            <X className="mr-2 h-4 w-4 md:h-5 md:w-5" />
             Cancelar
           </Button>
           <Button
             type="submit"
             disabled={saveLoading}
-            className="h-12 px-10 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold shadow-xl border-2 border-emerald-700"
+            className="h-10 md:h-12 px-8 md:px-10 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-bold shadow-xl border-2 border-blue-700 text-sm md:text-base w-full sm:w-auto"
           >
             {saveLoading ? (
               <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 md:h-5 md:w-5 animate-spin" />
                 Guardando...
               </>
             ) : (
               <>
-                <Save className="mr-2 h-5 w-5" />
+                <Save className="mr-2 h-4 w-4 md:h-5 md:w-5" />
                 Crear Empleado
               </>
             )}

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input.JSX";
+import { Input } from "@/components/ui/Input";
 import { Users, UserPlus, Save, Edit, Trash2, Search, Eye, EyeOff, RefreshCw, Shield, Key, UserCheck } from "lucide-react";
 
 interface UsuarioForm {
@@ -58,13 +58,13 @@ export default function CrearUsuario() {
     try {
       setCargandoUsuarios(true);
       const response = await fetch('/api/usuarios');
-      
+
       if (!response.ok) {
         throw new Error('Error al cargar usuarios');
       }
-      
+
       const usuariosAPI: UsuarioAPI[] = await response.json();
-      
+
       const usuariosTransformados: Usuario[] = usuariosAPI.map(usuario => ({
         Oid: usuario.Oid,
         HiddenUserName: usuario.HiddenUserName || '',
@@ -73,7 +73,7 @@ export default function CrearUsuario() {
         confirmarStoredPassword: obtenerPasswordLegible(usuario.StoredPassword),
         IsActive: usuario.IsActive || false
       }));
-      
+
       setUsuarios(usuariosTransformados);
     } catch (error) {
       console.error('Error cargando usuarios:', error);
@@ -95,7 +95,7 @@ export default function CrearUsuario() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    
+
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
@@ -122,7 +122,7 @@ export default function CrearUsuario() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const errorValidacion = validarFormulario();
     if (errorValidacion) {
       alert(errorValidacion);
@@ -151,12 +151,12 @@ export default function CrearUsuario() {
       }
 
       const usuarioCreado = await response.json();
-      
+
       console.log('Usuario creado:', usuarioCreado);
       alert('✅ Usuario creado exitosamente');
-      
+
       await cargarUsuarios();
-      
+
       setFormData({
         HiddenUserName: '',
         UserName: '',
@@ -164,7 +164,7 @@ export default function CrearUsuario() {
         confirmarStoredPassword: '',
         IsActive: true,
       });
-      
+
     } catch (error) {
       console.error('Error:', error);
       alert(`❌ Error al crear el usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`);
@@ -286,7 +286,7 @@ export default function CrearUsuario() {
   };
 
   const getEstadoBadge = (estado: boolean) => {
-    return estado ? 
+    return estado ?
       <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1 w-fit">
         <UserCheck className="h-3 w-3" />
         Activo
@@ -340,7 +340,7 @@ export default function CrearUsuario() {
             Crear Nuevo Usuario
           </CardTitle>
         </CardHeader>
-        
+
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Información Personal */}
@@ -349,7 +349,7 @@ export default function CrearUsuario() {
                 <Users className="h-5 w-5 text-blue-600" />
                 Información Personal
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
@@ -397,7 +397,7 @@ export default function CrearUsuario() {
                 <Key className="h-5 w-5 text-green-600" />
                 Información de Seguridad
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
@@ -473,7 +473,7 @@ export default function CrearUsuario() {
                 )}
                 {enviando ? 'Creando Usuario...' : 'Crear Usuario'}
               </Button>
-              
+
               <Button
                 type="button"
                 onClick={resetForm}
@@ -495,7 +495,7 @@ export default function CrearUsuario() {
               <Users className="h-5 w-5 text-blue-600" />
               Usuarios del Sistema
             </CardTitle>
-            
+
             <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -518,7 +518,7 @@ export default function CrearUsuario() {
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="p-0">
           {cargandoUsuarios ? (
             <div className="text-center py-12">
@@ -555,8 +555,8 @@ export default function CrearUsuario() {
                 </thead>
                 <tbody>
                   {usuariosFiltrados.map((usuario) => (
-                    <tr 
-                      key={usuario.Oid} 
+                    <tr
+                      key={usuario.Oid}
                       className="hover:bg-gray-50 transition-colors border-b border-gray-200 last:border-b-0"
                     >
                       <td className="p-4">
@@ -611,7 +611,7 @@ export default function CrearUsuario() {
                 Editar Usuario
               </CardTitle>
             </CardHeader>
-            
+
             <CardContent className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -621,10 +621,10 @@ export default function CrearUsuario() {
                   <Input
                     type="text"
                     value={usuarioEditando.HiddenUserName}
-                    onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, HiddenUserName: e.target.value} : null)}
+                    onChange={(e) => setUsuarioEditando(prev => prev ? { ...prev, HiddenUserName: e.target.value } : null)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
                     Nombre de Usuario *
@@ -632,7 +632,7 @@ export default function CrearUsuario() {
                   <Input
                     type="text"
                     value={usuarioEditando.UserName}
-                    onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, UserName: e.target.value} : null)}
+                    onChange={(e) => setUsuarioEditando(prev => prev ? { ...prev, UserName: e.target.value } : null)}
                   />
                 </div>
               </div>
@@ -641,7 +641,7 @@ export default function CrearUsuario() {
                 <input
                   type="checkbox"
                   checked={usuarioEditando.IsActive}
-                  onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, IsActive: e.target.checked} : null)}
+                  onChange={(e) => setUsuarioEditando(prev => prev ? { ...prev, IsActive: e.target.checked } : null)}
                   className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 />
                 <span className="text-sm font-medium text-gray-700">Usuario activo</span>
@@ -655,7 +655,7 @@ export default function CrearUsuario() {
                 <p className="text-sm text-yellow-700 mb-3">
                   Deje en blanco para mantener la contraseña actual
                 </p>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
@@ -665,7 +665,7 @@ export default function CrearUsuario() {
                       <Input
                         type={mostrarPassword ? "text" : "password"}
                         value={usuarioEditando.StoredPassword}
-                        onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, StoredPassword: e.target.value} : null)}
+                        onChange={(e) => setUsuarioEditando(prev => prev ? { ...prev, StoredPassword: e.target.value } : null)}
                         placeholder="Nueva contraseña (mín. 6 caracteres)"
                       />
                       <Button
@@ -685,7 +685,7 @@ export default function CrearUsuario() {
                     <Input
                       type={mostrarPassword ? "text" : "password"}
                       value={usuarioEditando.confirmarStoredPassword}
-                      onChange={(e) => setUsuarioEditando(prev => prev ? {...prev, confirmarStoredPassword: e.target.value} : null)}
+                      onChange={(e) => setUsuarioEditando(prev => prev ? { ...prev, confirmarStoredPassword: e.target.value } : null)}
                       placeholder="Confirmar nueva contraseña"
                     />
                   </div>

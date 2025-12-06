@@ -82,13 +82,18 @@ const menuItems = [
   },
 ];
 
-export default function Sidebar({ collapsed, setCollapsed }) {
-  const [openItem, setOpenItem] = useState(null);
+interface SidebarProps {
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
+}
+
+export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
+  const [openItem, setOpenItem] = useState<string | null>(null);
   const [hoverExpand, setHoverExpand] = useState(false);
 
   const isExpanded = !collapsed || hoverExpand;
 
-  const toggleItem = (title) => setOpenItem(openItem === title ? null : title);
+  const toggleItem = (title: string) => setOpenItem(openItem === title ? null : title);
 
   return (
     <aside
@@ -199,9 +204,8 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       <div className="p-4 border-t border-red-700/50">
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className={`w-full flex items-center gap-3 text-left px-3 py-3 rounded-xl hover:bg-red-700 text-red-200 hover:text-white transition-all group ${
-            !isExpanded ? "justify-center" : ""
-          }`}
+          className={`w-full flex items-center gap-3 text-left px-3 py-3 rounded-xl hover:bg-red-700/50 text-red-200 hover:text-white transition-all group ${!isExpanded ? "justify-center" : ""
+            }`}
         >
           <LogOut size={20} className="group-hover:scale-110 transition-transform" />
           {isExpanded && <span className="font-medium">Cerrar Sesión</span>}
@@ -210,7 +214,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         {/* Footer */}
         {isExpanded && (
           <div className="mt-4 text-center space-y-2">
-            <div className="bg-red-700/30 rounded-lg p-3">
+            <div className="bg-red-700/50  p-3">
               <p className="text-xs text-red-300 font-medium">Versión 1.0</p>
               <p className="text-xs text-red-400/80 mt-1">© 2025 INR En Punto</p>
               <p className="text-xs text-red-400/60 mt-1">Todos los derechos reservados</p>

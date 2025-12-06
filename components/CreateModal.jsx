@@ -43,9 +43,11 @@ export default function CreateModal({ type, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-[9999] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/40 z-[9999] flex items-center justify-center p-4" onClick={(e) => {
+      if (e.target === e.currentTarget) onClose();
+    }}>
       <div
-        className={`bg-white rounded-xl shadow-xl w-full ${sizes[type]} flex flex-col overflow-hidden`}
+        className={`bg-white rounded-xl shadow-xl w-full ${sizes[type]} flex flex-col overflow-hidden pointer-events-auto`}
       >
         <div className="flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
           <h2 className="text-xl font-bold">Crear {type}</h2>

@@ -225,14 +225,6 @@ export default function EmpleadoForm({ onClose }) {
                 <Phone className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 Contacto
               </TabsTrigger>
-              <TabsTrigger
-                value="documents"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex-1 md:flex-initial"
-
-              >
-                <FileText className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                Documentos
-              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -553,7 +545,7 @@ export default function EmpleadoForm({ onClose }) {
                             <Switch
                               checked={form.TiempoExtra}
                               onCheckedChange={(checked) => setForm(prev => ({ ...prev, TiempoExtra: checked }))}
-                              className="bg-blue-200"
+                              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500"
                             />
                             <Label className="text-sm font-bold text-gray-700 cursor-pointer">
                               Tiempo Extra
@@ -639,16 +631,6 @@ export default function EmpleadoForm({ onClose }) {
                 <CardContent className="p-12 text-center">
                   <Phone className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 font-medium">Información de contacto disponible próximamente</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* TAB: DOCUMENTOS */}
-            <TabsContent value="documents" className="mt-0">
-              <Card className="border-2 border-gray-200">
-                <CardContent className="p-12 text-center">
-                  <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 font-medium">Documentos disponibles próximamente</p>
                 </CardContent>
               </Card>
             </TabsContent>

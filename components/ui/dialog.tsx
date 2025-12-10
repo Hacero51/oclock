@@ -6,14 +6,16 @@ interface DialogProps {
   open: boolean;
   onOpenChange?: (open: boolean) => void;
   children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full';
+  className?: string;
 }
 
 export const Dialog: React.FC<DialogProps> = ({
   open,
   onOpenChange,
   children,
-  size = 'md'
+  size = 'md',
+  className
 }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -50,7 +52,13 @@ export const Dialog: React.FC<DialogProps> = ({
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
-    xl: 'max-w-xl'
+    xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
+    '4xl': 'max-w-4xl',
+    '5xl': 'max-w-5xl',
+    '6xl': 'max-w-6xl',
+    'full': 'max-w-full m-4',
   };
 
   return createPortal(
@@ -58,7 +66,7 @@ export const Dialog: React.FC<DialogProps> = ({
       className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
-      <div className={`bg-white rounded-lg shadow-lg w-full max-h-[90vh] overflow-hidden ${sizeClasses[size]}`}>
+      <div className={`bg-white rounded-lg shadow-lg w-full max-h-[90vh] overflow-hidden ${sizeClasses[size]} ${className || ''}`}>
         {children}
       </div>
     </div>,
@@ -71,9 +79,9 @@ export const DialogContent = ({ children, className }: { children: React.ReactNo
   return <div className={`flex flex-col h-full ${className || ''}`}>{children}</div>;
 };
 
-export const DialogHeader = ({ children }: { children: React.ReactNode }) => {
+export const DialogHeader = ({ children, className }: { children: React.ReactNode; className?: string }) => {
   return (
-    <div className="flex flex-col space-y-1.5 text-center sm:text-left p-6 border-b">
+    <div className={`flex flex-col space-y-1.5 text-center sm:text-left p-6 border-b ${className || ''}`}>
       {children}
     </div>
   );

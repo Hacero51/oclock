@@ -19,7 +19,7 @@ import {
   LogOut,
   Home,
   Users,
-  MapPin,
+  NotebookTabs,
   FolderTree,
   Calendar,
   FileText,
@@ -32,9 +32,8 @@ const menuItems = [
     icon: Building2,
     subItems: [
       { title: "Empleados", path: "/dashboard/empresa/empleados", icon: Users },
-      { title: "Sucursales", path: "/dashboard/empresa/sucursales", icon: MapPin },
       { title: "Departamentos", path: "/dashboard/empresa/departamentos", icon: FolderTree },
-      { title: "Centros de Costos", path: "/dashboard/empresa/centrocostos", icon: FolderTree },
+      { title: "Centros de Costos", path: "/dashboard/empresa/centrocostos", icon: NotebookTabs },
     ],
   },
   {
@@ -78,6 +77,7 @@ const menuItems = [
     subItems: [
       { title: "Configuración", path: "/dashboard/administracion/configuracion", icon: Settings },
       { title: "Usuario", path: "/dashboard/administracion/usuario", icon: Users },
+      { title: "Logs de Auditoría", path: "/dashboard/administracion/logs", icon: FileText },
     ],
   },
 ];

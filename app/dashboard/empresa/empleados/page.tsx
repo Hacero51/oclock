@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AdvancedFilterDialog } from "@/components/advanced-filtrer";
-import type { Condition } from "@/components/advanced-filtrer";
+import type { FilterNode } from "@/components/advanced-filtrer";
 import UpdateModal from "@/components/UpdateModal";
 import {
   Search,
@@ -194,7 +194,11 @@ export default function EmpleadosPage() {
   const [busqueda, setBusqueda] = useState("");
   const [departamento, setDepartamento] = useState("");
   const [openAdvanced, setOpenAdvanced] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState<Condition[]>([]);
+
+  // Nuevo estado para el filtro avanzado (árbol)
+  const [advancedFilterRoot, setAdvancedFilterRoot] = useState<FilterNode | undefined>(undefined);
+
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => setIsMounted(true), []);
 
@@ -220,12 +224,6 @@ export default function EmpleadosPage() {
           Status: typeof e.Status !== "undefined" ? e.Status : (e.StatusId ?? null), // asegúrate que venga el campo
         }));
 
-        //console.log("Empleados cargados con STATUS:", normalizados.map(e => ({
-        //  name: e["Nombre a mostrar"],
-        //status: e.Status
-        //})));
-
-        // Filtrar registros vacíos del mapeo
         const filtrados = normalizados.filter(
           (r) =>
             r["Nombre a mostrar"]?.toString().trim() !== "" &&
@@ -239,7 +237,113 @@ export default function EmpleadosPage() {
     }
 
     fetchData();
-  }, [isMounted]);
+  }, [isMounted, refreshKey]);
+
+  // Lógica recursiva de filtrado
+  const evaluateFilter = (empleado: EmpleadoNormalizado, node: FilterNode): boolean => {
+    if (node.type === "group") {
+      if (!node.children || node.children.length === 0) return true; // Grupo vacío pasa
+
+      const results = node.children.map(child => evaluateFilter(empleado, child));
+
+      switch (node.logic) {
+        case "AND":
+          return results.every(r => r);
+        case "OR":
+          return results.some(r => r);
+        case "NOT_AND":
+          return !results.every(r => r); // No cumplen todas (NAND) -> O "Ninguna cumple" si fuera NOR. Usualmente NAND.
+        case "NOT_OR":
+          return !results.some(r => r); // No cumple ninguna (NOR)
+        default:
+          return true;
+      }
+    } else {
+      // Es una condición
+      if (!node.field || !node.operator) return true;
+
+      let valEmpleado: string | number | Date = empleado[node.field] || "";
+      const valFiltro = node.value || "";
+
+      // Normalización de valores según el campo
+      if (node.field === "Entrada" || node.field === "Salida" || node.field === "Fecha") {
+        // Intentar convertir a fecha si es un campo de fecha
+        // Asumiendo que vienen en string ISO o similar, o hay que parsearlos
+        // En tu data normalizada actual no veo 'Entrada'/'Salida' explícitos,
+        // si no existen, el filtro fallará por defecto.
+        // Deberías asegurarte que 'empleado' tenga estos campos o calcúlados.
+        // Por ahora haré un parse genérico.
+        valEmpleado = new Date(valEmpleado.toString());
+      } else {
+        valEmpleado = valEmpleado.toString().toLowerCase();
+      }
+
+      const isDate = valEmpleado instanceof Date && !isNaN(valEmpleado.getTime());
+
+      switch (node.operator) {
+        case "igual":
+          if (isDate) {
+            return new Date(valFiltro).getTime() === (valEmpleado as Date).getTime();
+          }
+          return valEmpleado === valFiltro.toLowerCase();
+
+        case "no_igual":
+          if (isDate) {
+            return new Date(valFiltro).getTime() !== (valEmpleado as Date).getTime();
+          }
+          return valEmpleado !== valFiltro.toLowerCase();
+
+        case "contiene":
+          if (isDate) return false; // No aplica a fechas usualmente
+          return (valEmpleado as string).includes(valFiltro.toLowerCase());
+
+        case "no_contiene":
+          if (isDate) return true;
+          return !(valEmpleado as string).includes(valFiltro.toLowerCase());
+
+        case "empieza":
+          if (isDate) return false;
+          return (valEmpleado as string).startsWith(valFiltro.toLowerCase());
+
+        case "termina":
+          if (isDate) return false;
+          return (valEmpleado as string).endsWith(valFiltro.toLowerCase());
+
+        case "mayor":
+          if (isDate) {
+            return (valEmpleado as Date) > new Date(valFiltro);
+          }
+          return parseFloat(valEmpleado as string) > parseFloat(valFiltro);
+
+        case "mayor_igual":
+          if (isDate) {
+            return (valEmpleado as Date) >= new Date(valFiltro);
+          }
+          return parseFloat(valEmpleado as string) >= parseFloat(valFiltro);
+
+        case "menor":
+          if (isDate) {
+            console.log("Comp Menor:", valEmpleado, new Date(valFiltro));
+            return (valEmpleado as Date) < new Date(valFiltro);
+          }
+          return parseFloat(valEmpleado as string) < parseFloat(valFiltro);
+
+        case "menor_igual":
+          if (isDate) {
+            return (valEmpleado as Date) <= new Date(valFiltro);
+          }
+          return parseFloat(valEmpleado as string) <= parseFloat(valFiltro);
+
+        case "vacio":
+          return valEmpleado === "" || valEmpleado === null || valEmpleado === undefined;
+
+        case "no_vacio":
+          return valEmpleado !== "" && valEmpleado !== null && valEmpleado !== undefined;
+
+        default: return true;
+      }
+    }
+  };
 
   const datosFiltrados = useMemo(() => {
     let filtered = datos;
@@ -264,39 +368,13 @@ export default function EmpleadosPage() {
       filtered = filtered.filter((i) => i["Departamento"] === departamento);
     }
 
-    if (advancedFilters.length > 0) {
-      filtered = filtered.filter((empleado) =>
-        advancedFilters.every((filter) => {
-          const { field, operator, value } = filter;
-          if (!value) return true;
-          const empleadoValue = empleado[field]?.toString().toLowerCase() || "";
-          const filterValue = value.toLowerCase();
-
-          let condition = false;
-          switch (operator) {
-            case "igual":
-              condition = empleadoValue === filterValue;
-              break;
-            case "contiene":
-              condition = empleadoValue.includes(filterValue);
-              break;
-            case "empieza":
-              condition = empleadoValue.startsWith(filterValue);
-              break;
-            case "termina":
-              condition = empleadoValue.endsWith(filterValue);
-              break;
-            default:
-              condition = true;
-          }
-
-          return condition;
-        })
-      );
+    // Aplicar filtro avanzado recursivo
+    if (advancedFilterRoot) {
+      filtered = filtered.filter(empleado => evaluateFilter(empleado, advancedFilterRoot));
     }
 
     return filtered;
-  }, [datos, estadoEmpleados, busqueda, departamento, advancedFilters]);
+  }, [datos, estadoEmpleados, busqueda, departamento, advancedFilterRoot]);
 
 
 
@@ -307,7 +385,7 @@ export default function EmpleadosPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [busqueda, departamento, advancedFilters.length]);
+  }, [busqueda, departamento, advancedFilterRoot]);
 
   const departamentos = useMemo(
     () => Array.from(new Set(datos.map((d) => d["Departamento"]))),
@@ -317,6 +395,8 @@ export default function EmpleadosPage() {
   const totalPages = Math.ceil(datosFiltrados.length / itemsPerPage);
 
   if (!isMounted) return <div className="p-8 text-center">Cargando...</div>;
+
+
 
   return (
     <div className="space-y-8 p-6 sm:p-8 bg-gray-50/30 min-h-screen font-sans max-w-[1600px] mx-auto">
@@ -440,14 +520,18 @@ export default function EmpleadosPage() {
         <UpdateModal
           type={openUpdate ? "empleado" : null}
           data={selectedEmpleado}
-          onClose={() => setOpenUpdate(false)}
+          onClose={() => {
+            setOpenUpdate(false);
+            setRefreshKey((prev) => prev + 1);
+          }}
         />
       )}
 
       <AdvancedFilterDialog
         open={openAdvanced}
         onOpenChange={setOpenAdvanced}
-        onApply={setAdvancedFilters}
+        onApply={setAdvancedFilterRoot}
+        initialFilter={advancedFilterRoot}
       />
     </div>
   );

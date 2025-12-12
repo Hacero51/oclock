@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useContext } from "react";
 import {
   Folder,
   Users,
@@ -19,6 +19,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { Button } from "@/components/ui/Button";
 
 import UpdateEmpleadoForm from "@/components/form/update/UpdateEmpleadoForm";
+import { DashboardContext } from "@/app/dashboard/layout";
 
 // ... (Tipos Department y Employee iguales)
 interface Department {
@@ -110,28 +111,27 @@ function TreeItem({
 // Página Principal
 // ----------------------------------------------------------------------
 export default function DepartamentosPage() {
+  const { estadoEmpleados } = useContext(DashboardContext);
   const [departamentos, setDepartamentos] = useState<Department[]>([]);
   const [empleados, setEmpleados] = useState<Employee[]>([]);
+
+  // (rest of state...)
 
   const [loadingDepts, setLoadingDepts] = useState(true);
   const [loadingEmps, setLoadingEmps] = useState(false);
 
-  // Estado para el Modal
   const [selectedDept, setSelectedDept] = useState<Department | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Modal de empleado
   const [selectedEmpleado, setSelectedEmpleado] = useState(null);
   const [isEmpleadoModalOpen, setIsEmpleadoModalOpen] = useState(false);
 
-  // Busqueda
   const [busqueda, setBusqueda] = useState("");
 
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Paginación
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // Ajustable según altura de pantalla
+  const itemsPerPage = 5;
 
   // Cargar departamentos
   useEffect(() => {
@@ -221,7 +221,18 @@ export default function DepartamentosPage() {
   // Filtrar empleados
   const filteredEmployees = useMemo(() => {
     if (!selectedDept) return [];
-    const filtered = empleados.filter(e => e.DepartmentId === selectedDept.id);
+
+    let filtered = empleados.filter(e => e.DepartmentId === selectedDept.id);
+
+    // Filtrar por Estado
+    if (estadoEmpleados === "activos") {
+      // Asumimos que Status existe en el objeto empleado. 
+      // Si el type Employee no lo tiene, TS se quejará, pero en JS runtime funcionará si la API lo manda.
+      // Voy a castear a any o agregar Status a la interfaz Employee arriba.
+      filtered = filtered.filter((e: any) => e.Status === 0);
+    } else if (estadoEmpleados === "inactivos") {
+      filtered = filtered.filter((e: any) => e.Status === 1);
+    }
 
     if (busqueda) {
       const lower = busqueda.toLowerCase();
@@ -231,7 +242,7 @@ export default function DepartamentosPage() {
       );
     }
     return filtered;
-  }, [selectedDept, empleados, busqueda]);
+  }, [selectedDept, empleados, busqueda, estadoEmpleados]);
 
   // Datos Paginados
   const paginatedEmployees = useMemo(() => {
@@ -263,7 +274,7 @@ export default function DepartamentosPage() {
         </div>
 
         {/* ARBOL */}
-        <div className="bg-grey-700/50 rounded-2xl shadow-sm border border-red-200 p-8 min-h-[600px]">
+        <div className="bg-grey-700/50 rounded-2xl shadow-sm border-2 border-red-500 p-10 min-h-[250px]">
           {loadingDepts ? (
             <div className="flex items-left justify-left h-40 text-black-400 gap-2">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black-600"></div>
@@ -401,7 +412,7 @@ export default function DepartamentosPage() {
       <Dialog open={isEmpleadoModalOpen} onOpenChange={setIsEmpleadoModalOpen} size="4xl">
         {selectedEmpleado && (
           <DialogContent className="max-w-5xl w-full max-h-[95vh] overflow-hidden p-0 rounded-xl">
-            <div className="h-full overflow-y-auto px-2 pb-4">
+            <div className="h-full overflow-y-auto px-2 pb-12">
               <UpdateEmpleadoForm
                 data={selectedEmpleado}
                 onClose={() => setIsEmpleadoModalOpen(false)}

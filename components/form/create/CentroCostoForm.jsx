@@ -1,186 +1,248 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { useState } from "react";
-import { 
-  Building, 
+import {
+  Building,
+  X,
+  Save,
+  Loader2,
 } from "lucide-react";
 
 
-// Datos de ejemplo para empleados
-const empleadosEjemplo = [
-  {
-    id: 1,
-    nombre: "Carlos Rodríguez",
-    documento: "11223344",
-    email: "carlos.rodriguez@empresa.com",
-    cargo: "Analista de Costos",
-    departamento: "Finanzas",
-    centroCosto: "ADMIN-FIN",
-    turnoActual: "OFICINA 8AM-5PM",
-    salarioHora: 25.50,
-    estado: "activo"
-  },
-  {
-    id: 2,
-    nombre: "Ana Martínez",
-    documento: "55667788",
-    email: "ana.martinez@empresa.com",
-    cargo: "Supervisora de Producción",
-    departamento: "Producción",
-    centroCosto: "PROD",
-    turnoActual: "TURNO MAÑANA",
-    salarioHora: 30.75,
-    estado: "activo"
-  },
-  {
-    id: 3,
-    nombre: "Luis García",
-    documento: "99887766",
-    email: "luis.garcia@empresa.com",
-    cargo: "Coordinador de Calidad",
-    departamento: "Calidad",
-    centroCosto: "CALIDAD",
-    turnoActual: "ADMINISTRATIVO",
-    salarioHora: 28.90,
-    estado: "inactivo"
-  }
-];
-
 export default function CentroCostoForm({ onClose }) {
-  const [activeTab, setActiveTab] = useState("crear");
-  const [centroCostoCreado, setCentroCostoCreado] = useState(null);
-  const [empleadosAsignados, setEmpleadosAsignados] = useState([]);
-  const [filtroEstado, setFiltroEstado] = useState("todos");
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    watch
-  } = useForm();
+  const [form, setForm] = useState({
+    Code: "",
+    Name: "",
+  });
 
-  const centroCostoPadreSeleccionado = watch("centroCostoPadre");
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  const onSubmit = async (data) => {
-    try {
-      // Simular creación del centro de costo en la API
-      console.log("Creando centro de costo:", data);
-      
-      // Encontrar el centro de costo padre seleccionado
-      const centroPadre = centrosCostoPadre.find(cc => cc.id === parseInt(data.centroCostoPadre));
-      
-      const nuevoCentroCosto = {
-        id: Date.now(),
-        ...data,
-        centroCostoPadre: centroPadre,
-        fechaCreacion: new Date().toISOString()
-      };
 
-      setCentroCostoCreado(nuevoCentroCosto);
-      
-      // Simular obtención de empleados con este centro de costo
-      const empleadosConEsteCentro = empleadosEjemplo.filter(
-        emp => emp.centroCosto === data.codigo
-      );
-      
-      setEmpleadosAsignados(empleadosConEsteCentro);
-      setActiveTab("empleados");
-      
-    } catch (error) {
-      console.error("Error creando centro de costo:", error);
+  // MANEJO DEL FORMULARIO
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    // VALIDACIÓN: Nombre solo letras y espacios
+    if (name === "Name") {
+      const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/;
+      if (!regex.test(value)) {
+        return;
+      }
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Limpiar error al escribir
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
     }
   };
 
-  const crearNuevoCentroCosto = () => {
-    setCentroCostoCreado(null);
-    setEmpleadosAsignados([]);
-    setActiveTab("crear");
-    reset();
+  // VALIDACIÓN DEL FORMULARIO
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!form.Name.trim()) {
+      newErrors.Name = "El nombre es obligatorio";
+    }
+
+    if (form.Code && form.Code.length > 20) {
+      newErrors.Code = "El código no puede tener más de 20 caracteres";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const empleadosFiltrados = empleadosAsignados.filter(emp => 
-    filtroEstado === "todos" || emp.estado === filtroEstado
-  );
+  // ENVIAR CREATE (POST)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setSaveLoading(true);
+    setErrors({});
+
+    // Preparar payload (NO enviar Oid desde el frontend)
+    const payload = {
+      Code: form.Code.trim() || null,
+      Name: form.Name.trim(),
+    };
+
+    console.log("Enviando datos:", payload);
+
+    try {
+      const res = await fetch("/api/centrocostos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const responseData = await res.json();
+
+      if (!res.ok) {
+        // Error del servidor
+        throw new Error(responseData.error || "Error creando centro de costo");
+      }
+
+      console.log("✅ Respuesta del servidor:", responseData);
+
+      // DISPARAR EVENTO PARA REFRESCAR LA LISTA
+      const refreshEvent = new CustomEvent('refreshCentroCostosList');
+      window.dispatchEvent(refreshEvent);
+
+      // Mostrar toast de éxito
+      const toastEvent = new CustomEvent('showToast', {
+        detail: {
+          message: '✅ Centro de costo creado con éxito',
+          type: 'success'
+        }
+      });
+      window.dispatchEvent(toastEvent);
+
+      // Cerrar después de un segundo
+      setTimeout(() => {
+        onClose();
+        // Opcional: refrescar la lista de centros de costo
+        window.dispatchEvent(new CustomEvent('refreshCentrosCosto'));
+      }, 1000);
+
+    } catch (error) {
+      console.error("❌ Error:", error);
+
+      // Mostrar toast de error
+      const event = new CustomEvent('showToast', {
+        detail: {
+          message: `❌ ${error.message}`,
+          type: 'error'
+        }
+      });
+      window.dispatchEvent(event);
+
+      // Mostrar error en el formulario si es de validación
+      if (error.message.includes("obligatorio") || error.message.includes("Ya existe")) {
+        setErrors(prev => ({
+          ...prev,
+          form: error.message
+        }));
+      }
+    } finally {
+      setSaveLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        <Card>
+          <CardHeader className="pb-4 bg-blue-600 text-white">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Building className="w-5 h-5" />
+              </div>
+              Información del Centro de Costo
+            </CardTitle>
+          </CardHeader>
 
-        {/* TAB 1: Crear Centro de Costo */}
-        <TabsContent value="crear">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Building className="w-5 h-5" />
-                  Información del Centro de Costo
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-6 max-w-2xl">
-                  {/* Código */}
-                  <div className="space-y-2">
-                    <Label htmlFor="codigo" className="text-sm font-medium flex items-center gap-1">
-                    
-                      Código <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="codigo"
-                      {...register("codigo", { required: "Este campo es requerido" })}
-                      placeholder="Ej: PROD-LINEA1, VENTAS-NORTE, CALIDAD-CTRL"
-                      className="w-full py-3 px-4"
-                    />
-                    {errors.codigo && (
-                      <p className="text-xs text-red-500">{errors.codigo.message}</p>
-                    )}
-                  </div>
+          <CardContent className="p-6">
+            {/* Error general del formulario */}
+            {errors.form && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
+                {errors.form}
+              </div>
+            )}
 
-                  {/* Nombre */}
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre" className="text-sm font-medium">
-                      Nombre <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="nombre"
-                      {...register("nombre", { required: "Este campo es requerido" })}
-                      placeholder="Ej: Línea de Producción 1, Ventas Zona Norte, Control de Calidad"
-                      className="w-full text-lg py-3 px-4"
-                    />
-                    {errors.nombre && (
-                      <p className="text-xs text-red-500">{errors.nombre.message}</p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-6 max-w-2xl">
+              {/* Código */}
+              <div className="space-y-2">
+                <Label htmlFor="Code" className="text-sm font-medium flex items-center gap-1">
+                  Código
+                </Label>
+                <Input
+                  name="Code"
+                  value={form.Code}
+                  onChange={handleChange}
+                  placeholder="Ej: 184, 201, CC001"
+                  className="w-full py-3 px-4"
+                  disabled={saveLoading}
+                />
+                {errors.Code && (
+                  <p className="text-sm text-red-600">{errors.Code}</p>
+                )}
+              </div>
 
-            {/* Botones de acción */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="px-8 py-2"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 px-8 py-2 text-white"
-              >
-                Crear Centro de Costo
-              </Button>
+              {/* Nombre */}
+              <div className="space-y-2">
+                <Label htmlFor="Name" className="text-sm font-medium">
+                  Nombre <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  name="Name"
+                  value={form.Name}
+                  onChange={handleChange}
+                  placeholder="Ej: Línea de Producción 1, Ventas Zona Norte"
+                  className="w-full text-lg py-3 px-4"
+                  disabled={saveLoading}
+                  required
+                />
+                {errors.Name && (
+                  <p className="text-sm text-red-600">{errors.Name}</p>
+                )}
+                <p className="text-sm text-gray-500">
+                  Este campo es obligatorio. Describe claramente el centro de costo.
+                </p>
+              </div>
             </div>
-          </form>
-        </TabsContent>
-      </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Botones de acción */}
+        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={saveLoading}
+            className="sm:w-auto"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Cancelar
+          </Button>
+
+          <Button
+            type="submit"
+            disabled={saveLoading}
+            className="bg-blue-600 hover:bg-blue-700 text-white sm:w-auto"
+          >
+            {saveLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creando...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Crear Centro de Costo
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

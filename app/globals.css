@@ -7,18 +7,22 @@
 :root {
   --background: #000000;
   --foreground: #1a202c;
-  --primary: #2563eb;      /* Azul vibrante */
+  --primary: #2563eb;
+  /* Azul vibrante */
   --primary-dark: #1d4ed8;
-  --secondary: #dc2626;    /* Rojo intenso */
+  --secondary: #dc2626;
+  /* Rojo intenso */
   --secondary-dark: #b91c1c;
-  --accent: #3b82f6;       /* Azul más claro */
+  --accent: #3b82f6;
+  /* Azul más claro */
   --muted: #6b7280;
   --card: #ffffff;
   --border: #e5e7eb;
   --success: #059669;
   --warning: #d97706;
   --error: #dc2626;
-  --sidebar: #1e40af;      /* Azul oscuro para sidebar */
+  --sidebar: #1e40af;
+  /* Azul oscuro para sidebar */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -45,6 +49,8 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
 
 /* Gradientes y efectos de color */
 .bg-gradient-primary {
@@ -155,20 +161,21 @@ body {
 }
 
 .text-white-900 {
-    color: #fff;
+  color: #fff;
 }
 
 .text-white-700 {
-    color: #fff;
+  color: #fff;
 }
 
 .text-white-500 {
-    color: #fff;
+  color: #fff;
 }
 
 .text-white-400 {
-    color: #fff;
+  color: #fff;
 }
+
 .tabs-secondary .active {
   color: var(--secondary);
   border-bottom: 2px solid var(--secondary);
@@ -179,6 +186,7 @@ body {
     opacity: 0;
     transform: translateY(-3px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -190,7 +198,8 @@ body {
 }
 
 /* Reducir tamaño global de fuente */
-html, body {
+html,
+body {
   font-size: 13px;
 }
 
@@ -198,13 +207,15 @@ table {
   font-size: 12.5px;
 }
 
-aside, nav {
+aside,
+nav {
   font-size: 15px;
 }
 
 h1 {
   font-size: 1.4rem;
 }
+
 h2 {
   font-size: 1.2rem;
 }

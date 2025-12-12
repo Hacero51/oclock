@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
+import { isValidName, isAdult } from "@/lib/utils";
 
 export async function GET() {
   try {
@@ -70,10 +71,20 @@ export async function GET() {
   }
 }
 
+
 export async function POST(req: Request) {
   try {
     const data = await req.json();
     console.log("Datos recibidos en POST empleados:", data);
+
+    // VALIDACIONES
+    if (data.fullName && !isValidName(data.fullName)) {
+      return NextResponse.json({ error: "El nombre solo puede contener letras y espacios" }, { status: 400 });
+    }
+
+    if (data.fechaNacimiento && !isAdult(data.fechaNacimiento)) {
+      return NextResponse.json({ error: "El empleado debe ser mayor de 18 años" }, { status: 400 });
+    }
 
     // GENERAR OID tipo CHAR(38)
     const newOid = uuidv4().toUpperCase();
@@ -89,7 +100,23 @@ export async function POST(req: Request) {
     const MiddleLast = partes.length >= 3 ? partes[partes.length - 1] : "";
 
     // -----------------------------
-    // CREAR PERSONA
+    // 1. CREAR EPARTY (Entidad Base)
+    // -----------------------------
+    // ZKTeco usa herencia: Employee -> Person -> Party.
+    // Debemos crear la raíz primero.
+    await prisma.eparty.create({
+      data: {
+        Oid: newOid,
+        DisplayName: (data.fullName || "").toUpperCase(),
+        CreatedDate: new Date(),
+        ObjectType: 1, // 1 suele representar 'Person' en estructuras XAF/ZKTeco
+        OptimisticLockField: 0,
+        GCRecord: null,
+      },
+    });
+
+    // -----------------------------
+    // 2. CREAR PERSONA
     // -----------------------------
     const persona = await prisma.eperson.create({
       data: {
@@ -106,7 +133,7 @@ export async function POST(req: Request) {
     });
 
     // -----------------------------
-    // CREAR EMPLEADO
+    // 3. CREAR EMPLEADO
     // -----------------------------
     const empleado = await prisma.employee.create({
       data: {
@@ -117,6 +144,7 @@ export async function POST(req: Request) {
         CostCenter: data.centroCosto || null,
         Position: data.cargo || null,
         CurrentShift: data.turnoActual || null,
+        // NationalID: data.documento || null, // A veces se duplica aquí dependiente de la config
         BaseSalary: data.salario ? Number(data.salario) : null,
         ValorHora: data.valorHora ? Number(data.valorHora) : null,
         GeneratesOverTime: data.tiempoExtra ? true : false,

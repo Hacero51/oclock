@@ -7,11 +7,9 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Switch } from "@/components/ui/Switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { Badge } from "@/components/ui/Badge";
-import { Loader2, Save, X, User, Clock, Phone, FileText, Camera, Upload, Briefcase } from "lucide-react";
+import { Loader2, Save, X, User, Clock, Phone, Camera, Upload, Briefcase } from "lucide-react";
 
-export default function UpdateEmpleadoForm({ data, onClose }) {
+export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
   const [form, setForm] = useState({
     Oid: "",
     Document: "",
@@ -109,9 +107,19 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
   // MANEJO DEL FORMULARIO
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    // VALIDACIÓN: Nombres solo letras y espacios
+    const nameFields = ["FullName", "FirstName", "MiddleName", "LastName", "MiddleLast", "Nacionalidad", "Cargo"];
+    if (nameFields.includes(name)) {
+      const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/;
+      if (!regex.test(value)) {
+        return; // Si no cumple, no actualiza el estado (ignora la entrada)
+      }
+    }
+
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? checked : (value.toUpperCase ? value.toUpperCase() : value), // Sugerencia: Forzar mayúsculas si se desea
     }));
   };
 
@@ -172,6 +180,7 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
       window.dispatchEvent(event);
 
       setTimeout(() => {
+        if (refreshData) refreshData();
         onClose();
       }, 1000);
     } catch (error) {
@@ -190,8 +199,8 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 space-y-4">
-        <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+      <div className="flex flex-col items-center justify-center p-8 md:p-12 space-y-4">
+        <Loader2 className="h-8 w-8 md:h-10 md:w-10 animate-spin text-indigo-600" />
         <p className="text-sm text-gray-500 font-medium">Cargando información...</p>
       </div>
     );
@@ -202,77 +211,79 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
     switch (activeTab) {
       case "employee":
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
             {/* COLUMNA IZQUIERDA - FORMULARIO */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4 md:space-y-6">
               {/* INFORMACIÓN PERSONAL */}
-              <Card className="border-2 border-indigo-100 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 border-b-2 border-indigo-100">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-indigo-600 rounded-lg">
-                      <User className="h-5 w-5 text-white" />
+              <Card className="border-2 border-indigo-100 shadow-sm md:shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 border-b-2 border-indigo-100 py-3 md:py-4">
+                  <div className="flex items-center space-x-2 md:space-x-3">
+                    <div className="p-1.5 md:p-2 bg-indigo-600 rounded-lg">
+                      <User className="h-4 w-4 md:h-5 md:w-5 text-white" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-800">Información Personal</h3>
+                    <h3 className="text-base md:text-lg font-bold text-gray-800">Información Personal</h3>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6 bg-white">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Nombre a mostrar:</Label>
+                <CardContent className="p-3 md:p-6 bg-white">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-x-8 md:gap-y-5">
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Nombre a mostrar:</Label>
                       <Input
                         name="FullName"
                         value={form.FullName}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Fecha de Nacimiento:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Fecha de Nacimiento:</Label>
                       <Input
                         name="Birthday"
                         type="date"
                         value={form.Birthday}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split("T")[0]}
+                        min="1900-01-01"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Nombre:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Nombre:</Label>
                       <Input
                         name="FirstName"
                         value={form.FirstName}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Nacionalidad:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Nacionalidad:</Label>
                       <Input
                         name="Nacionalidad"
                         value={form.Nacionalidad}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                         placeholder="Ej. Colombiana"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Segundo nombre:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Segundo nombre:</Label>
                       <Input
                         name="MiddleName"
                         value={form.MiddleName}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Género:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Género:</Label>
                       <Select value={form.Genero} onValueChange={(v) => handleSelect("Genero", v)}>
-                        <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                        <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
                           <SelectValue placeholder="Seleccionar..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -282,55 +293,55 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Apellido:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Apellido:</Label>
                       <Input
                         name="LastName"
                         value={form.LastName}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                       />
                     </div>
 
-                    <div className="space-y-2 col-span-2">
-                      <Label className="text-sm font-bold text-gray-700">Correo electrónico:</Label>
+                    <div className="space-y-1.5 md:space-y-2 sm:col-span-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Correo electrónico:</Label>
                       <Input
                         name="Email"
                         type="email"
                         value={form.Email}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Segundo apellido:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Segundo apellido:</Label>
                       <Input
                         name="MiddleLast"
                         value={form.MiddleLast}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Dirección:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Dirección:</Label>
                       <Input
                         name="Direccion"
                         value={form.Direccion}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                         placeholder="..."
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Documento:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Documento:</Label>
                       <Input
                         name="Document"
                         value={form.Document}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                         required
                       />
                     </div>
@@ -339,21 +350,21 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
               </Card>
 
               {/* INFORMACIÓN LABORAL */}
-              <Card className="border-2 border-blue-100 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-100">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-600 rounded-lg">
-                      <Briefcase className="h-5 w-5 text-white" />
+              <Card className="border-2 border-blue-100 shadow-sm md:shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-100 py-3 md:py-4">
+                  <div className="flex items-center space-x-2 md:space-x-3">
+                    <div className="p-1.5 md:p-2 bg-blue-600 rounded-lg">
+                      <Briefcase className="h-4 w-4 md:h-5 md:w-5 text-white" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-800">Información Laboral</h3>
+                    <h3 className="text-base md:text-lg font-bold text-gray-800">Información Laboral</h3>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6 bg-white">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Sucursal:</Label>
+                <CardContent className="p-3 md:p-6 bg-white">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-x-8 md:gap-y-5">
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Sucursal:</Label>
                       <Select value={form.Sucursal} onValueChange={(v) => handleSelect("Sucursal", v)}>
-                        <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                        <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
                           <SelectValue placeholder="Seleccionar..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -364,10 +375,10 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Turno Actual:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Turno Actual:</Label>
                       <Select value={form.TurnoActual} onValueChange={(v) => handleSelect("TurnoActual", v)}>
-                        <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                        <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
                           <SelectValue placeholder="Seleccionar..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -378,10 +389,10 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Departamento:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Departamento:</Label>
                       <Select value={form.Departamento} onValueChange={(v) => handleSelect("Departamento", v)}>
-                        <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                        <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
                           <SelectValue placeholder="Seleccionar..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -392,21 +403,21 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Rotación Actual:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Rotación Actual:</Label>
                       <Input
                         name="RotacionActual"
                         type="number"
                         value={form.RotacionActual}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Centro de Costo:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Centro de Costo:</Label>
                       <Select value={form.CentroCosto} onValueChange={(v) => handleSelect("CentroCosto", v)}>
-                        <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                        <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
                           <SelectValue placeholder="Seleccionar..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -417,10 +428,10 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Contrato Actual:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Contrato Actual:</Label>
                       <Select value={form.ContratoActual} onValueChange={(v) => handleSelect("ContratoActual", v)}>
-                        <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                        <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
                           <SelectValue placeholder="Seleccionar..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -431,33 +442,33 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Cargo:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Cargo:</Label>
                       <Input
                         name="Cargo"
                         value={form.Cargo}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                         placeholder="Ej. Vendedor"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Salario Base:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Salario Base:</Label>
                       <Input
                         name="Salario"
                         type="number"
                         value={form.Salario}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                         placeholder="0.00"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Jefe:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Jefe:</Label>
                       <Select value={form.Jefe} onValueChange={(v) => handleSelect("Jefe", v)}>
-                        <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                        <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
                           <SelectValue placeholder="Seleccionar..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -466,49 +477,49 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Estado:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Estado:</Label>
                       <Select value={form.Estado} onValueChange={(v) => handleSelect("Estado", v)}>
-                        <SelectTrigger className="h-11 border-2 border-gray-300 bg-gray-50">
+                        <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
                           <SelectValue placeholder="Seleccionar..." />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="activo">
                             <div className="flex items-center gap-2">
-                              <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                              Activo
+                              <span className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-emerald-500" />
+                              <span className="text-sm">Activo</span>
                             </div>
                           </SelectItem>
                           <SelectItem value="inactivo">
                             <div className="flex items-center gap-2">
-                              <span className="w-3 h-3 rounded-full bg-rose-500" />
-                              Inactivo
+                              <span className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-rose-500" />
+                              <span className="text-sm">Inactivo</span>
                             </div>
                           </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-gray-700">Valor Hora:</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-xs md:text-sm font-bold text-gray-700">Valor Hora:</Label>
                       <Input
                         name="ValorHora"
                         type="number"
                         value={form.ValorHora}
                         onChange={handleChange}
-                        className="h-11 border-2 border-gray-300 focus:border-indigo-500 bg-gray-50 focus:bg-white"
+                        className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
                         placeholder="0.00"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-3 h-11 px-4 bg-indigo-50 rounded-lg border-2 border-indigo-200">
+                    <div className="space-y-1.5 md:space-y-2 sm:col-span-2">
+                      <div className="flex items-center space-x-3 h-9 md:h-11 px-3 md:px-4 bg-indigo-50 rounded-lg border border-indigo-200 md:border-2">
                         <Switch
                           checked={form.TiempoExtra}
                           onCheckedChange={(checked) => setForm(prev => ({ ...prev, TiempoExtra: checked }))}
-                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500"
+                          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500 h-4 w-7 md:h-6 md:w-11"
                         />
-                        <Label className="text-sm font-bold text-gray-700 cursor-pointer">
+                        <Label className="text-xs md:text-sm font-bold text-gray-700 cursor-pointer">
                           Tiempo Extra
                         </Label>
                       </div>
@@ -520,9 +531,9 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
 
             {/* COLUMNA DERECHA - FOTO */}
             <div className="lg:col-span-1">
-              <Card className="border-2 border-gray-200 shadow-lg">
-                <CardContent className="p-6">
-                  <div className="aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden relative">
+              <Card className="border border-gray-200 md:border-2 shadow-sm md:shadow-lg">
+                <CardContent className="p-4 md:p-6">
+                  <div className="aspect-[4/5] md:aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg md:rounded-xl border border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden relative">
                     {photoPreview ? (
                       <>
                         <img
@@ -535,20 +546,20 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
                           variant="destructive"
                           size="sm"
                           onClick={handleRemovePhoto}
-                          className="absolute top-2 right-2 h-8 w-8 p-0"
+                          className="absolute top-1.5 right-1.5 md:top-2 md:right-2 h-6 w-6 md:h-8 md:w-8 p-0"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-3 w-3 md:h-4 md:w-4" />
                         </Button>
                       </>
                     ) : (
                       <>
-                        <Camera className="h-16 w-16 text-gray-400 mb-3" />
-                        <p className="text-sm font-semibold text-gray-500 mb-4">Sin imagen</p>
+                        <Camera className="h-8 w-8 md:h-12 md:w-12 text-gray-400 mb-2 md:mb-3" />
+                        <p className="text-xs md:text-sm font-semibold text-gray-500 mb-2 md:mb-4">Sin imagen</p>
                       </>
                     )}
                   </div>
 
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-3 md:mt-4 space-y-2">
                     <input
                       type="file"
                       id="photo-upload"
@@ -559,10 +570,10 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full border-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                      className="w-full border border-indigo-300 md:border-2 text-indigo-700 hover:bg-indigo-50 text-xs md:text-sm h-9 md:h-auto py-2"
                       onClick={() => document.getElementById('photo-upload').click()}
                     >
-                      <Upload className="mr-2 h-4 w-4" />
+                      <Upload className="mr-2 h-3 w-3 md:h-4 md:w-4" />
                       Subir Foto
                     </Button>
                     <p className="text-xs text-gray-500 text-center">
@@ -577,21 +588,21 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
 
       case "attendance":
         return (
-          <Card className="border-2 border-gray-200">
-            <CardContent className="p-12 text-center">
-              <Clock className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 font-medium">Información de asistencia disponible próximamente</p>
-              <p className="text-sm text-gray-400 mt-2">Se conectará con el módulo de marcaciones</p>
+          <Card className="border border-gray-200 md:border-2">
+            <CardContent className="p-8 md:p-12 text-center">
+              <Clock className="h-10 w-10 md:h-16 md:w-16 text-gray-300 mx-auto mb-3 md:mb-4" />
+              <p className="text-sm md:text-base text-gray-500 font-medium">Información de asistencia disponible próximamente</p>
+              <p className="text-xs md:text-sm text-gray-400 mt-1 md:mt-2">Se conectará con el módulo de marcaciones</p>
             </CardContent>
           </Card>
         );
 
       case "contact":
         return (
-          <Card className="border-2 border-gray-200">
-            <CardContent className="p-12 text-center">
-              <Phone className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 font-medium">Información de contacto disponible próximamente</p>
+          <Card className="border border-gray-200 md:border-2">
+            <CardContent className="p-8 md:p-12 text-center">
+              <Phone className="h-10 w-10 md:h-16 md:w-16 text-gray-300 mx-auto mb-3 md:mb-4" />
+              <p className="text-sm md:text-base text-gray-500 font-medium">Información de contacto disponible próximamente</p>
             </CardContent>
           </Card>
         );
@@ -602,86 +613,96 @@ export default function UpdateEmpleadoForm({ data, onClose }) {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="w-full h-full flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
       {/* HEADER */}
-      <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 px-4 md:px-8 py-4 md:py-6 border-b-4 border-indigo-800 flex-shrink-0">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 px-3 md:px-8 py-3 md:py-6 border-b-2 md:border-b-4 border-indigo-800 flex-shrink-0">
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center space-x-2 md:space-x-4">
-            <div className="p-2 md:p-4 bg-white/20 backdrop-blur-sm rounded-2xl border-2 border-white/30">
-              <User className="h-5 w-5 md:h-7 md:w-7 text-white" />
+            <div className="p-1.5 md:p-4 bg-white/20 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/30 md:border-2">
+              <User className="h-4 w-4 md:h-7 md:w-7 text-white" />
             </div>
             <div>
-              <h2 className="text-lg md:text-2xl font-bold text-white">Editar Empleado</h2>
-              <p className="text-indigo-100 mt-1 text-xs md:text-sm hidden sm:block">
+              <h2 className="text-base md:text-2xl font-bold text-white">Editar Empleado</h2>
+              <p className="text-indigo-100 mt-0.5 md:mt-1 text-xs md:text-sm">
                 Actualice la información del empleado
               </p>
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white hover:bg-white/20 hover:text-white shrink-0"
+          >
+            <X className="h-6 w-6" />
+          </Button>
         </div>
       </div>
 
       {/* TABS NAVIGATION */}
-      <div className="bg-white border-b-2 border-gray-200 px-2 md:px-6 flex-shrink-0">
-        <div className="flex space-x-1 md:space-x-2 overflow-x-auto">
+      <div className="bg-white border-b border-gray-200 md:border-b-2 px-1 md:px-6 flex-shrink-0">
+        <div className="flex space-x-0.5 md:space-x-2 overflow-x-auto py-1">
           <button
             type="button"
             onClick={() => setActiveTab("employee")}
-            className={`px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex items-center whitespace-nowrap ${activeTab === "employee" ? "bg-indigo-600 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"}`}
+            className={`px-2 md:px-6 py-1.5 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex items-center whitespace-nowrap min-w-[80px] md:min-w-0 ${activeTab === "employee" ? "bg-indigo-600 text-white shadow-md md:shadow-lg" : "text-gray-600 hover:bg-gray-100"}`}
           >
             <User className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-            Empleado
+            <span className="truncate">Empleado</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("attendance")}
-            className={`px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex items-center whitespace-nowrap ${activeTab === "attendance" ? "bg-indigo-600 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"}`}
+            className={`px-2 md:px-6 py-1.5 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex items-center whitespace-nowrap min-w-[80px] md:min-w-0 ${activeTab === "attendance" ? "bg-indigo-600 text-white shadow-md md:shadow-lg" : "text-gray-600 hover:bg-gray-100"}`}
           >
             <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-            Asistencia
+            <span className="truncate">Asistencia</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("contact")}
-            className={`px-3 md:px-6 py-2 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex items-center whitespace-nowrap ${activeTab === "contact" ? "bg-indigo-600 text-white shadow-lg" : "text-gray-600 hover:bg-gray-100"}`}
+            className={`px-2 md:px-6 py-1.5 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex items-center whitespace-nowrap min-w-[80px] md:min-w-0 ${activeTab === "contact" ? "bg-indigo-600 text-white shadow-md md:shadow-lg" : "text-gray-600 hover:bg-gray-100"}`}
           >
             <Phone className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-            Contacto
+            <span className="truncate">Contacto</span>
           </button>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0">
         {/* CONTENIDO PRINCIPAL CON SCROLL */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          {renderTabContent()}
+        <div className="flex-1 overflow-y-auto p-2 md:p-4 lg:p-6 xl:p-8">
+          <div className="max-w-full">
+            {renderTabContent()}
+          </div>
         </div>
 
         {/* FOOTER ACCIONES */}
-        <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-4 md:px-8 py-4 md:py-5 border-t-2 border-gray-300 flex flex-col sm:flex-row justify-end gap-3 md:gap-4 shadow-inner flex-shrink-0">
+        <div className="bg-gradient-to-r from-gray-100 to-gray-200 px-3 md:px-8 py-3 md:py-5 border-t border-gray-300 md:border-t-2 flex flex-col sm:flex-row justify-end gap-2 md:gap-4 shadow-inner flex-shrink-0">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
             disabled={saveLoading}
-            className="h-10 md:h-12 px-6 md:px-8 border-2 border-gray-400 hover:bg-white hover:border-gray-500 font-semibold text-sm md:text-base w-full sm:w-auto"
+            className="h-9 md:h-12 px-3 md:px-6 border border-gray-400 md:border-2 hover:bg-white hover:border-gray-500 font-semibold text-xs md:text-sm w-full sm:w-auto order-2 sm:order-1"
           >
-            <X className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-            Cancelar
+            <X className="mr-1.5 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+            <span className="truncate">Cancelar</span>
           </Button>
           <Button
             type="submit"
             disabled={saveLoading}
-            className="h-10 md:h-12 px-8 md:px-10 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold shadow-xl border-2 border-indigo-700 text-sm md:text-base w-full sm:w-auto"
+            className="h-9 md:h-12 px-4 md:px-8 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold shadow-md md:shadow-xl border border-indigo-700 md:border-2 text-xs md:text-sm w-full sm:w-auto order-1 sm:order-2 mb-2 sm:mb-0"
           >
             {saveLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 md:h-5 md:w-5 animate-spin" />
-                Guardando...
+                <Loader2 className="mr-1.5 md:mr-2 h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                <span className="truncate">Guardando...</span>
               </>
             ) : (
               <>
-                <Save className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-                Guardar Cambios
+                <Save className="mr-1.5 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="truncate">Guardar Cambios</span>
               </>
             )}
           </Button>

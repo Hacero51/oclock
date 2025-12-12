@@ -28,21 +28,21 @@ import {
 
 import { DashboardContext } from "@/app/dashboard/layout";
 
-export default function Navbar({ onOpenCreate } ) {
- const { estadoEmpleados, setEstadoEmpleados } = useContext(DashboardContext);
+export default function Navbar({ onOpenCreate }) {
+  const { estadoEmpleados, setEstadoEmpleados } = useContext(DashboardContext);
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   const opciones = [
     { label: "Empleado", icon: Users, type: "Empleado" },
-    { label: "Cargo", icon: Briefcase, type: "cargo" },
-    { label: "Centro de Costo", icon: FolderTree, type: "centrocosto" },
-    { label: "Día Festivo", icon: Calendar, type: "diafestivo" },
-    { label: "Dispositivo", icon: Fingerprint, type: "dispositivo" },
-    { label: "Horario Fijo", icon: Clock, type: "horariofijo" },
-    { label: "Marcación", icon: BookmarkCheck, type: "marcacion" },
-    { label: "Permisos e Incapacidades", icon: FileText, type: "permisoseinca" },
-    { label: "Sucursal", icon: MapPin, type: "sucursal" },
-    { label: "Turno", icon: CalendarSync, type: "turno" },
+    { label: "Cargo", icon: Briefcase, type: "Cargo" },
+    { label: "Centro de Costo", icon: FolderTree, type: "Centro Costo" },
+    { label: "Día Festivo", icon: Calendar, type: "Dia Festivo" },
+    { label: "Dispositivo", icon: Fingerprint, type: "Dispositivo" },
+    { label: "Horarios", icon: Clock, type: "Horarios" },
+    { label: "Marcación", icon: BookmarkCheck, type: "Marcacion" },
+    { label: "Permisos e Incapacidades", icon: FileText, type: "Permisos E Incapacidades" },
+    { label: "Sucursal", icon: MapPin, type: "Sucursal" },
+    { label: "Turno", icon: CalendarSync, type: "Turno" },
   ];
 
   const handleOpcionClick = (type) => {
@@ -52,7 +52,7 @@ export default function Navbar({ onOpenCreate } ) {
 
   return (
     <div className="relative flex flex-wrap items-center gap-4 justify-between bg-gradient-to-r from-blue-800 to-blue-700 border-b border-blue-600/50 px-6 py-3 shadow-lg">
-      
+
       {/* Botón Crear */}
       <div className="relative">
         <Button
@@ -82,7 +82,7 @@ export default function Navbar({ onOpenCreate } ) {
         )}
       </div>
 
-       {/* Select Estado (usa contexto) */}
+      {/* Select Estado (usa contexto) */}
       <div className="flex items-center gap-2">
         <span className="text-white text-sm">Filtrar por:</span>
 

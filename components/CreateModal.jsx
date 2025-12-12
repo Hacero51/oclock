@@ -6,7 +6,7 @@ import CargoForm from "./form/create/CargoForm";
 import CentroCostoForm from "./form/create/CentroCostoForm";
 import DiaFestivoForm from "./form/create/DiaFestivoForm";
 import DispositivoForm from "./form/create/DispositivoForm";
-import HorarioFijoForm from "./form/create/HorarioFijoForm";
+import HorariosForm from "./form/create/HorariosForm";
 import MarcacionForm from "./form/create/MarcacionForm";
 import PermisosEIncaForm from "./form/create/PermisosEIncaForm.jsx";
 import SucursalForm from "./form/create/SucursalForm";
@@ -17,29 +17,29 @@ export default function CreateModal({ type, onClose }) {
 
   const sizes = {
     Empleado: "max-w-6xl h-[90vh]",
-    dispositivo: "max-w-5xl h-[80vh]",
-    horariofijo: "max-w-4xl h-[70vh]",
-    turno: "max-w-4xl h-[70vh]",
-    centrocosto: "max-w-2xl h-[50vh]",
-    sucursal: "max-w-2xl h-[60vh]",
-    marcacion: "max-w-2xl h-[55vh]",
-    diafestivo: "max-w-2xl h-[55vh]",
-    permisoseinca: "max-w-3xl h-[65vh]",
-    cargo: "max-w-3xl h-[60vh]",
+    Dispositivo: "max-w-5xl h-[80vh]",
+    Horarios: "max-w-4xl h-[70vh]",
+    Turno: "max-w-4xl h-[70vh]",
+    "Centro Costo": "max-w-2xl h-[50vh]",
+    Sucursal: "max-w-2xl h-[60vh]",
+    Marcacion: "max-w-2xl h-[55vh]",
+    "Dia Festivo": "max-w-2xl h-[55vh]",
+    "Permisos E Incapacidades": "max-w-3xl h-[65vh]",
+    Cargo: "max-w-3xl h-[60vh]",
   };
 
 
   const forms = {
     Empleado: <EmpleadoForm onClose={onClose} />,
-    cargo: <CargoForm onClose={onClose} />,
-    centrocosto: <CentroCostoForm onClose={onClose} />,
-    diafestivo: <DiaFestivoForm onClose={onClose} />,
-    dispositivo: <DispositivoForm onClose={onClose} />,
-    horariofijo: <HorarioFijoForm onClose={onClose} />,
-    marcacion: <MarcacionForm onClose={onClose} />,
-    permisoseinca: <PermisosEIncaForm onClose={onClose} />,
-    sucursal: <SucursalForm onClose={onClose} />,
-    turno: <TurnoForm onClose={onClose} />,
+    Cargo: <CargoForm onClose={onClose} />,
+    "Centro Costo": <CentroCostoForm onClose={onClose} />,
+    "Dia Festivo": <DiaFestivoForm onClose={onClose} />,
+    Dispositivo: <DispositivoForm onClose={onClose} />,
+    Horarios: <HorariosForm onClose={onClose} />,
+    Marcacion: <MarcacionForm onClose={onClose} />,
+    "Permisos E Incapacidades": <PermisosEIncaForm onClose={onClose} />,
+    Sucursal: <SucursalForm onClose={onClose} />,
+    Turno: <TurnoForm onClose={onClose} />,
   };
 
   return (
@@ -49,8 +49,8 @@ export default function CreateModal({ type, onClose }) {
       <div
         className={`bg-white rounded-xl shadow-xl w-full ${sizes[type]} flex flex-col overflow-hidden pointer-events-auto`}
       >
-        <div className="flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
-          <h2 className="text-xl font-bold">Crear {type}</h2>
+        <div className="flex items-center justify-between p-4 border-b bg-red-600 sticky top-0 z-10">
+          <h2 className="text-xl font-bold text-white p-3  text-sm font-bold">Ingresar {type}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded">
             <X className="w-5 h-5 text-gray-600" />
           </button>

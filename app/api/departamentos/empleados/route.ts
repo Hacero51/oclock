@@ -22,9 +22,7 @@ export async function GET() {
                     },
                 },
             },
-            where: {
-                Status: 0,
-            },
+            where: {},
         });
 
         // 2. Extraer IDs únicos para evitar N+1

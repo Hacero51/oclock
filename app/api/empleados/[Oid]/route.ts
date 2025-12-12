@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { isValidName, isAdult } from "@/lib/utils";
 
 // ----------------------------
 // GET: Obtener empleado por OID
 // ----------------------------
-export async function GET(request, context) {
+export async function GET(request: Request, context: { params: Promise<{ Oid: string }> }) {
   try {
     const { Oid } = await context.params;
 
@@ -52,10 +53,22 @@ export async function GET(request, context) {
 // PUT: Actualizar empleado
 // ----------------------------
 
-export async function PUT(request, context) {
+export async function PUT(request: Request, context: { params: Promise<{ Oid: string }> }) {
   try {
     const { Oid } = await context.params;
     const data = await request.json();
+
+    // VALIDACIONES
+    const namesToCheck = [data.FullName, data.FirstName, data.MiddleName, data.LastName, data.MiddleLast];
+    for (const name of namesToCheck) {
+      if (name && !isValidName(name)) {
+        return NextResponse.json({ error: "Los nombres solo pueden contener letras y espacios" }, { status: 400 });
+      }
+    }
+
+    if (data.Birthday && !isAdult(data.Birthday)) {
+      return NextResponse.json({ error: "El empleado debe ser mayor de 18 años" }, { status: 400 });
+    }
 
     // -----------------------------
     // ACTUALIZAR EPERSON

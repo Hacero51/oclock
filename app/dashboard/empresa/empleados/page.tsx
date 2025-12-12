@@ -348,7 +348,6 @@ export default function EmpleadosPage() {
   const datosFiltrados = useMemo(() => {
     let filtered = datos;
 
-    // ✔️ CORREGIDO SEGÚN TU BD
     if (estadoEmpleados === "activos") {
       filtered = filtered.filter((e) => e.Status === 0);
     } else if (estadoEmpleados === "inactivos") {
@@ -481,7 +480,7 @@ export default function EmpleadosPage() {
       </div>
 
       {/* TABLA */}
-      <div className="bg-blue-900 rounded-2xl shadow-sm border border-blue-100 overflow-hidden">
+      <div className="bg-white-900 rounded-2xl shadow-sm border border-blue-100 overflow-hidden">
         <div className="overflow-x-auto">
           <Tabla
             columnas={columnas}
@@ -512,7 +511,7 @@ export default function EmpleadosPage() {
           totalItems={datosFiltrados.length}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
+          onItemsPerPageChange={setItemsPerPage} // Opcional
         />
       </div>
 

@@ -8,6 +8,7 @@ interface DialogProps {
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full';
   className?: string;
+  zIndex?: number;
 }
 
 export const Dialog: React.FC<DialogProps> = ({
@@ -15,7 +16,8 @@ export const Dialog: React.FC<DialogProps> = ({
   onOpenChange,
   children,
   size = 'md',
-  className
+  className,
+  zIndex = 50
 }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -63,7 +65,8 @@ export const Dialog: React.FC<DialogProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
+      style={{ zIndex }}
       onClick={handleBackdropClick}
     >
       <div className={`bg-white rounded-lg shadow-lg w-full max-h-[90vh] overflow-hidden ${sizeClasses[size]} ${className || ''}`}>

@@ -1,194 +1,370 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useEffect, useState, useContext, useMemo } from "react";
+import { DashboardContext } from "@/app/dashboard/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { useState } from "react";
-import { 
-  Building, 
-  Users,
-  User,
-  Mail,
-  Briefcase,
-  Clock,
-  DollarSign
+import {
+  Building,
+  Save,
+  X,
+  Loader2,
 } from "lucide-react";
 
 
-// Datos de ejemplo para empleados
-const empleadosEjemplo = [
-  {
-    id: 1,
-    nombre: "Carlos Rodríguez",
-    documento: "11223344",
-    email: "carlos.rodriguez@empresa.com",
-    cargo: "Analista de Costos",
-    departamento: "Finanzas",
-    centroCosto: "ADMIN-FIN",
-    turnoActual: "OFICINA 8AM-5PM",
-    salarioHora: 25.50,
-    estado: "activo"
-  },
-  {
-    id: 2,
-    nombre: "Ana Martínez",
-    documento: "55667788",
-    email: "ana.martinez@empresa.com",
-    cargo: "Supervisora de Producción",
-    departamento: "Producción",
-    centroCosto: "PROD",
-    turnoActual: "TURNO MAÑANA",
-    salarioHora: 30.75,
-    estado: "activo"
-  },
-  {
-    id: 3,
-    nombre: "Luis García",
-    documento: "99887766",
-    email: "luis.garcia@empresa.com",
-    cargo: "Coordinador de Calidad",
-    departamento: "Calidad",
-    centroCosto: "CALIDAD",
-    turnoActual: "ADMINISTRATIVO",
-    salarioHora: 28.90,
-    estado: "inactivo"
-  }
-];
+import Tabla from "@/components/Table";
+import { Users } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import UpdateEmpleadoForm from "@/components/form/update/UpdateEmpleadoForm";
 
 export default function CentroCostoForm({ data, onClose }) {
-  const [activeTab, setActiveTab] = useState("crear");
-  const [centroCostoCreado, setCentroCostoCreado] = useState(null);
-  const [empleadosAsignados, setEmpleadosAsignados] = useState([]);
-  const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [form, setForm] = useState({
+    Oid: "",
+    codigo: "",
+    nombre: "",
+  });
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingEmployees, setLoadingEmployees] = useState(false); // Nuevo estado para carga de empleados
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    watch
-  } = useForm();
+  // Nested Modal State
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
 
-  const centroCostoPadreSeleccionado = watch("centroCostoPadre");
+  // Contexto para filtro
+  const { estadoEmpleados } = useContext(DashboardContext);
 
-  const onSubmit = async (data) => {
+  // Paginación de empleados
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(5);
+
+  // CARGAR DATOS
+  useEffect(() => {
+    if (data) {
+      setForm({
+        Oid: data.Oid,
+        codigo: data.Codigo || data.codigo || "",
+        nombre: data.Nombre || data.nombre || "",
+      });
+      fetchEmployees(data.Oid);
+    }
+  }, [data]);
+
+  const fetchEmployees = async (oid) => {
+    setLoadingEmployees(true);
     try {
-      // Simular creación del centro de costo en la API
-      console.log("Creando centro de costo:", data);
-      
-      // Encontrar el centro de costo padre seleccionado
-      const centroPadre = centrosCostoPadre.find(cc => cc.id === parseInt(data.centroCostoPadre));
-      
-      const nuevoCentroCosto = {
-        id: Date.now(),
-        ...data,
-        centroCostoPadre: centroPadre,
-        fechaCreacion: new Date().toISOString()
-      };
-
-      setCentroCostoCreado(nuevoCentroCosto);
-      
-      // Simular obtención de empleados con este centro de costo
-      const empleadosConEsteCentro = empleadosEjemplo.filter(
-        emp => emp.centroCosto === data.codigo
-      );
-      
-      setEmpleadosAsignados(empleadosConEsteCentro);
-      setActiveTab("empleados");
-      
+      const res = await fetch(`/api/centrocostos/${oid}`);
+      if (res.ok) {
+        const responseData = await res.json();
+        if (responseData.empleados) {
+          setEmployees(responseData.empleados);
+        }
+      }
     } catch (error) {
-      console.error("Error creando centro de costo:", error);
+      console.error("Error fetching employees:", error);
+    } finally {
+      setLoadingEmployees(false);
     }
   };
 
-  const crearNuevoCentroCosto = () => {
-    setCentroCostoCreado(null);
-    setEmpleadosAsignados([]);
-    setActiveTab("crear");
-    reset();
+  // MANEJO DEL FORMULARIO
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    // VALIDACIÓN: Nombre solo letras y espacios
+    if (name === "nombre") {
+      const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/;
+      if (!regex.test(value)) {
+        return;
+      }
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Limpiar error al escribir
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
   };
 
-  const empleadosFiltrados = empleadosAsignados.filter(emp => 
-    filtroEstado === "todos" || emp.estado === filtroEstado
-  );
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!form.nombre.trim()) {
+      newErrors.nombre = "El nombre es obligatorio";
+    }
+
+    if (form.codigo && form.codigo.length > 20) {
+      newErrors.codigo = "El código no puede tener más de 20 caracteres";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ENVIAR UPDATE
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setSaveLoading(true);
+    setErrors({});
+
+    try {
+      const res = await fetch(`/api/centrocostos/${form.Oid}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const responseData = await res.json();
+
+      if (!res.ok) {
+        throw new Error(responseData.error || "Error actualizando centro de costo");
+      }
+
+      const event = new CustomEvent('showToast', {
+        detail: {
+          message: '✅ Centro de costo actualizado con éxito',
+          type: 'success'
+        }
+      });
+      window.dispatchEvent(event);
+
+      // Disparar evento de refresco
+      const refreshEvent = new CustomEvent('refreshCentroCostosList');
+      window.dispatchEvent(refreshEvent);
+
+      setTimeout(() => {
+        onClose();
+      }, 1000);
+    } catch (error) {
+      console.error(error);
+      const event = new CustomEvent('showToast', {
+        detail: {
+          message: `❌ ${error.message}`,
+          type: 'error'
+        }
+      });
+      window.dispatchEvent(event);
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  // Manejar click en empleado
+  const handleRowClick = async (employeeRow) => {
+    try {
+      // Necesitamos el Oid para buscar el empleado completo.
+      const oid = employeeRow.Oid;
+      if (!oid) return;
+
+      const res = await fetch(`/api/empleados/${oid}`);
+      if (!res.ok) throw new Error("Error cargando empleado");
+
+      const fullEmployee = await res.json();
+      setSelectedEmployee(fullEmployee);
+      setIsEmployeeModalOpen(true);
+    } catch (error) {
+      console.error("Error opening employee modal:", error);
+      const event = new CustomEvent('showToast', {
+        detail: { message: '❌ Error cargando detalles del empleado', type: 'error' }
+      });
+      window.dispatchEvent(event);
+    }
+  };
+
+  // Refresh después de editar empleado (opcional, si queremos actualizar la lista)
+  const handleEmployeeUpdated = () => {
+    setIsEmployeeModalOpen(false);
+    fetchEmployees(form.Oid); // Recargar la lista
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 md:p-12 space-y-4">
+        <Loader2 className="h-8 w-8 md:h-10 md:w-10 animate-spin text-indigo-600" />
+        <p className="text-sm text-gray-500 font-medium">Cargando información...</p>
+      </div>
+    );
+  }
+
+  // Filtrar empleados según el contexto
+  const filteredEmployees = useMemo(() => {
+    let filtered = employees;
+
+    if (estadoEmpleados === "activos") {
+      filtered = filtered.filter((e) => e.Status === 0);
+    } else if (estadoEmpleados === "inactivos") {
+      filtered = filtered.filter((e) => e.Status === 1);
+    }
+
+    return filtered;
+  }, [employees, estadoEmpleados]);
+
+  // Calcular datos paginados sobre filteredEmployees
+  const indexOfLastItem = currentPage * pageSize;
+  const indexOfFirstItem = indexOfLastItem - pageSize;
+  const currentEmployees = filteredEmployees.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredEmployees.length / pageSize);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  // Columnas para la tabla de empleados
+  const employeeColumns = [
+    "Documento",
+    "Nombre a mostrar",
+    "Cargo",
+    "Departamento",
+    "Contrato",
+    "Jefe",
+    "Turno Actual",
+    "Valor Hora"
+  ];
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        <Card>
+          <CardHeader className="pb-4 bg-blue-600 text-white">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Building className="w-5 h-5" />
+              </div>
+              Información del Centro de Costo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-6 max-w-2xl">
+              {/* Código */}
+              <div className="space-y-2">
+                <Label htmlFor="codigo" className="text-sm font-medium flex items-center gap-1">
+                  Código
+                </Label>
+                <Input
+                  name="codigo"
+                  value={form.codigo}
+                  onChange={handleChange}
+                  className="w-full py-3 px-4"
+                  disabled={saveLoading}
+                />
+                {errors.codigo && (
+                  <p className="text-sm text-red-600">{errors.codigo}</p>
+                )}
+              </div>
 
-        {/* TAB 1: Crear Centro de Costo */}
-        <TabsContent value="crear">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Building className="w-5 h-5" />
-                  Información del Centro de Costo
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-6 max-w-2xl">
-                  {/* Código */}
-                  <div className="space-y-2">
-                    <Label htmlFor="codigo" className="text-sm font-medium flex items-center gap-1">
-                    
-                      Código <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="codigo"
-                      {...register("codigo", { required: "Este campo es requerido" })}
-                      placeholder="Ej: PROD-LINEA1, VENTAS-NORTE, CALIDAD-CTRL"
-                      className="w-full py-3 px-4"
-                    />
-                    {errors.codigo && (
-                      <p className="text-xs text-red-500">{errors.codigo.message}</p>
-                    )}
-                  </div>
+              {/* Nombre */}
+              <div className="space-y-2">
+                <Label htmlFor="nombre" className="text-sm font-medium">
+                  Nombre <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  name="nombre"
+                  value={form.nombre}
+                  onChange={handleChange}
+                  className="w-full text-lg py-3 px-4"
+                  disabled={saveLoading}
+                />
+                {errors.nombre && (
+                  <p className="text-sm text-red-600">{errors.nombre}</p>
+                )}
+              </div>
 
-                  {/* Nombre */}
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre" className="text-sm font-medium">
-                      Nombre <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="nombre"
-                      {...register("nombre", { required: "Este campo es requerido" })}
-                      placeholder="Ej: Línea de Producción 1, Ventas Zona Norte, Control de Calidad"
-                      className="w-full text-lg py-3 px-4"
-                    />
-                    {errors.nombre && (
-                      <p className="text-xs text-red-500">{errors.nombre.message}</p>
-                    )}
-                  </div>
-
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Botones de acción */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="px-8 py-2"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 px-8 py-2 text-white"
-              >
-                Crear Centro de Costo
-              </Button>
             </div>
-          </form>
-        </TabsContent>
-      </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Sección de Empleados */}
+        <Card className="mt-6">
+          <CardHeader className="pb-4 border-b">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="w-5 h-5 text-gray-500" />
+              Empleados Asociados ({employees.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {loadingEmployees ? (
+              <div className="p-8 flex justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              </div>
+            ) : (
+              <div className="rounded-md border-t border-gray-100">
+                <Tabla
+                  columnas={employeeColumns}
+                  datos={currentEmployees}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  totalRecords={employees.length}
+                  onRowClick={handleRowClick}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* FOOTER ACCIONES */}
+
+        {/* FOOTER ACCIONES */}
+        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={saveLoading}
+            className="sm:w-auto"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            disabled={saveLoading}
+            className="bg-blue-600 hover:bg-blue-700 text-white sm:w-auto"
+          >
+            {saveLoading ? (
+              <>
+                <Loader2 className="mr-1.5 md:mr-2 h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                <span className="truncate">Guardando...</span>
+              </>
+            ) : (
+              <>
+                <Save className="mr-1.5 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+                <span className="truncate">Guardar Cambios</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+
+      {/* MODAL EMPLEADO */}
+      <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen} size="6xl" zIndex={10000}>
+        {selectedEmployee && (
+          <DialogContent className="max-h-[95vh] h-[95vh] overflow-hidden p-0 rounded-xl flex flex-col bg-gray-50">
+            <div className="h-full overflow-y-auto pb-12">
+              <UpdateEmpleadoForm
+                data={selectedEmployee}
+                onClose={() => setIsEmployeeModalOpen(false)}
+                refreshData={handleEmployeeUpdated}
+              />
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

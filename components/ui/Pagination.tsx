@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Users, FileText } from "lucide-react";
 
 interface PaginationProps {
     currentPage: number;
@@ -6,6 +6,7 @@ interface PaginationProps {
     totalItems: number;
     itemsPerPage: number;
     onPageChange: (page: number) => void;
+    label?: string;
 }
 
 export function Pagination({
@@ -13,29 +14,47 @@ export function Pagination({
     totalPages,
     totalItems,
     itemsPerPage,
-    onPageChange
+    onPageChange,
+    label = "elementos"
 }: PaginationProps) {
 
     const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
+    if (totalItems === 0) {
+        return (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-4 sm:px-6 bg-white border-t border-gray-200">
+                <div className="text-sm text-gray-500 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    No hay {label} para mostrar
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2">
-            <div className="text-sm text-gray-500 font-medium">
-                Mostrando <span className="text-gray-900 font-bold">{startItem}-{endItem}</span> de <span className="text-gray-900 font-bold">{totalItems}</span>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 py-4 px-4 sm:px-6 bg-white border-t border-gray-200">
+            {/* Información de resultados */}
+            <div className="text-sm text-gray-500 font-medium flex items-center gap-2">
+                <Users className="h-4 w-4 text-gray-400 hidden sm:block" />
+                <span className="text-xs sm:text-sm">
+                    Mostrando <span className="text-gray-900 font-bold">{startItem}-{endItem}</span> de <span className="text-gray-900 font-bold">{totalItems}</span> {label}
+                </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Navegación de páginas */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-white disabled:cursor-not-allowed transition-all shadow-sm bg-white"
+                    className="flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-white transition-all shadow-sm bg-white"
+                    aria-label="Página anterior"
                 >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span className="hidden sm:inline">Anterior</span>
                 </button>
 
-                <div className="flex items-center gap-1 mx-2">
+                <div className="flex items-center gap-0.5 sm:gap-1 mx-1 sm:mx-2">
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                         let pageNum;
                         if (totalPages <= 5) {
@@ -52,10 +71,11 @@ export function Pagination({
                             <button
                                 key={pageNum}
                                 onClick={() => onPageChange(pageNum)}
-                                className={`w-8 h-8 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center justify-center ${currentPage === pageNum
-                                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-indigo-100"
-                                        : "text-gray-600 hover:bg-gray-50 hover:text-indigo-600 border border-transparent hover:border-gray-200 bg-white"
+                                className={`w-7 h-7 sm:w-8 sm:h-8 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center justify-center ${currentPage === pageNum
+                                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-1 sm:ring-2 ring-indigo-100"
+                                    : "text-gray-600 hover:bg-gray-50 hover:text-indigo-600 border border-transparent hover:border-gray-200 bg-white"
                                     }`}
+                                aria-label={`Ir a página ${pageNum}`}
                             >
                                 {pageNum}
                             </button>
@@ -66,10 +86,11 @@ export function Pagination({
                 <button
                     onClick={() => onPageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-white disabled:cursor-not-allowed transition-all shadow-sm bg-white"
+                    className="flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-white transition-all shadow-sm bg-white"
+                    aria-label="Página siguiente"
                 >
                     <span className="hidden sm:inline">Siguiente</span>
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
             </div>
         </div>

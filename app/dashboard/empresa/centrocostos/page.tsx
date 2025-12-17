@@ -312,7 +312,7 @@ export default function CentroCostosPage() {
       {/* Update Modal */}
       {openUpdate && selectedCentroCostos && (
         <UpdateModal
-          type="centrocosto"
+          type="Centro de Costo"
           data={selectedCentroCostos}
           onClose={() => setOpenUpdate(false)}
         />

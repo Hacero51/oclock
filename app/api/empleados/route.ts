@@ -19,26 +19,40 @@ export async function GET() {
     const shiftIds = [
       ...new Set(empleados.map((e) => e.CurrentShift).filter((id): id is string => !!id)),
     ];
+    const positionIds = [
+      ...new Set(empleados.map((e) => e.Position).filter((id): id is string => !!id)),
+    ];
+    const agreementTypeIds = [
+      ...new Set(empleados.map((e) => e.CurrentAgreementType).filter((id): id is string => !!id)),
+    ];
+    const bossIds = [
+      ...new Set(empleados.map((e) => e.Boss).filter((id): id is string => !!id)),
+    ];
 
     // 3. Consultar departamentos y turnos en paralelo
-    const [departamentos, turnos] = await Promise.all([
-      prisma.department.findMany({
-        where: { Oid: { in: departmentIds } },
-      }),
-      prisma.shift.findMany({
-        where: { Oid: { in: shiftIds } },
-      }),
+    const [departamentos, turnos, cargos, contratos, jefes] = await Promise.all([
+      prisma.department.findMany({ where: { Oid: { in: departmentIds } } }),
+      prisma.shift.findMany({ where: { Oid: { in: shiftIds } } }),
+      prisma.position.findMany({ where: { Oid: { in: positionIds } } }),
+      prisma.agreementtype.findMany({ where: { Oid: { in: agreementTypeIds } } }),
+      prisma.eperson.findMany({ where: { Oid: { in: bossIds } } }),
     ]);
 
     // 4. Crear mapas para acceso rápido
     const deptMap = new Map(departamentos.map((d) => [d.Oid, d]));
     const shiftMap = new Map(turnos.map((s) => [s.Oid, s]));
+    const positionMap = new Map(cargos.map((p) => [p.Oid, p]));
+    const agreementMap = new Map(contratos.map((a) => [a.Oid, a]));
+    const bossMap = new Map(jefes.map((b) => [b.Oid, b]));
 
     // 5. Construir respuesta
     const resultado = empleados.map((emp) => {
       const persona = emp.person;
       const departamento = emp.Department ? deptMap.get(emp.Department) : null;
       const turno = emp.CurrentShift ? shiftMap.get(emp.CurrentShift) : null;
+      const cargo = emp.Position ? positionMap.get(emp.Position) : null;
+      const contrato = emp.CurrentAgreementType ? agreementMap.get(emp.CurrentAgreementType) : null;
+      const jefe = emp.Boss ? bossMap.get(emp.Boss) : null;
 
       const item = {
         "Número Lector": emp.AcNumber ?? "",
@@ -48,6 +62,9 @@ export async function GET() {
         Departamento: departamento?.Name ?? "",
         "Turno Actual": turno?.Name ?? "",
         "Valor Hora": emp.ValorHora ?? "",
+        Cargo: cargo?.Name ?? "",
+        Contrato: contrato?.Name ?? "",
+        Jefe: jefe?.FullName ?? "",
         Status: emp.Status ?? null,
       };
 

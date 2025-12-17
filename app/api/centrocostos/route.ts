@@ -103,7 +103,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       error: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
     }, { status: 500 });
   } finally {
     await prisma.$disconnect();

@@ -622,10 +622,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
               <User className="h-4 w-4 md:h-7 md:w-7 text-white" />
             </div>
             <div>
-              <h2 className="text-base md:text-2xl font-bold text-white">Editar Empleado</h2>
-              <p className="text-indigo-100 mt-0.5 md:mt-1 text-xs md:text-sm">
-                Actualice la información del empleado
-              </p>
+              <h2 className="text-base md:text-2xl font-bold text-white">Actualice la información del empleado</h2>
             </div>
           </div>
           <Button

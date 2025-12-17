@@ -19,7 +19,7 @@ export default function CreateModal({ type, onClose }) {
     Empleado: "max-w-6xl h-[90vh]",
     Dispositivo: "max-w-5xl h-[80vh]",
     Horarios: "max-w-4xl h-[70vh]",
-    Turno: "max-w-4xl h-[70vh]",
+    Turno: "max-w-6xl h-[90vh]",
     "Centro Costo": "max-w-2xl h-[50vh]",
     Sucursal: "max-w-2xl h-[60vh]",
     Marcacion: "max-w-2xl h-[55vh]",
@@ -50,7 +50,6 @@ export default function CreateModal({ type, onClose }) {
         className={`bg-white rounded-xl shadow-xl w-full ${sizes[type]} flex flex-col overflow-hidden pointer-events-auto`}
       >
         <div className="flex items-center justify-between p-4 border-b bg-red-600 sticky top-0 z-10">
-          <h2 className="text-xl font-bold text-white p-3  text-sm font-bold">Ingresar {type}</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded">
             <X className="w-5 h-5 text-gray-600" />
           </button>

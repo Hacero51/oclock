@@ -95,14 +95,6 @@ export async function GET() {
       Name: cargo.position_name
     }));
 
-    console.log('📊 Datos cargados:');
-    console.log('  - Sucursales:', sucursales.length);
-    console.log('  - Departamentos:', departamentos.length);
-    console.log('  - Centros de Costo:', centros.length);
-    console.log('  - Turnos:', turnos.length);
-    console.log('  - Cargos:', cargosTransformados.length);
-    console.log('  - Empleados:', empleados.length);
-
     return NextResponse.json({
       sucursales,
       departamentos,

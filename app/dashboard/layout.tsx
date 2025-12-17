@@ -30,8 +30,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
         <div
-          className="flex-1 flex flex-col transition-all duration-300 min-w-0 min-w-0"
-          style={{ marginLeft: collapsed ? "5rem" : "18rem" }}
+          className={`flex-1 flex flex-col transition-all duration-300 min-w-0 ml-20 ${collapsed ? "md:ml-20" : "md:ml-72"}`}
         >
           <Navbar
             onOpenCreate={(t) => setCreateType(t)}

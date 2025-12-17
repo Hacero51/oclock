@@ -517,7 +517,7 @@ export default function EmpleadosPage() {
 
       {openUpdate && selectedEmpleado && (
         <UpdateModal
-          type={openUpdate ? "empleado" : null}
+          type={openUpdate ? "Empleado" : null}
           data={selectedEmpleado}
           onClose={() => {
             setOpenUpdate(false);

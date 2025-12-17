@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Tabla from "../../../../components/Table";
+import CreateModal from "@/components/CreateModal";
 import UpdateModal from "@/components/UpdateModal";
-import { CalendarSync } from "lucide-react";
+import { CalendarSync, Plus } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 export default function TurnosPage() {
   const columnas = ["Nombre", "Estado"];
@@ -16,6 +18,7 @@ export default function TurnosPage() {
 
   const [selectedTurnos, setSelectedTurnos] = useState<Turnos | null>(null);
   const [openUpdate, setOpenUpdate] = useState(false);
+  const [openCreate, setOpenCreate] = useState(false);
   const [datos, setDatos] = useState<Turnos[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 

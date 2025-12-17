@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/Input";
 import Tabla from "@/components/Table";
 import { Pagination } from "@/components/ui/Pagination";
+import UpdateModal from "@/components/UpdateModal";
 
 export default function HorariosPage() {
   const [horarios, setHorarios] = useState([]);
@@ -16,6 +17,11 @@ export default function HorariosPage() {
   const [busqueda, setBusqueda] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+
+  // Estados para Modal de Edición
+  const [selectedHorario, setSelectedHorario] = useState(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Cargar Horarios
   useEffect(() => {
@@ -34,7 +40,22 @@ export default function HorariosPage() {
       }
     }
     fetchHorarios();
-  }, []);
+  }, [refreshKey]);
+
+  const handleRowClick = (fila: any) => {
+    // La fila viene mapeada, pero guardamos 'original'
+    console.log("Fila seleccionada:", fila);
+    if (fila.original) {
+      setSelectedHorario(fila.original);
+      setShowUpdateModal(true);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowUpdateModal(false);
+    setSelectedHorario(null);
+    setRefreshKey(prev => prev + 1); // Incrementa refreshKey para refrescar datos
+  };
 
   // Columnas para la Tabla (Deben coincidir con las llaves del objeto mapeado abajo)
   const columnas = ["Nombre a mostrar", "Tiempo Total", "Tipo"];
@@ -42,10 +63,10 @@ export default function HorariosPage() {
   // Filtrado y Mapeo de Datos para la Tabla
   const filteredData = horarios
     .filter((h: any) =>
-      h.Name.toLowerCase().includes(busqueda.toLowerCase())
+      h.Name?.toLowerCase().includes(busqueda.toLowerCase())
     )
     .map((h: any) => ({
-      "Nombre a mostrar": h.Name,
+      "Nombre a mostrar": h.DisplayName || h.Name,
       "Tiempo Total": h.TotalTime,
       "Tipo": h.Type,
       // Guardamos el original por si acaso (aunque la tabla solo mostrará lo que esté en columnas)
@@ -63,14 +84,21 @@ export default function HorariosPage() {
     <div className="p-6 md:p-8 bg-grey-700/50 font-sans">
       <div className="max-w mx-auto">
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-          <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100 w-fit">
-            <CalendarClock className="h-6 w-6 text-indigo-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Horarios</h1>
-            <p className="text-gray-500 text-sm">Gestión de tiempos y jornadas laborales</p>
+        {/* Header con Diseño de Tarjeta Azul */}
+        <div className="bg-blue-600 rounded-2xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+          {/* Decoración de fondo */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/10 shadow-inner">
+              <CalendarClock className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Horarios</h1>
+              <p className="text-blue-100 text-lg font-medium opacity-90 max-w-xl">
+                Gestión de jornadas laborales y tiempos de trabajo.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -103,7 +131,7 @@ export default function HorariosPage() {
                   <Tabla
                     columnas={columnas}
                     datos={paginatedData}
-                  // onRowClick={(row) => console.log(row)} // Opcional: para editar
+                    onRowClick={handleRowClick}
                   />
                 </div>
                 <div className="border-t border-gray-100 bg-gray-50/50">
@@ -128,6 +156,15 @@ export default function HorariosPage() {
 
         </div>
       </div>
+
+      {/* Modal de Edición */}
+      {showUpdateModal && selectedHorario && (
+        <UpdateModal
+          type="Horarios"
+          data={selectedHorario}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 }

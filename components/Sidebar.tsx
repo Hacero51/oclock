@@ -92,6 +92,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   const [hoverExpand, setHoverExpand] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+
   // Detectar móvil para deshabilitar hover
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -128,21 +129,21 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
         <div className={`flex items-center justify-between p-4 border-b border-red-800 ${isExpanded ? "px-5" : "px-3"}`}>
           {/* Logo y nombre */}
           <Link href="/dashboard" className="flex items-center gap-3 cursor-pointer group">
-            <div className="p-1.5 bg-white/10 rounded-xl shadow-lg group-hover:bg-white/20 transition-all">
+            <div className={`p-1 bg-white/10 rounded-xl shadow-lg group-hover:bg-white/20 transition-all border border-white/5`}>
               <Image
                 src="/logo.png"
                 alt="Logo"
-                width={isExpanded ? 45 : 40}
-                height={isExpanded ? 45 : 40}
-                className="rounded-lg"
+                width={isExpanded ? 75 : 75}
+                height={isExpanded ? 75 : 75}
+                className="rounded-lg shadow-inner object-contain"
                 priority
               />
             </div>
 
             {isExpanded && (
-              <div className="flex flex-col">
-                <h1 className="text-lg font-bold text-white tracking-tight">En Punto</h1>
-                <h3 className="text-xs text-red-100/80 font-medium">Sistema de Gestión</h3>
+              <div className="flex flex-col text-left">
+                <h1 className="text-xl font-black text-white tracking-tight leading-tight">En Punto</h1>
+                <h3 className="text-xs text-red-100 font-bold opacity-90">Sistema de Gestión</h3>
               </div>
             )}
           </Link>
@@ -224,6 +225,8 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
 
         {/* Botón salir */}
         <div className="p-4 border-t border-red-800">
+
+
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             className={`w-full flex items-center gap-3 text-left px-3 py-3 rounded-xl hover:bg-red-800 text-red-100 hover:text-white transition-all group ${!isExpanded ? "justify-center" : ""
@@ -244,7 +247,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             </div>
           )}
         </div>
-      </aside>
+      </aside >
     </>
   );
 }

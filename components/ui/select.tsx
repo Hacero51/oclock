@@ -23,6 +23,7 @@ export const SelectTrigger = React.forwardRef<
       "transition-all duration-150 ease-in-out",
       className
     )}
+    suppressHydrationWarning={true}
     {...props}
   >
     {children}

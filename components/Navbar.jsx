@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useContext } from "react";
+import { useSession } from "next-auth/react";
 import {
   Select,
   SelectTrigger,
@@ -30,6 +31,7 @@ import { DashboardContext } from "@/app/dashboard/layout";
 
 export default function Navbar({ onOpenCreate }) {
   const { estadoEmpleados, setEstadoEmpleados } = useContext(DashboardContext);
+  const { data: session } = useSession();
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   const opciones = [
@@ -57,10 +59,11 @@ export default function Navbar({ onOpenCreate }) {
       <div className="relative">
         <Button
           onClick={() => setMenuAbierto(!menuAbierto)}
-          className="bg-white text-blue-700 border border-blue-300 shadow-md"
+          className="bg-white text-blue-700 border border-blue-300 shadow-md px-2.5 sm:px-4"
         >
-          <Plus className="h-4 w-4 mr-2" /> Crear Nuevo
-          <ChevronDown className={`h-4 w-4 ml-2 ${menuAbierto ? "rotate-180" : ""}`} />
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline ml-2">Crear Nuevo</span>
+          <ChevronDown className={`h-4 w-4 ml-1.5 sm:ml-2 ${menuAbierto ? "rotate-180" : ""}`} />
         </Button>
 
         {menuAbierto && (
@@ -82,21 +85,48 @@ export default function Navbar({ onOpenCreate }) {
         )}
       </div>
 
-      {/* Select Estado (usa contexto) */}
-      <div className="flex items-center gap-2">
-        <span className="text-white text-sm">Filtrar por:</span>
+      {/* Grupo Derecha: Filtro + Usuario */}
+      <div className="flex items-center gap-6">
+        {/* Select Estado (usa contexto) */}
+        <div className="flex items-center gap-2">
+          <span className="text-white text-sm hidden md:inline">Filtrar por:</span>
 
-        <Select value={estadoEmpleados} onValueChange={(v) => setEstadoEmpleados(v)}>
-          <SelectTrigger className="w-[140px] bg-white">
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
+          <Select value={estadoEmpleados} onValueChange={(v) => setEstadoEmpleados(v)}>
+            <SelectTrigger className="w-[120px] sm:w-[140px] bg-white h-9">
+              <SelectValue placeholder="Estado" />
+            </SelectTrigger>
 
-          <SelectContent>
-            <SelectItem value="activos">Activos</SelectItem>
-            <SelectItem value="inactivos">Inactivos</SelectItem>
-            <SelectItem value="todos">Todos</SelectItem>
-          </SelectContent>
-        </Select>
+            <SelectContent>
+              <SelectItem value="activos">Activos</SelectItem>
+              <SelectItem value="inactivos">Inactivos</SelectItem>
+              <SelectItem value="todos">Todos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Perfil de Usuario */}
+        <div className="flex items-center gap-3 pl-6 border-l border-white/20">
+          <div className="flex flex-col items-end hidden lg:flex">
+            <span className="text-sm font-bold text-white tracking-wide leading-tight">
+              {session?.user?.username || 'Usuario'}
+            </span>
+            <span className="text-[10px] text-blue-100/60 font-bold uppercase tracking-wider">
+              Administrador
+            </span>
+          </div>
+
+          <div className="relative group">
+            <div className="h-10 w-10 rounded-xl bg-white/10 border border-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold shadow-lg group-hover:bg-white/20 transition-all cursor-pointer ring-2 ring-transparent group-hover:ring-white/30">
+              {session?.user?.username?.charAt(0).toUpperCase() || 'U'}
+            </div>
+
+            {/* Tooltip para móvil/tablet */}
+            <div className="absolute top-full right-0 mt-3 px-3 py-2 bg-white rounded-lg shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[60] min-w-[150px] lg:hidden">
+              <p className="text-sm font-bold text-gray-800">{session?.user?.username || 'Usuario'}</p>
+              <p className="text-[10px] text-gray-500 font-medium uppercase">Administrador</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {menuAbierto && <div className="fixed inset-0 bg-black/10 z-40" onClick={() => setMenuAbierto(false)} />}

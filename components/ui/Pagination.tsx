@@ -7,6 +7,8 @@ interface PaginationProps {
     itemsPerPage: number;
     onPageChange: (page: number) => void;
     label?: string;
+    onItemsPerPageChange?: (itemsPerPage: number) => void;
+    pageSizeOptions?: number[];
 }
 
 export function Pagination({
@@ -15,7 +17,9 @@ export function Pagination({
     totalItems,
     itemsPerPage,
     onPageChange,
-    label = "elementos"
+    onItemsPerPageChange,
+    label = "elementos",
+    pageSizeOptions = [8, 12, 24, 48]
 }: PaginationProps) {
 
     const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
@@ -34,12 +38,34 @@ export function Pagination({
 
     return (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 py-4 px-4 sm:px-6 bg-white border-t border-gray-200">
-            {/* Información de resultados */}
-            <div className="text-sm text-gray-500 font-medium flex items-center gap-2">
-                <Users className="h-4 w-4 text-gray-400 hidden sm:block" />
-                <span className="text-xs sm:text-sm">
-                    Mostrando <span className="text-gray-900 font-bold">{startItem}-{endItem}</span> de <span className="text-gray-900 font-bold">{totalItems}</span> {label}
-                </span>
+            {/* Información de resultados y selector de página */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                <div className="text-sm text-gray-500 font-medium flex items-center gap-2">
+                    <Users className="h-4 w-4 text-gray-400 hidden sm:block" />
+                    <span className="text-xs sm:text-sm">
+                        Mostrando <span className="text-gray-900 font-bold">{startItem}-{endItem}</span> de <span className="text-gray-900 font-bold">{totalItems}</span> {label}
+                    </span>
+                </div>
+
+                {onItemsPerPageChange && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm text-gray-500">Mostrar:</span>
+                        <select
+                            value={itemsPerPage}
+                            onChange={(e) => {
+                                onItemsPerPageChange(Number(e.target.value));
+                                onPageChange(1); // Reset to page 1 when changing page size
+                            }}
+                            className="text-xs sm:text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-1 pl-2 pr-7 bg-white"
+                        >
+                            {pageSizeOptions.map(size => (
+                                <option key={size} value={size}>
+                                    {size}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
 
             {/* Navegación de páginas */}

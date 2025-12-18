@@ -131,7 +131,7 @@ export default function DepartamentosPage() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Cargar departamentos
   useEffect(() => {
@@ -301,16 +301,16 @@ export default function DepartamentosPage() {
       <Dialog
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        size="5xl" // Tamaño
+        size="7xl" // Tamaño ampliado para mostrar toda la tabla de empleados
       >
         {selectedDept && (
-          <DialogContent className="max-h-[95vh] h-auto flex flex-col p-0 gap-0 overflow-hidden rounded-2xl shadow-2xl">
+          <DialogContent className="max-h-[95vh] h-auto flex flex-col p-0 gap-0 overflow-hidden">
 
             {/* Header Modal */}
-            <DialogHeader className="px-6 py-5 border-b border-blue-500 bg-white flex-shrink-0 flex flex-row items-center justify-between">
-              <DialogTitle className="flex items-center gap-3 text-2xl text-gray-800 font-bold">
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <Folder className="text-blue-600 fill-blue-100 h-6 w-6" />
+            <DialogHeader className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 px-6 py-5 border-b border-indigo-800  flex-shrink-0 flex flex-row items-center justify-between">
+              <DialogTitle className="flex items-center gap-3 text-2xl text-white-900 font-bold">
+                <div className="bg-red-700 rounded-lg">
+                  <Folder className="text-red-600 fill-red-100" />
                 </div>
                 {selectedDept.name}
               </DialogTitle>
@@ -329,21 +329,21 @@ export default function DepartamentosPage() {
               <div className="space-y-6">
 
                 {/* Inputs Solo Lectura */}
-                <div className="bg-blue-500 p-5 rounded-xl border border-gray-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white p-5 rounded-xl border border-blue-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-xs text-white-400 uppercase font-bold tracking-wider">Nombre Departamento</Label>
+                    <Label className="text-xs text-black-400 uppercase font-bold tracking-wider">Nombre Departamento</Label>
                     <Input
                       readOnly
                       value={selectedDept.name}
-                      className="bg-gray-50 border-gray-200 text-gray-700 font-medium focus-visible:ring-0"
+                      className="bg-gray-50 border-gray-200 text-black-700 font-medium focus-visible:ring-0"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs text-white-400 uppercase font-bold tracking-wider">Departamento Padre</Label>
+                    <Label className="text-xs text-black-400 uppercase font-bold tracking-wider">Departamento Padre</Label>
                     <Input
                       readOnly
                       value={parentName}
-                      className="bg-gray-50 border-gray-200 text-gray-700 font-medium focus-visible:ring-0"
+                      className="bg-gray-50 border-gray-200 text-black-700 font-medium focus-visible:ring-0"
                     />
                   </div>
                 </div>
@@ -359,7 +359,7 @@ export default function DepartamentosPage() {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
                         placeholder="Buscar empleado..."
-                        className="h-10 pl-9 text-sm bg-white border-gray-200 focus:border-indigo-300 transition-all rounded-lg"
+                        className="h-10 pl-9 text-sm bg-white border-blue-200 focus:border-indigo-300 transition-all rounded-lg"
                         value={busqueda}
                         onChange={e => { setBusqueda(e.target.value); setCurrentPage(1); }}
                       />
@@ -388,6 +388,8 @@ export default function DepartamentosPage() {
                             totalItems={filteredEmployees.length}
                             itemsPerPage={itemsPerPage}
                             onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                            label="empleados"
                           />
                         </div>
                       </>

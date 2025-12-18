@@ -6,7 +6,7 @@ interface DialogProps {
   open: boolean;
   onOpenChange?: (open: boolean) => void;
   children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | 'full';
   className?: string;
   zIndex?: number;
 }
@@ -60,6 +60,7 @@ export const Dialog: React.FC<DialogProps> = ({
     '4xl': 'max-w-4xl',
     '5xl': 'max-w-5xl',
     '6xl': 'max-w-6xl',
+    '7xl': 'max-w-7xl',
     'full': 'max-w-full m-4',
   };
 
@@ -69,7 +70,7 @@ export const Dialog: React.FC<DialogProps> = ({
       style={{ zIndex }}
       onClick={handleBackdropClick}
     >
-      <div className={`bg-white rounded-lg shadow-lg w-full max-h-[90vh] overflow-hidden ${sizeClasses[size]} ${className || ''}`}>
+      <div className={`bg-white rounded-2xl shadow-xl w-full max-h-[90vh] overflow-hidden ${sizeClasses[size]} ${className || ''}`}>
         {children}
       </div>
     </div>,

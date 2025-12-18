@@ -23,6 +23,7 @@ import {
   ChevronRight,
   FileText,
 } from "lucide-react";
+import { Pagination } from "@/components/ui/Pagination";
 import { useContext } from "react";
 import { DashboardContext } from "@/app/dashboard/layout";
 
@@ -63,112 +64,7 @@ interface EmpleadoNormalizado {
   [key: string]: string | number | null;
 }
 
-// ---------------- PAGINACIÓN ---------------- //
 
-interface PaginationControlsProps {
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  itemsPerPage: number;
-  onPageChange: (page: number) => void;
-  onItemsPerPageChange: (itemsPerPage: number) => void;
-}
-
-function PaginationControls({
-  currentPage,
-  totalPages,
-  totalItems,
-  itemsPerPage,
-  onPageChange,
-  onItemsPerPageChange,
-}: PaginationControlsProps) {
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-
-  if (totalItems === 0 && currentPage === 1) {
-    return (
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-white border-t border-gray-200">
-        <div className="text-sm text-gray-500 flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          No hay empleados para mostrar
-        </div>
-      </div>
-    );
-  }
-
-  if (totalItems === 0) return null;
-
-  return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-white border-t border-gray-200">
-      <div className="text-sm text-gray-500 font-medium flex items-center gap-2">
-        <Users className="h-4 w-4 text-gray-400" />
-        Mostrando <span className="text-gray-900 font-bold">{startItem}-{endItem}</span> de <span className="text-gray-900 font-bold">{totalItems}</span> empleados
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="flex items-center gap-1 px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 transition-all duration-200 shadow-sm"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Anterior
-        </button>
-
-        <div className="flex items-center gap-1 mx-2">
-          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-            let pageNum;
-            if (totalPages <= 5) {
-              pageNum = i + 1;
-            } else if (currentPage <= 3) {
-              pageNum = i + 1;
-            } else if (currentPage >= totalPages - 2) {
-              pageNum = totalPages - 4 + i;
-            } else {
-              pageNum = currentPage - 2 + i;
-            }
-
-            return (
-              <button
-                key={pageNum}
-                onClick={() => onPageChange(pageNum)}
-                className={`w-9 h-9 text-sm font-medium rounded-lg transition-all duration-200 flex items-center justify-center ${currentPage === pageNum
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-indigo-100"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-indigo-600 border border-transparent hover:border-gray-200"
-                  }`}
-              >
-                {pageNum}
-              </button>
-            );
-          })}
-        </div>
-
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="flex items-center gap-1 px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-gray-400 transition-all duration-200 shadow-sm"
-        >
-          Siguiente
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <label className="text-sm text-gray-600">Por página:</label>
-        <select
-          value={itemsPerPage}
-          onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
-        >
-          <option value={15}>15</option>
-          <option value={25}>25</option>
-          <option value={50}>50</option>
-          <option value={100}>100</option>
-        </select>
-      </div>
-    </div>
-  );
-}
 
 
 export default function EmpleadosPage() {
@@ -505,13 +401,14 @@ export default function EmpleadosPage() {
           />
         </div>
 
-        <PaginationControls
+        <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={datosFiltrados.length}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage} // Opcional
+          onItemsPerPageChange={setItemsPerPage}
+          label="empleados"
         />
       </div>
 

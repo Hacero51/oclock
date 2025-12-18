@@ -21,12 +21,12 @@ export async function GET(
             return NextResponse.json({ error: "Horario no encontrado" }, { status: 404 });
         }
 
-        // 2. Buscar detalles específicos (Fijo o Variable)
+        // 2. Buscar detalles específicos (Fijo o Variable) usando contains para robustez con Char(38)
         const [fixed, variable, linkedShifts] = await Promise.all([
-            prisma.timetablefixed.findUnique({ where: { Oid } }),
-            prisma.timetablevariable.findUnique({ where: { Oid } }),
+            prisma.timetablefixed.findFirst({ where: { Oid: { contains: Oid.trim() } } }),
+            prisma.timetablevariable.findFirst({ where: { Oid: { contains: Oid.trim() } } }),
             prisma.shifttimetable.findMany({
-                where: { Timetable: Oid }
+                where: { Timetable: { contains: Oid.trim() } }
             })
         ]);
 

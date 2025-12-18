@@ -18,13 +18,27 @@ import {
   Download,
   X,
   Calendar,
-  User,
+  AlertCircle,
   FileText,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
+
 
 // Componente de controles de paginación mejorado
+interface PaginationControlsProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (itemsPerPage: number) => void;
+}
+
 function PaginationControls({
   currentPage,
   totalPages,
@@ -32,7 +46,7 @@ function PaginationControls({
   itemsPerPage,
   onPageChange,
   onItemsPerPageChange
-}) {
+}: PaginationControlsProps) {
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
@@ -84,8 +98,8 @@ function PaginationControls({
                 key={pageNum}
                 onClick={() => onPageChange(pageNum)}
                 className={`w-8 h-8 text-sm rounded-lg transition-all duration-200 ${currentPage === pageNum
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
                   }`}
               >
                 {pageNum}
@@ -121,6 +135,7 @@ function PaginationControls({
           <option value={100}>100</option>
         </select>
       </div>
+
     </div>
   );
 }
@@ -139,12 +154,15 @@ type Registro = {
 export default function RegistroTiempoForm() {
   const [filtros, setFiltros] = useState({
     empleado: "",
-    fecha: "",
-    tipo: ""
+    fecha: "", // Mantenemos fecha para el modo "personalizado"
+    tipo: "",
+    periodo: "mes_actual" // Valor por defecto
   });
 
   // Estado para datos y paginación
   const [registros, setRegistros] = useState<Registro[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -155,188 +173,134 @@ export default function RegistroTiempoForm() {
 
   useEffect(() => setIsMounted(true), []);
 
-  // Simular carga de datos
+  const calculateDateRange = (period: string) => {
+    const today = new Date();
+    let from = new Date();
+    let to = new Date();
+
+    switch (period) {
+      case "hoy":
+        from = today;
+        to = today;
+        break;
+      case "mes_actual":
+        from = new Date(today.getFullYear(), today.getMonth(), 1);
+        to = today;
+        break;
+      case "ultimos_30":
+        from.setDate(today.getDate() - 30);
+        to = today;
+        break;
+      case "ultimos_60":
+        from.setDate(today.getDate() - 60);
+        to = today;
+        break;
+      case "anio_actual":
+        from = new Date(today.getFullYear(), 0, 1);
+        to = today;
+        break;
+      case "todos":
+        return { desde: null, hasta: null };
+      case "personalizado":
+        return { desde: null, hasta: null }; // Se usa filtros.fecha
+      default:
+        from = new Date(today.getFullYear(), today.getMonth(), 1); // Default mes actual
+        to = today;
+    }
+
+    const toLocalISODate = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    return {
+      desde: toLocalISODate(from),
+      hasta: toLocalISODate(to)
+    };
+  };
+
+  const fetchRegistros = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+      });
+
+      if (filtros.empleado && filtros.empleado !== "all") params.append("empleado", filtros.empleado);
+      if (filtros.tipo && filtros.tipo !== "all") params.append("tipo", filtros.tipo);
+
+      // Lógica de fechas
+      if (filtros.periodo === 'personalizado' && filtros.fecha) {
+        params.append("fecha", filtros.fecha);
+      } else if (filtros.periodo && filtros.periodo !== 'personalizado') {
+        const { desde, hasta } = calculateDateRange(filtros.periodo);
+        if (desde && hasta) {
+          params.append("desde", desde);
+          params.append("hasta", hasta);
+        }
+      }
+
+      const response = await fetch(`/api/registros?${params.toString()}`);
+      if (!response.ok) throw new Error("Error fetching registros");
+
+      const data = await response.json();
+      setRegistros(data.data);
+      setTotalItems(data.pagination.total);
+    } catch (error) {
+      console.error("Error cargando registros:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isMounted) return;
-
-    const timer = setTimeout(() => {
-      // Datos de ejemplo con múltiples empleados
-      const datosEjemplo: Registro[] = [
-        {
-          empleado: "Johana andrea jimenez rodriguez",
-          tiempo: "LUNES, 10 DE NOVIEMBRE DE 2025 5:50 A. M.",
-          tipo: "Entrada",
-          año: 2025,
-          mes: 11,
-          metodoverificacion: "Huella",
-          lector: "mosquera",
-        },
-        {
-          empleado: "Johana andrea jimenez rodriguez",
-          tiempo: "LUNES, 10 DE NOVIEMBRE DE 2025 5:50 A. M.",
-          tipo: "Entrada",
-          año: 2025,
-          mes: 11,
-          metodoverificacion: "Huella",
-          lector: "mosquera",
-        },
-        {
-          empleado: "DAGER OCORO RAMIREZ",
-          tiempo: "LUNES, 10 DE NOVIEMBRE DE 2025 5:49 A. M.",
-          tipo: "Entrada",
-          año: 2025,
-          mes: 11,
-          metodoverificacion: "Huella",
-          lector: "mosquera",
-        },
-        {
-          empleado: "ENILSON ANDRES YEPES VEGA",
-          tiempo: "LUNES, 10 DE NOVIEMBRE DE 2025 5:49 A. M.",
-          tipo: "Entrada",
-          año: 2025,
-          mes: 11,
-          metodoverificacion: "Huella",
-          lector: "mosquera",
-        },
-        {
-          empleado: "LUZ ESTELA RODRIGUEZ MANCO",
-          tiempo: "LUNES, 10 DE NOVIEMBRE DE 2025 5:49 A. M.",
-          tipo: "Entrada",
-          año: 2025,
-          mes: 11,
-          metodoverificacion: "Huella",
-          lector: "mosquera",
-        },
-        {
-          empleado: "DIANA KATERINE RIAÑO MERCHAN",
-          tiempo: "LUNES, 10 DE NOVIEMBRE DE 2025 5:49 A. M.",
-          tipo: "Entrada",
-          año: 2025,
-          mes: 11,
-          metodoverificacion: "Huella",
-          lector: "mosquera",
-        },
-        {
-          empleado: "JUAN STEEVEN CAMARGO MORENO",
-          tiempo: "LUNES, 10 DE NOVIEMBRE DE 2025 5:48 A. M.",
-          tipo: "Entrada",
-          año: 2025,
-          mes: 11,
-          metodoverificacion: "Huella",
-          lector: "mosquera",
-        },
-        {
-          empleado: "DARLY DAVID GOMEZ MENDOZA",
-          tiempo: "LUNES, 12 DE NOVIEMBRE DE 2025 5:48 A. M.",
-          tipo: "Entrada",
-          año: 2025,
-          mes: 11,
-          metodoverificacion: "Huella",
-          lector: "mosquera",
-        },
-        {
-          empleado: "VICENSIO ANGULO ROJAS",
-          tiempo: "LUNES, 10 DE NOVIEMBRE DE 2025 5:48 A. M.",
-          tipo: "Entrada",
-          año: 2025,
-          mes: 11,
-          metodoverificacion: "Huella",
-          lector: "mosquera",
-        },
-        {
-          empleado: "BRAYAN STIVEN GUTIERREZ AMORTEGUI",
-          tiempo: "LUNES, 10 DE NOVIEMBRE DE 2025 5:48 A. M.",
-          tipo: "Entrada",
-          año: 2025,
-          mes: 11,
-          metodoverificacion: "Huella",
-          lector: "mosquera",
-        },
-      ];
-
-      setRegistros(datosEjemplo);
-    }, 1000);
-
+    const timer = setTimeout(fetchRegistros, 300); // Debounce simple
     return () => clearTimeout(timer);
-  }, [isMounted]);
+  }, [itemsPerPage, currentPage, filtros, isMounted]);
 
-  // Función para extraer la fecha del campo tiempo y formatearla para comparar
-  const extraerFechaDeTiempo = (tiempo: string) => {
-    const partes = tiempo.split(' ');
-    if (partes.length >= 6) {
-      const dia = partes[1];
-      const mes = partes[3];
-      const año = partes[5];
-
-      const meses: Record<string, string> = {
-        'ENERO': '01', 'FEBRERO': '02', 'MARZO': '03', 'ABRIL': '04',
-        'MAYO': '05', 'JUNIO': '06', 'JULIO': '07', 'AGOSTO': '08',
-        'SEPTIEMBRE': '09', 'OCTUBRE': '10', 'NOVIEMBRE': '11', 'DICIEMBRE': '12'
-      };
-
-      const mesNumero = meses[mes] || '01';
-      return `${año}-${mesNumero}-${dia.padStart(2, '0')}`;
-    }
-    return '';
-  };
-
-  // Aplicar filtros
-  const registrosFiltrados = useMemo(() => {
-    let filtered = registros;
-
-    if (filtros.empleado && filtros.empleado !== "all") {
-      filtered = filtered.filter(registro => registro.empleado === filtros.empleado);
-    }
-
-    if (filtros.tipo && filtros.tipo !== "all") {
-      filtered = filtered.filter(registro => registro.tipo === filtros.tipo);
-    }
-
-    if (filtros.fecha) {
-      filtered = filtered.filter(registro => {
-        const fechaRegistro = extraerFechaDeTiempo(registro.tiempo);
-        return fechaRegistro === filtros.fecha;
-      });
-    }
-
-    return filtered;
-  }, [registros, filtros.empleado, filtros.tipo, filtros.fecha]);
-
-  // Datos paginados
-  const registrosPaginados = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return registrosFiltrados.slice(startIndex, startIndex + itemsPerPage);
-  }, [registrosFiltrados, currentPage, itemsPerPage]);
-
-  // Resetear a página 1 cuando cambian los filtros
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filtros.empleado, filtros.tipo, filtros.fecha]);
-
-  // Empleados para el select
-  const empleados = useMemo(
-    () => Array.from(new Set(registros.map(r => r.empleado))),
-    [registros]
-  );
-
-  const handleFiltroChange = (campo: string, valor: string) => {
-    setFiltros(prev => ({
-      ...prev,
-      [campo]: valor
-    }));
-  };
-
-  // Limpieza de filtros
+  // Limpiar filtros
   const handleClearAllFilters = () => {
-    setFiltros({ empleado: "", fecha: "", tipo: "" });
+    setFiltros({ empleado: "", fecha: "", tipo: "", periodo: "mes_actual" });
     setCurrentPage(1);
   };
 
   // Al hacer click en fila
   const handleRowClick = (registro: Registro) => {
+    // Necesitamos pasarle el tiempo original ISO al modal para que el input datetime-local funcione
     setSelectedRegistro(registro);
     setOpenUpdate(true);
   };
+
+  const handleSaveUpdate = async () => {
+    if (!selectedRegistro) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/registros', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedRegistro.id,
+          checkTime: selectedRegistro.tiempo,
+          checkType: selectedRegistro.tipo
+        })
+      });
+
+      if (!response.ok) throw new Error("Error actualizando registro");
+
+      setOpenUpdate(false);
+      fetchRegistros(); // Recargar datos
+    } catch (error) {
+      console.error("Error guardando actualización:", error);
+      alert("Error al guardar los cambios");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   // Manejar cambio de items por página
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
@@ -344,29 +308,61 @@ export default function RegistroTiempoForm() {
     setCurrentPage(1);
   };
 
+  const handleFiltroChange = (campo: string, valor: string) => {
+    setFiltros(prev => {
+      const nuevosFiltros = { ...prev, [campo]: valor };
+
+      // Si cambia a periodo no personalizado, limpiar fecha específica visualmente
+      if (campo === 'periodo' && valor !== 'personalizado') {
+        nuevosFiltros.fecha = "";
+      }
+
+      // Si el usuario selecciona una fecha manualmente, cambiar periodo a personalizado automáticamente
+      if (campo === 'fecha' && valor !== "") {
+        nuevosFiltros.periodo = "personalizado";
+      }
+
+      return nuevosFiltros;
+    });
+    setCurrentPage(1); // Resetear a pag 1 al filtrar
+  };
+
   // Preparar datos para la tabla
   const datosParaTabla = useMemo(() => {
-    return registrosPaginados.map((registro) => ({
-      'Empleado': registro.empleado,
-      'Tiempo': registro.tiempo,
-      'Tipo': (
-        <span className={`px-2 py-1 rounded text-xs font-medium ${registro.tipo === "Entrada"
+    return registros.map((registro) => {
+      // Formatear fecha para mostrar
+      const dateObj = new Date(registro.tiempo);
+      // Formato: 10/11/2025 05:50:00 AM
+      // Usamos timeZone: 'UTC' para evitar que el navegador reste 5 horas (Colombia GMT-5)
+      // ya que los datos vienen "sin zona horaria" en la BD y Prisma los devuelve como UTC.
+      const fechaFormateada = dateObj.toLocaleString('es-CO', {
+        day: 'numeric', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true,
+        timeZone: 'UTC'
+      });
+
+      return {
+        'Empleado': registro.empleado,
+        'Tiempo': fechaFormateada.toUpperCase(),
+        'Tipo': (
+          <span className={`px-2 py-1 rounded text-xs font-medium ${registro.tipo === "Entrada"
             ? "bg-green-100 text-green-800"
-            : "bg-red-100 text-red-800"
-          }`}>
-          {registro.tipo}
-        </span>
-      ),
-      'Año': registro.año,
-      'Mes': registro.mes,
-      'Método de Verificación': (
-        <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-          {registro.metodoverificacion}
-        </span>
-      ),
-      'Lector': registro.lector
-    }));
-  }, [registrosPaginados]);
+            : (registro.tipo === "Salida" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800")
+            }`}>
+            {registro.tipo}
+          </span>
+        ),
+        'Año': registro.año,
+        'Mes': registro.mes,
+        'Método de Verificación': (
+          <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+            {registro.metodoverificacion}
+          </span>
+        ),
+        'Lector': registro.lector
+      };
+    });
+  }, [registros]);
 
   const columnas = [
     'Empleado',
@@ -378,7 +374,7 @@ export default function RegistroTiempoForm() {
     'Lector'
   ];
 
-  const totalPages = Math.ceil(registrosFiltrados.length / itemsPerPage);
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   if (!isMounted) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -404,16 +400,8 @@ export default function RegistroTiempoForm() {
             <p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
-                {registrosFiltrados.length} registros encontrados
+                {totalItems} registros encontrados
               </span>
-              {registrosFiltrados.length !== registros.length && (
-                <span className="text-gray-400">•</span>
-              )}
-              {registrosFiltrados.length !== registros.length && (
-                <span className="text-gray-500 text-xs">
-                  Filtrados de {registros.length} totales
-                </span>
-              )}
             </p>
           </div>
         </div>
@@ -440,38 +428,50 @@ export default function RegistroTiempoForm() {
         </div>
       </div>
 
-      {/* Filtros */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold mb-4 text-gray-900">Filtros de Búsqueda</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Empleado
+              Periodo
             </label>
             <Select
-              value={filtros.empleado}
-              onValueChange={(value) => handleFiltroChange("empleado", value)}
+              value={filtros.periodo}
+              onValueChange={(value) => handleFiltroChange("periodo", value)}
             >
               <SelectTrigger className="bg-gray-50 border-gray-300 focus:bg-white">
-                <SelectValue placeholder="Todos los empleados" />
+                <SelectValue placeholder="Seleccionar periodo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos los empleados</SelectItem>
-                {empleados.map((empleado) => (
-                  <SelectItem key={empleado} value={empleado}>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {empleado}
-                    </div>
-                  </SelectItem>
-                ))}
+                <SelectItem value="hoy">Hoy</SelectItem>
+                <SelectItem value="mes_actual">Mes Actual</SelectItem>
+                <SelectItem value="ultimos_30">Últimos 30 días</SelectItem>
+                <SelectItem value="ultimos_60">Últimos 60 días</SelectItem>
+                <SelectItem value="anio_actual">Año Actual</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="personalizado">Personalizado</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fecha
+              Empleado
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Buscar por nombre..."
+                value={filtros.empleado}
+                onChange={(e) => handleFiltroChange("empleado", e.target.value)}
+                className="pl-10 bg-gray-50 border-gray-300 focus:bg-white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Fecha Específica
             </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -506,10 +506,16 @@ export default function RegistroTiempoForm() {
       </div>
 
       {/* Tabla con paginación */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+            <Clock className="h-8 w-8 text-blue-600 animate-spin" />
+          </div>
+        )}
+
         {/* Tabla */}
         <div className="overflow-x-auto">
-          {datosParaTabla.length > 0 ? (
+          {registros.length > 0 ? (
             <Tabla
               columnas={columnas}
               datos={datosParaTabla}
@@ -524,9 +530,9 @@ export default function RegistroTiempoForm() {
                 No se encontraron registros
               </h3>
               <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                {registros.length === 0
-                  ? "No hay registros en el sistema."
-                  : "No hay registros que coincidan con los filtros aplicados."
+                {totalItems === 0 && !isLoading
+                  ? "No hay registros que coincidan con los filtros aplicados."
+                  : "Cargando..."
                 }
               </p>
               {(filtros.empleado || filtros.fecha || filtros.tipo) && (
@@ -547,7 +553,7 @@ export default function RegistroTiempoForm() {
         <PaginationControls
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={registrosFiltrados.length}
+          totalItems={totalItems}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
           onItemsPerPageChange={handleItemsPerPageChange}

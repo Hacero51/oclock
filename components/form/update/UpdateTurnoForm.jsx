@@ -220,7 +220,7 @@ export default function UpdateTurnoForm({ data, onClose }) {
 
   return (
     <div className="w-full h-full flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col font-sans overflow-hidden">
+      <div className="bg-indigo rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col font-sans overflow-hidden">
 
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 px-3 md:px-8 py-3 md:py-6 border-b-2 md:border-b-4 border-indigo-800 flex-shrink-0">
@@ -247,28 +247,28 @@ export default function UpdateTurnoForm({ data, onClose }) {
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 space-y-6 custom-scrollbar">
 
           {/* TOP SECTION: Blue Banner */}
-          <div className="bg-blue-600 rounded-xl p-6 shadow-lg text-white space-y-6">
+          <div className="bg-white-600 border-2 border-blue-200 rounded-xl p-6 shadow-lg text-black-500 space-y-6">
 
             {/* 1. Nombre - Full Width */}
             <div className="">
-              <label className="text-xs font-bold uppercase text-blue-100 mb-1.5 block tracking-wider">Nombre del Turno</label>
+              <label className="text-xs font-bold uppercase text-black-100 mb-1.5 block tracking-wider">Nombre del Turno</label>
               <Input
                 value={formData.nombre}
                 onChange={e => handleInputChange("nombre", e.target.value)}
-                className="text-black border-none h-10"
+                className="text-black border-blue-200 border h-10"
               />
             </div>
 
             {/* SEPARATOR: Información del Turno */}
             <div className="space-y-4">
-              <h3 className="text-sm font-bold text-blue-100 uppercase tracking-widest border-b border-blue-400/30 pb-2">Información del Turno</h3>
+              <h3 className="text-sm font-bold text-black-100 uppercase tracking-widest border-b border-black-400/30 pb-2">Información del Turno</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 {/* Row 1, Col 1: Rotacion */}
                 <div>
-                  <label className="text-xs font-medium text-blue-200 mb-1.5 block">Rotación</label>
+                  <label className="text-xs font-medium text-black-100 mb-1.5 block">Rotación</label>
                   <Select value={formData.rotacion} onValueChange={v => handleInputChange("rotacion", v)}>
-                    <SelectTrigger className="text-black border-none h-10"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="text-black border-blue-200 border h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Dia">Dia</SelectItem>
                       <SelectItem value="Semana">Semana</SelectItem>
@@ -279,9 +279,9 @@ export default function UpdateTurnoForm({ data, onClose }) {
 
                 {/* Row 1, Col 2: Festivos */}
                 <div>
-                  <label className="text-xs font-medium text-blue-200 mb-1.5 block">Festivos</label>
+                  <label className="text-xs font-medium text-black-100 mb-1.5 block">Festivos</label>
                   <Select value={formData.festivos} onValueChange={v => handleInputChange("festivos", v)}>
-                    <SelectTrigger className="text-black border-none h-10"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="text-black border-blue-200 border h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="no_trabaja_dias_de_fiesta">No trabaja dias de fiesta</SelectItem>
                       <SelectItem value="trabaja_dias_de_fiesta">Trabaja dias de fiesta</SelectItem>
@@ -292,20 +292,20 @@ export default function UpdateTurnoForm({ data, onClose }) {
 
                 {/* Row 2, Col 1: Ciclos */}
                 <div>
-                  <label className="text-xs font-medium text-blue-200 mb-1.5 block">Número de Ciclos</label>
+                  <label className="text-xs font-medium text-black-100 mb-1.5 block">Número de Ciclos</label>
                   <Input
                     type="number"
                     value={formData.numeroCiclos}
                     onChange={e => handleInputChange("numeroCiclos", e.target.value)}
-                    className="text-black border-none h-10"
+                    className="text-black border-blue-200 border h-10"
                   />
                 </div>
 
                 {/* Row 2, Col 2: Estado */}
                 <div>
-                  <label className="text-xs font-medium text-blue-200 mb-1.5 block">Estado</label>
+                  <label className="text-xs font-medium text-black-100 mb-1.5 block">Estado</label>
                   <Select value={formData.estado} onValueChange={v => handleInputChange("estado", v)}>
-                    <SelectTrigger className="text-black border-none h-10"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="text-black border-blue-200 border h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="activo">Activo</SelectItem>
                       <SelectItem value="inactivo">Inactivo</SelectItem>
@@ -317,16 +317,16 @@ export default function UpdateTurnoForm({ data, onClose }) {
 
             {/* SEPARATOR: Configuración de Tiempo Extra */}
             <div className="space-y-4 pt-2">
-              <h3 className="text-sm font-bold text-blue-100 uppercase tracking-widest border-b border-blue-400/30 pb-2">Configuración de Tiempo Extra</h3>
+              <h3 className="text-sm font-bold text-black-100 uppercase tracking-widest border-b border-black-400/30 pb-2">Configuración de Tiempo Extra</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                 {/* Left Col: Inputs */}
                 <div className="space-y-4">
                   {/* Adicionar Tiempo Extra */}
                   <div>
-                    <label className="text-xs font-medium text-blue-200 mb-1.5 block">Adicionar Tiempo Extra</label>
+                    <label className="text-xs font-medium text-black-100 mb-1.5 block">Adicionar Tiempo Extra</label>
                     <Select value={formData.adicionarTiempoExtra?.toString()} onValueChange={v => handleInputChange("adicionarTiempoExtra", v)}>
-                      <SelectTrigger className="text-black border-none h-10"><SelectValue placeholder="Seleccione..." /></SelectTrigger>
+                      <SelectTrigger className="text-black border-blue-200 border h-10"><SelectValue placeholder="Seleccione..." /></SelectTrigger>
                       <SelectContent>
                         {[0, 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60].map(m => (
                           <SelectItem key={m} value={m.toString()}>{m}</SelectItem>
@@ -337,18 +337,18 @@ export default function UpdateTurnoForm({ data, onClose }) {
 
                   {/* Tiempo Extra Minimo */}
                   <div>
-                    <label className="text-xs font-medium text-blue-200 mb-1.5 block">Tiempo Extra Mínimo</label>
+                    <label className="text-xs font-medium text-black-100 mb-1.5 block">Tiempo Extra Mínimo</label>
                     <Input
                       type="number"
                       value={formData.tiempoExtraMinimo}
                       onChange={e => handleInputChange("tiempoExtraMinimo", e.target.value)}
-                      className="text-black border-none h-10"
+                      className="text-black border-blue-200 border h-10"
                     />
                   </div>
                 </div>
 
                 {/* Right Col: Checkboxes (Vertical Stack) */}
-                <div className="bg-blue-800/20 rounded-lg p-4 space-y-3">
+                <div className="bg-black-800/20 rounded-lg p-4 space-y-3">
                   {[
                     ['antesEntrada', 'Tiempo Extra Antes de la Entrada'],
                     ['despuesSalida', 'Tiempo Extra Después de la Salida'],
@@ -356,11 +356,11 @@ export default function UpdateTurnoForm({ data, onClose }) {
                     ['enFestivo', 'Tiempo Extra en Festivo']
                   ].map(([key, label]) => (
                     <label key={key} className="flex items-start gap-3 cursor-pointer group hover:bg-white/5 p-1 rounded transition-colors">
-                      <div className={`mt-0.5 min-w-5 h-5 rounded border flex items-center justify-center transition-colors ${formData.tiempoExtra[key] ? 'bg-white border-white text-blue-600' : 'border-blue-300/50 bg-transparent'}`}>
-                        {formData.tiempoExtra[key] && <div className="w-2.5 h-2.5 bg-blue-600 rounded-sm" />}
+                      <div className={`mt-0.5 min-w-5 h-5 rounded border flex items-center justify-center transition-colors ${formData.tiempoExtra[key] ? 'bg-white border-white text-black-600' : 'border-black-300/50 bg-transparent'}`}>
+                        {formData.tiempoExtra[key] && <div className="w-2.5 h-2.5 bg-black-600 rounded-sm" />}
                       </div>
                       <input type="checkbox" className="hidden" checked={formData.tiempoExtra[key]} onChange={() => handleExtraChange(key)} />
-                      <span className={`text-sm leading-tight transition-colors ${formData.tiempoExtra[key] ? 'text-white font-medium' : 'text-blue-200 group-hover:text-blue-100'}`}>{label}</span>
+                      <span className={`text-sm leading-tight transition-colors ${formData.tiempoExtra[key] ? 'text-white font-medium' : 'text-black-200 group-hover:text-black-100'}`}>{label}</span>
                     </label>
                   ))}
                 </div>

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import {
-  CalendarClock,
+  Clock,
   Search,
-  LayoutGrid
+  LayoutGrid,
+  CalendarClock
 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import Tabla from "@/components/Table";
@@ -91,7 +92,7 @@ export default function HorariosPage() {
 
           <div className="flex items-center gap-6 relative z-10">
             <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/10 shadow-inner">
-              <CalendarClock className="h-8 w-8 text-white" />
+              <Clock className="h-8 w-8 text-white" />
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Horarios</h1>
@@ -106,15 +107,20 @@ export default function HorariosPage() {
         <div className="space-y-4">
 
           {/* Barra de Búsqueda */}
-          <div className="flex justify-between items-center">
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-500" />
-              <Input
-                placeholder="Buscar horario..."
-                className="h-10 pl-9 text-sm bg-white border-blue-500 focus:border-indigo-300 transition-all rounded-lg"
-                value={busqueda}
-                onChange={(e) => { setBusqueda(e.target.value); setCurrentPage(1); }}
-              />
+          <div className="bg-blue-500 rounded-2xl shadow-sm border border-gray-100 p-6 transition-all duration-300 hover:shadow-md">
+            <div className="flex-1 w-full">
+              <label className="text-xs font-semibold text-white-500 uppercase tracking-wider mb-2 block">
+                Búsqueda rápida
+              </label>
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-500" />
+                <Input
+                  placeholder="Buscar horario..."
+                  className="h-10 pl-9 text-sm bg-white border-blue-500 focus:border-indigo-300 transition-all rounded-lg"
+                  value={busqueda}
+                  onChange={(e) => { setBusqueda(e.target.value); setCurrentPage(1); }}
+                />
+              </div>
             </div>
           </div>
 
@@ -157,7 +163,7 @@ export default function HorariosPage() {
         </div>
       </div>
 
-      {/* Modal de Edición */}
+      {/* Update  Modal */}
       {showUpdateModal && selectedHorario && (
         <UpdateModal
           type="Horarios"

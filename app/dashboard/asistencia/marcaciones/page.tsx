@@ -35,6 +35,13 @@ function PaginationControls({
   itemsPerPage,
   onPageChange,
   onItemsPerPageChange
+}: {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (itemsPerPage: number) => void;
 }) {
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
@@ -87,8 +94,8 @@ function PaginationControls({
                 key={pageNum}
                 onClick={() => onPageChange(pageNum)}
                 className={`w-8 h-8 text-sm rounded-lg transition-all duration-200 ${currentPage === pageNum
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
                   }`}
               >
                 {pageNum}
@@ -128,7 +135,6 @@ function PaginationControls({
   );
 }
 
-// ... (las funciones auxiliares se mantienen igual)
 const formatearFechaHora = (fechaHoraString: string) => {
   if (!fechaHoraString) return "";
   const fecha = new Date(fechaHoraString);
@@ -227,7 +233,6 @@ const validarSalida = (salida: string, entrada: string, marcacion: any) => {
 };
 
 type Marcacion = {
-  [key: string]: any;
   id: string;
   empleado: string;
   turno: string;
@@ -246,137 +251,144 @@ export default function FormMarcaciones() {
     empleado: "",
     turno: "",
     estado: "",
+    desde: "",
+    hasta: "",
+    periodo: "mes_actual"
   });
 
-  // Estado para datos y paginación
   const [marcaciones, setMarcaciones] = useState<Marcacion[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Estado para edición
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [salidaEditada, setSalidaEditada] = useState("");
   const [errorValidacion, setErrorValidacion] = useState("");
-
-  // Estado para edición de checkboxes
   const [editandoCheckbox, setEditandoCheckbox] = useState<string | null>(null);
 
   useEffect(() => setIsMounted(true), []);
 
-  // Simular carga de datos
-  useEffect(() => {
+  const calculateDateRange = (period: string) => {
+    const today = new Date();
+    let from = new Date();
+    let to = new Date();
+
+    switch (period) {
+      case "hoy":
+        from = today;
+        to = today;
+        break;
+      case "mes_actual":
+        from = new Date(today.getFullYear(), today.getMonth(), 1);
+        to = today;
+        break;
+      case "ultimos_30":
+        from.setDate(today.getDate() - 30);
+        to = today;
+        break;
+      case "ultimos_60":
+        from.setDate(today.getDate() - 60);
+        to = today;
+        break;
+      case "anio_actual":
+        from = new Date(today.getFullYear(), 0, 1);
+        to = today;
+        break;
+      case "todos":
+        return { desde: null, hasta: null };
+      default:
+        from = new Date(today.getFullYear(), today.getMonth(), 1);
+        to = today;
+    }
+
+    const toLocalISODate = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    return {
+      desde: toLocalISODate(from),
+      hasta: toLocalISODate(to)
+    };
+  };
+
+  const fetchMarcaciones = async () => {
     if (!isMounted) return;
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+      });
 
-    const timer = setTimeout(() => {
-      const datosEjemplo: Marcacion[] = [
-        {
-          id: "1",
-          empleado: "MARIA ALEJANDRA AGUILAR MORALES",
-          turno: "OFICINA - EXTRAS",
-          fecha: "9/11/2025",
-          entrada: "DOMINGO, 9 DE NOVIEMBRE DE 2025 6:15 A. M.",
-          salida: "DOMINGO, 9 DE NOVIEMBRE DE 2025 10:20 P. M.",
-          iniciaTurno: false,
-          tiempoExtraDespues: true,
-          tiempoExtraFestivo: false,
-          autorizar: false,
-          estado: "OK",
-        },
-        {
-          id: "2",
-          empleado: "YESENIA MARGARITA ZÚÑIGA MENDOZA",
-          turno: "PLANTA 6 AM - 2 PM",
-          fecha: "8/11/2025",
-          entrada: "SÁBADO, 8 DE NOVIEMBRE DE 2025 10:23 A. M.",
-          salida: "",
-          iniciaTurno: true,
-          tiempoExtraDespues: false,
-          tiempoExtraFestivo: false,
-          autorizar: false,
-          estado: "Incompleto",
-        },
-        {
-          id: "3",
-          empleado: "HANS STACY ACRONIE HERNANDEZ",
-          turno: "OFICINA - EXTRAS",
-          fecha: "8/11/2025",
-          entrada: "SÁBADO, 8 DE NOVIEMBRE DE 2025 7:35 A. M.",
-          salida: "SÁBADO, 8 DE NOVIEMBRE DE 2025 11:00 A. M.",
-          iniciaTurno: true,
-          tiempoExtraDespues: true,
-          tiempoExtraFestivo: true,
-          autorizar: false,
-          estado: "OK",
-        },
-      ];
-      setMarcaciones(datosEjemplo);
-    }, 1000);
+      if (filtros.empleado && filtros.empleado !== "all") params.append("empleado", filtros.empleado);
+      if (filtros.estado && filtros.estado !== "all") params.append("estado", filtros.estado);
 
-    return () => clearTimeout(timer);
-  }, [isMounted]);
+      if (filtros.periodo === 'personalizado' && filtros.desde && filtros.hasta) {
+        params.append("desde", filtros.desde);
+        params.append("hasta", filtros.hasta);
+      } else if (filtros.periodo && filtros.periodo !== 'personalizado') {
+        const { desde, hasta } = calculateDateRange(filtros.periodo);
+        if (desde && hasta) {
+          params.append("desde", desde);
+          params.append("hasta", hasta);
+        }
+      }
 
-  // Aplicar filtros
-  const marcacionesFiltradas = useMemo(() => {
-    let filtered = marcaciones;
-    if (filtros.empleado && filtros.empleado !== "all") {
-      filtered = filtered.filter(marcacion => marcacion.empleado === filtros.empleado);
+      const response = await fetch(`/api/marcaciones?${params.toString()}`);
+      if (!response.ok) throw new Error("Error fetching marcaciones");
+
+      const data = await response.json();
+      setMarcaciones(data.data);
+      setTotalItems(data.pagination.total);
+    } catch (error) {
+      console.error("Error cargando marcaciones:", error);
+    } finally {
+      setIsLoading(false);
     }
-    if (filtros.turno && filtros.turno !== "all") {
-      filtered = filtered.filter(marcacion => marcacion.turno === filtros.turno);
-    }
-    if (filtros.estado && filtros.estado !== "all") {
-      filtered = filtered.filter(marcacion => marcacion.estado === filtros.estado);
-    }
-    return filtered;
-  }, [marcaciones, filtros.empleado, filtros.turno, filtros.estado]);
+  };
 
-  // Datos paginados
-  const marcacionesPaginadas = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return marcacionesFiltradas.slice(startIndex, startIndex + itemsPerPage);
-  }, [marcacionesFiltradas, currentPage, itemsPerPage]);
-
-  // Resetear a página 1 cuando cambian los filtros
   useEffect(() => {
-    setCurrentPage(1);
-  }, [filtros.empleado, filtros.turno, filtros.estado]);
+    fetchMarcaciones();
+  }, [isMounted, currentPage, itemsPerPage, filtros.periodo, filtros.desde, filtros.hasta, filtros.estado]);
 
-  // Empleados y turnos para los selects
-  const empleados = useMemo(
-    () => Array.from(new Set(marcaciones.map(m => m.empleado))),
-    [marcaciones]
-  );
-
-  const turnos = useMemo(
-    () => Array.from(new Set(marcaciones.map(m => m.turno))),
-    [marcaciones]
-  );
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isMounted) fetchMarcaciones();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filtros.empleado]);
 
   const handleFiltroChange = (campo: string, valor: string) => {
-    setFiltros(prev => ({
-      ...prev,
-      [campo]: valor
-    }));
+    setFiltros(prev => ({ ...prev, [campo]: valor }));
+    if (campo !== 'empleado') setCurrentPage(1);
   };
 
-  // Limpieza de filtros
   const handleClearAllFilters = () => {
-    setFiltros({ empleado: "", turno: "", estado: "" });
+    setFiltros({
+      empleado: "",
+      turno: "",
+      estado: "",
+      desde: "",
+      hasta: "",
+      periodo: "mes_actual"
+    });
     setCurrentPage(1);
   };
 
-  // Manejar cambio de items por página
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
   };
 
-  // Iniciar edición de salida
   const iniciarEdicionSalida = (marcacion: Marcacion) => {
     if (marcacion.estado === "Incompleto" || !marcacion.salida) {
       setEditandoId(marcacion.id);
-      const salidaInicial = marcacion.salida
+      const salidaInicial = marcacion.salida && marcacion.salida !== "N/A"
         ? parsearFechaHora(marcacion.salida)
         : obtenerFechaActual();
       setSalidaEditada(salidaInicial);
@@ -384,7 +396,6 @@ export default function FormMarcaciones() {
     }
   };
 
-  // Validar en tiempo real mientras se edita
   const handleSalidaChange = (nuevaSalida: string, marcacion: Marcacion) => {
     setSalidaEditada(nuevaSalida);
     if (nuevaSalida) {
@@ -395,7 +406,6 @@ export default function FormMarcaciones() {
     }
   };
 
-  // Guardar salida editada
   const guardarSalida = (marcacion: Marcacion) => {
     if (!salidaEditada) {
       setErrorValidacion("La salida no puede estar vacía");
@@ -409,11 +419,7 @@ export default function FormMarcaciones() {
     const nuevaSalidaFormateada = formatearFechaHora(salidaEditada);
     setMarcaciones(prev => prev.map(m =>
       m.id === marcacion.id
-        ? {
-          ...m,
-          salida: nuevaSalidaFormateada,
-          estado: "OK"
-        }
+        ? { ...m, salida: nuevaSalidaFormateada, estado: "OK" }
         : m
     ));
     setEditandoId(null);
@@ -421,35 +427,23 @@ export default function FormMarcaciones() {
     setErrorValidacion("");
   };
 
-  // Cancelar edición de salida
   const cancelarEdicion = () => {
     setEditandoId(null);
     setSalidaEditada("");
     setErrorValidacion("");
   };
 
-  // Manejar cambio de checkbox
   const handleCheckboxChange = (marcacionId: string, campo: string, valor: boolean) => {
     setMarcaciones(prev => prev.map(m =>
-      m.id === marcacionId
-        ? { ...m, [campo]: valor }
-        : m
+      m.id === marcacionId ? { ...m, [campo]: valor } : m
     ));
   };
 
-  // Iniciar edición de checkbox
-  const iniciarEdicionCheckbox = (marcacionId: string) => {
-    setEditandoCheckbox(marcacionId);
-  };
+  const iniciarEdicionCheckbox = (marcacionId: string) => setEditandoCheckbox(marcacionId);
+  const finalizarEdicionCheckbox = () => setEditandoCheckbox(null);
 
-  // Finalizar edición de checkbox
-  const finalizarEdicionCheckbox = () => {
-    setEditandoCheckbox(null);
-  };
-
-  // Preparar datos para la tabla
   const datosParaTabla = useMemo(() => {
-    return marcacionesPaginadas.map((marcacion) => ({
+    return marcaciones.map((marcacion) => ({
       'Empleado': marcacion.empleado,
       'Turno': marcacion.turno,
       'Fecha': marcacion.fecha,
@@ -474,11 +468,7 @@ export default function FormMarcaciones() {
               >
                 <CheckCircle2 className="h-3 w-3" />
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={cancelarEdicion}
-              >
+              <Button size="sm" variant="outline" onClick={cancelarEdicion}>
                 <X className="h-3 w-3" />
               </Button>
             </div>
@@ -492,9 +482,9 @@ export default function FormMarcaciones() {
         </div>
       ) : (
         <div
-          className={`cursor-pointer p-2 rounded-lg border transition-all duration-200 ${(marcacion.estado === "Incompleto" || !marcacion.salida)
-              ? "bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100"
-              : "text-gray-700 border-gray-200 bg-gray-50 hover:bg-gray-100"
+          className={`cursor-pointer p-2 rounded-lg border transition-all duration-200 ${(marcacion.estado === "Incompleto" || !marcacion.salida || marcacion.salida === "N/A")
+            ? "bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100"
+            : "text-gray-700 border-gray-200 bg-gray-50 hover:bg-gray-100"
             }`}
           onClick={() => iniciarEdicionSalida(marcacion)}
           title={marcacion.estado === "Incompleto" ? "Click para editar salida" : "Salida completa"}
@@ -506,7 +496,6 @@ export default function FormMarcaciones() {
         <div
           className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
           onClick={() => iniciarEdicionCheckbox(marcacion.id)}
-          title="Click para editar"
         >
           <Checkbox
             checked={marcacion.iniciaTurno}
@@ -518,10 +507,7 @@ export default function FormMarcaciones() {
               size="sm"
               variant="ghost"
               className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
-              onClick={(e) => {
-                e.stopPropagation();
-                finalizarEdicionCheckbox();
-              }}
+              onClick={(e) => { e.stopPropagation(); finalizarEdicionCheckbox(); }}
             >
               <CheckCircle2 className="h-3 w-3 text-green-600" />
             </Button>
@@ -532,7 +518,6 @@ export default function FormMarcaciones() {
         <div
           className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
           onClick={() => iniciarEdicionCheckbox(marcacion.id)}
-          title="Click para editar"
         >
           <Checkbox
             checked={marcacion.tiempoExtraDespues}
@@ -544,10 +529,7 @@ export default function FormMarcaciones() {
               size="sm"
               variant="ghost"
               className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
-              onClick={(e) => {
-                e.stopPropagation();
-                finalizarEdicionCheckbox();
-              }}
+              onClick={(e) => { e.stopPropagation(); finalizarEdicionCheckbox(); }}
             >
               <CheckCircle2 className="h-3 w-3 text-green-600" />
             </Button>
@@ -558,7 +540,6 @@ export default function FormMarcaciones() {
         <div
           className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
           onClick={() => iniciarEdicionCheckbox(marcacion.id)}
-          title="Click para editar"
         >
           <Checkbox
             checked={marcacion.tiempoExtraFestivo}
@@ -570,10 +551,7 @@ export default function FormMarcaciones() {
               size="sm"
               variant="ghost"
               className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
-              onClick={(e) => {
-                e.stopPropagation();
-                finalizarEdicionCheckbox();
-              }}
+              onClick={(e) => { e.stopPropagation(); finalizarEdicionCheckbox(); }}
             >
               <CheckCircle2 className="h-3 w-3 text-green-600" />
             </Button>
@@ -584,7 +562,6 @@ export default function FormMarcaciones() {
         <div
           className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
           onClick={() => iniciarEdicionCheckbox(marcacion.id)}
-          title="Click para editar"
         >
           <Checkbox
             checked={marcacion.autorizar}
@@ -596,230 +573,208 @@ export default function FormMarcaciones() {
               size="sm"
               variant="ghost"
               className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
-              onClick={(e) => {
-                e.stopPropagation();
-                finalizarEdicionCheckbox();
-              }}
+              onClick={(e) => { e.stopPropagation(); finalizarEdicionCheckbox(); }}
             >
               <CheckCircle2 className="h-3 w-3 text-green-600" />
             </Button>
           )}
         </div>
       ),
-      'Estado': (
-        <div className="flex justify-center">
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${marcacion.estado === "OK"
-                ? "bg-green-100 text-green-800"
-                : marcacion.estado === "Incompleto"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-red-100 text-red-800"
-              }`}
-          >
-            {marcacion.estado === "OK" && <CheckCircle2 className="h-3 w-3" />}
-            {marcacion.estado === "Incompleto" && <AlertCircle className="h-3 w-3" />}
-            {marcacion.estado}
-          </span>
-        </div>
-      )
     }));
-  }, [marcacionesPaginadas, editandoId, salidaEditada, errorValidacion, editandoCheckbox]);
+  }, [marcaciones, editandoId, salidaEditada, errorValidacion, editandoCheckbox]);
 
-  const columnasTabla = [
-    'Empleado',
-    'Turno',
-    'Fecha',
-    'Entrada',
-    'Salida',
-    'Inicia Turno',
-    'Tiempo Extra Después',
-    'Tiempo Extra Festivo',
-    'Autorizar',
-    'Estado'
-  ];
-
-  const totalPages = Math.ceil(marcacionesFiltradas.length / itemsPerPage);
-
-  if (!isMounted) return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="text-center">
-        <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center mx-auto mb-4">
-          <Clock className="h-8 w-8 text-gray-400 animate-pulse" />
-        </div>
-        <p className="text-gray-500">Cargando marcaciones...</p>
-      </div>
-    </div>
-  );
+  if (!isMounted) return null;
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
-            <Clock className="h-6 w-6 text-blue-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Marcaciones</h1>
-            <p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
-              <span className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                {marcacionesFiltradas.length} registros encontrados
-              </span>
-              {marcacionesFiltradas.length !== marcaciones.length && (
-                <span className="text-gray-400">•</span>
-              )}
-              {marcacionesFiltradas.length !== marcaciones.length && (
-                <span className="text-gray-500 text-xs">
-                  Filtrados de {marcaciones.length} totales
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          {(filtros.empleado || filtros.turno || filtros.estado) && (
-            <Button
-              variant="outline"
-              className="text-gray-600 border-gray-300 hover:bg-gray-50 flex items-center gap-2"
-              onClick={handleClearAllFilters}
-            >
-              <X className="h-4 w-4" />
-              Limpiar Filtros
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Filtros */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900">Filtros de Búsqueda</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Empleado
-            </label>
-            <Select
-              value={filtros.empleado}
-              onValueChange={(value) => handleFiltroChange("empleado", value)}
-            >
-              <SelectTrigger className="bg-gray-50 border-gray-300 focus:bg-white">
-                <SelectValue placeholder="Todos los empleados" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los empleados</SelectItem>
-                {empleados.map((empleado) => (
-                  <SelectItem key={empleado} value={empleado}>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {empleado}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Turno
-            </label>
-            <Select
-              value={filtros.turno}
-              onValueChange={(value) => handleFiltroChange("turno", value)}
-            >
-              <SelectTrigger className="bg-gray-50 border-gray-300 focus:bg-white">
-                <SelectValue placeholder="Todos los turnos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los turnos</SelectItem>
-                {turnos.map((turno) => (
-                  <SelectItem key={turno} value={turno}>
-                    {turno}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Estado
-            </label>
-            <Select
-              value={filtros.estado}
-              onValueChange={(value) => handleFiltroChange("estado", value)}
-            >
-              <SelectTrigger className="bg-gray-50 border-gray-300 focus:bg-white">
-                <SelectValue placeholder="Todos los estados" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="OK">OK</SelectItem>
-                <SelectItem value="Incompleto">Incompleto</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-end">
-            <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white w-full flex items-center gap-2"
-            >
-              <Search className="h-4 w-4" />
-              Buscar
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabla con paginación */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* Tabla */}
-        <div className="overflow-x-auto">
-          {datosParaTabla.length > 0 ? (
-            <Tabla
-              columnas={columnasTabla}
-              datos={datosParaTabla}
-              onRowClick={() => { }}
-            />
-          ) : (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <FileText className="h-8 w-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                No se encontraron marcaciones
-              </h3>
-              <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                {marcaciones.length === 0
-                  ? "No hay marcaciones en el sistema."
-                  : "No hay marcaciones que coincidan con los filtros aplicados."
-                }
+    <div className="p-4 md:p-8 bg-gray-50/50 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="flex flex-col gap-8">
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-8 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
+            <div className="relative">
+              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
+                <div className="p-3 bg-blue-600 rounded-xl shadow-lg shadow-blue-200">
+                  <Clock className="h-7 w-7 text-white" />
+                </div>
+                Gestión de Marcaciones
+              </h1>
+              <p className="mt-2 text-gray-500 font-medium">
+                Control y seguimiento de entradas, salidas y tiempos extra
               </p>
-              {(filtros.empleado || filtros.turno || filtros.estado) && (
-                <Button
-                  variant="outline"
-                  onClick={handleClearAllFilters}
-                  className="border-gray-300 hover:bg-gray-50"
+            </div>
+            <div className="flex items-center gap-3 relative z-10">
+              <Button
+                variant="outline"
+                className="rounded-xl border-gray-200 hover:bg-gray-50 hover:border-gray-300 font-semibold h-11 transition-all active:scale-95"
+              >
+                <Download className="h-4 w-4 mr-2 text-blue-600" />
+                Exportar Reporte
+              </Button>
+            </div>
+          </div>
+
+          {/* Filtros Section */}
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 ml-1 flex items-center gap-2">
+                  <User className="h-4 w-4 text-blue-600" />
+                  Buscar Empleado
+                </label>
+                <div className="relative group">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Input
+                    placeholder="Nombre o código..."
+                    value={filtros.empleado}
+                    onChange={(e) => handleFiltroChange("empleado", e.target.value)}
+                    className="pl-11 h-12 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all text-sm font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 ml-1 flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-blue-600" />
+                  Periodo
+                </label>
+                <Select
+                  value={filtros.periodo}
+                  onValueChange={(val) => handleFiltroChange("periodo", val)}
                 >
-                  <X className="h-4 w-4 mr-2" />
-                  Limpiar todos los filtros
+                  <SelectTrigger className="h-12 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 text-sm font-medium transition-all hover:bg-white">
+                    <SelectValue placeholder="Seleccionar periodo" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-gray-100 shadow-xl">
+                    <SelectItem value="hoy">Hoy</SelectItem>
+                    <SelectItem value="mes_actual">Mes Actual</SelectItem>
+                    <SelectItem value="ultimos_30">Últimos 30 días</SelectItem>
+                    <SelectItem value="ultimos_60">Últimos 60 días</SelectItem>
+                    <SelectItem value="anio_actual">Este Año</SelectItem>
+                    <SelectItem value="personalizado">Rango Personalizado</SelectItem>
+                    <SelectItem value="todos">Todos los registros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700 ml-1 flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-blue-600" />
+                  Estado de Marcación
+                </label>
+                <Select
+                  value={filtros.estado}
+                  onValueChange={(val) => handleFiltroChange("estado", val)}
+                >
+                  <SelectTrigger className="h-12 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 text-sm font-medium transition-all hover:bg-white">
+                    <SelectValue placeholder="Todos los estados" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-gray-100 shadow-xl">
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="Completado">Completado (E y S)</SelectItem>
+                    <SelectItem value="Incompleto">Incompleto (Solo E)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end h-12 mt-7">
+                <Button
+                  variant="ghost"
+                  onClick={handleClearAllFilters}
+                  className="w-full h-12 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl font-bold flex items-center justify-center gap-2 transition-all group"
+                >
+                  <X className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
+                  Limpiar Filtros
                 </Button>
+              </div>
+            </div>
+
+            {filtros.periodo === 'personalizado' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-blue-50/30 rounded-xl border border-blue-100/50 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-blue-700 uppercase tracking-wider ml-1">Fecha Desde</label>
+                  <Input
+                    type="date"
+                    value={filtros.desde}
+                    onChange={(e) => handleFiltroChange("desde", e.target.value)}
+                    className="h-11 bg-white border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-500/20 text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-blue-700 uppercase tracking-wider ml-1">Fecha Hasta</label>
+                  <Input
+                    type="date"
+                    value={filtros.hasta}
+                    onChange={(e) => handleFiltroChange("hasta", e.target.value)}
+                    className="h-11 bg-white border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-500/20 text-sm"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Table Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px] flex flex-col">
+            <div className="p-1.5 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between px-8">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest py-2">
+                Listado de Asistencias
+              </span>
+            </div>
+
+            <div className="flex-1">
+              {isLoading ? (
+                <div className="h-full flex flex-col items-center justify-center gap-4 py-32">
+                  <div className="relative">
+                    <div className="h-16 w-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin" />
+                    <Clock className="h-6 w-6 text-blue-600 absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 animate-pulse" />
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-lg font-bold text-gray-900">Cargando datos</span>
+                    <span className="text-sm text-gray-500">Esto tomará solo un momento...</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {datosParaTabla.length > 0 ? (
+                    <Tabla
+                      columnas={['Empleado', 'Turno', 'Fecha', 'Entrada', 'Salida', 'Inicia Turno', 'Tiempo Extra Después', 'Tiempo Extra Festivo', 'Autorizar']}
+                      datos={datosParaTabla}
+                      onRowClick={() => { }}
+                    />
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center gap-4 py-32">
+                      <div className="p-6 bg-gray-50 rounded-full border-2 border-dashed border-gray-200">
+                        <User className="h-12 w-12 text-gray-300" />
+                      </div>
+                      <div className="text-center space-y-1">
+                        <h3 className="text-xl font-bold text-gray-900">No se encontraron marcaciones</h3>
+                        <p className="text-gray-500 max-w-sm">
+                          Prueba ajustando los filtros de búsqueda o cambia el periodo de tiempo
+                        </p>
+                        <Button
+                          variant="link"
+                          onClick={handleClearAllFilters}
+                          className="text-blue-600 font-bold hover:no-underline hover:text-blue-700"
+                        >
+                          Restablecer todos los filtros
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
-          )}
-        </div>
 
-        {/* Controles de paginación */}
-        <PaginationControls
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={marcacionesFiltradas.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={handleItemsPerPageChange}
-        />
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={Math.ceil(totalItems / itemsPerPage)}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

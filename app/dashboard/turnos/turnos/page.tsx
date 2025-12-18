@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Tabla from "../../../../components/Table";
 import CreateModal from "@/components/CreateModal";
 import UpdateModal from "@/components/UpdateModal";
-import { CalendarSync, Plus } from "lucide-react";
+import { CalendarSync, Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export default function TurnosPage() {
@@ -63,27 +63,31 @@ export default function TurnosPage() {
   }
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200">
-            <CalendarSync className="h-6 w-6 text-purple-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Turnos</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              {datos.length} turnos configurados
-            </p>
+    <div className="p-6 md:p-8 bg-grey-700/50 font-sans">
+      <div className="max-w mx-auto">
+        {/* Header */}
+        <div className="bg-blue-600 rounded-2xl shadow-lg p-6 mb-8 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+          {/* Decoración de fondo */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/10 shadow-inner">
+              <Calendar className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Turnos</h1>
+              <p className="text-blue-100 text-lg font-medium opacity-90 max-w-xl">
+                Gestión de Organizacional de turnos.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Tabla */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <Tabla columnas={columnas} datos={datos} onRowClick={handleRowClick} />
+        {/* Tabla */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <Tabla columnas={columnas} datos={datos} onRowClick={handleRowClick} />
+        </div>
       </div>
-
       {/* Update Modal */}
       {openUpdate && selectedTurnos && (
         <UpdateModal

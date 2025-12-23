@@ -20,6 +20,7 @@ import Tabla from "@/components/Table";
 import { Users } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import UpdateEmpleadoForm from "@/components/form/update/UpdateEmpleadoForm";
+import { Pagination } from "@/components/ui/Pagination";
 
 export default function CentroCostoForm({ data, onClose }) {
   const [form, setForm] = useState({
@@ -42,7 +43,7 @@ export default function CentroCostoForm({ data, onClose }) {
 
   // Paginación de empleados
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(5);
+  const [pageSize] = useState(10);
 
   // CARGAR DATOS
   useEffect(() => {
@@ -302,17 +303,25 @@ export default function CentroCostoForm({ data, onClose }) {
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               </div>
             ) : (
-              <div className="rounded-md border-t border-gray-100">
-                <Tabla
-                  columnas={employeeColumns}
-                  datos={currentEmployees}
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                  totalRecords={employees.length}
-                  onRowClick={handleRowClick}
-                />
-              </div>
+              <>
+                <div className="rounded-md border-t border-gray-100">
+                  <Tabla
+                    columnas={employeeColumns}
+                    datos={currentEmployees}
+                    onRowClick={handleRowClick}
+                  />
+                </div>
+                <div className="border-t border-gray-100 bg-gray-50/50">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredEmployees.length}
+                    itemsPerPage={pageSize}
+                    onPageChange={handlePageChange}
+                    label="empleados"
+                  />
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

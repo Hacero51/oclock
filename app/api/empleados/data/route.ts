@@ -1,77 +1,76 @@
-// app/api/empleados/data/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
-    const [sucursalesRaw, departamentos, centros, turnos, cargos, empleadosRaw] = await Promise.all([
+    // 1. Fetch raw data from tables that actually exist
+    const [sucursalesRaw, departamentos, centros, turnos, positionsRaw, empleadosRaw] = await Promise.all([
+      // Sucursales aka ebranch
       prisma.ebranch.findMany({
         select: {
           Oid: true,
           Description: true,
           Code: true,
-          Third: true
+          Third: true // We fetch the OID string, but won't join with a non-existent table
         },
       }),
+      // Departamentos
       prisma.department.findMany({
         select: { Oid: true, Name: true },
+        where: { GCRecord: null } // Good practice for legacy soft deletes if applicable, but optional
       }),
+      // Centros de Costo
       prisma.costcenter.findMany({
         select: { Oid: true, Name: true },
       }),
+      // Turnos
       prisma.shift.findMany({
         select: { Oid: true, Name: true },
       }),
-      prisma.personnel_position.findMany({
-        select: { id: true, position_code: true, position_name: true },
+      // Cargos (Usa 'position' que es la tabla legacy con OIDs, no personnel_position)
+      prisma.position.findMany({
+        select: { Oid: true, Name: true, Code: true }
       }),
+      // Empleados (Solo IDs, luego buscamos nombres)
       prisma.employee.findMany({
-        select: {
-          Oid: true,
-          person: {
-            select: { FullName: true }
-          }
-        },
+        select: { Oid: true },
+        where: { Status: 0 } // Solo activos? O todos para selectores? Mejor todos.
       }),
     ]);
 
-    // Get Third IDs from branches
-    const thirdIds = sucursalesRaw
-      .map(s => s.Third)
-      .filter((id): id is string => !!id);
-
-    // Fetch Third data
-    const thirds = await prisma.third.findMany({
-      where: { Oid: { in: thirdIds } },
-      select: { Oid: true, TaxName: true, FirstName: true, LastName: true }
+    // 2. Resolve names for Employees (using eperson manually like in the main route)
+    const employeeIds = empleadosRaw.map(e => e.Oid);
+    const personas = await prisma.eperson.findMany({
+      where: { Oid: { in: employeeIds } },
+      select: { Oid: true, FullName: true }
     });
 
-    // Create a map for quick lookup
-    const thirdMap = new Map(thirds.map(t => [t.Oid, t]));
+    const personMap = new Map(personas.map(p => [p.Oid, p.FullName]));
 
-    console.log('🏢 Datos de sucursales RAW:');
-    sucursalesRaw.forEach(s => {
-      console.log(`  - Oid: ${s.Oid}, Code: ${s.Code}, Description: ${s.Description}, Third: ${s.Third}`);
-    });
+    const empleados = empleadosRaw.map(emp => ({
+      Oid: emp.Oid,
+      Name: personMap.get(emp.Oid) || "Sin Nombre"
+    })).filter(e => e.Name !== "Sin Nombre");
 
-    console.log('👥 Datos de Third encontrados:');
-    thirds.forEach(t => {
-      console.log(`  - Oid: ${t.Oid}, TaxName: ${t.TaxName}, FirstName: ${t.FirstName}, LastName: ${t.LastName}`);
-    });
 
-    // Manual mapping of branch codes to names based on database data
+    // 3. Process Sucursales (Keep the manual mapping logic if useful, but drop the 'Third' table lookup)
     const branchNames: Record<string, string> = {
       '01': '7 DE AGOSTO',
       '02': 'CALLE 4TA',
     };
 
-    // Transform sucursales using manual mapping
     const sucursales = sucursalesRaw.map(s => {
-      const name = s.Code && branchNames[s.Code]
-        ? branchNames[s.Code]
-        : s.Code
-          ? `Sucursal ${s.Code}`
-          : 'Sin código';
+      // Prioritize manual map, then Description, then Code
+      let name = s.Description;
+      if (s.Code && branchNames[s.Code]) {
+        name = branchNames[s.Code];
+      } else if (!name && s.Code) {
+        name = `Sucursal ${s.Code}`;
+      } else if (!name) {
+        name = "Sin Descripción";
+      }
 
       return {
         Oid: s.Oid,
@@ -80,34 +79,27 @@ export async function GET() {
       };
     });
 
-    // Transform employees to include name
-    const empleados = empleadosRaw
-      .filter(emp => emp.person?.FullName)
-      .map(emp => ({
-        Oid: emp.Oid,
-        Name: emp.person!.FullName
-      }));
-
-    // Transform positions to match expected format
-    const cargosTransformados = cargos.map(cargo => ({
-      Oid: cargo.id.toString(),
-      Code: cargo.position_code,
-      Name: cargo.position_name
+    // 4. Transform positions
+    const cargos = positionsRaw.map(p => ({
+      Oid: p.Oid,     // Ahora sí es string Oid
+      Code: p.Code,
+      Name: p.Name
     }));
+
 
     return NextResponse.json({
       sucursales,
       departamentos,
       centrosCosto: centros,
       turnos,
-      cargos: cargosTransformados,
+      cargos,
       empleados,
     });
 
   } catch (err) {
-    console.error("❌ Error cargando catálogos:", err);
+    console.error("❌ Error cargando catálogos (Data API):", err);
     return NextResponse.json(
-      { error: "Error cargando catálogos" },
+      { error: "Error interno cargando catálogos" },
       { status: 500 }
     );
   }

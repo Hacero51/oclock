@@ -43,7 +43,6 @@ export default function Navbar({ onOpenCreate }) {
     { label: "Horarios", icon: Clock, type: "Horarios" },
     { label: "Marcación", icon: BookmarkCheck, type: "Marcacion" },
     { label: "Permisos e Incapacidades", icon: FileText, type: "Permisos E Incapacidades" },
-    { label: "Sucursal", icon: MapPin, type: "Sucursal" },
     { label: "Turno", icon: CalendarSync, type: "Turno" },
   ];
 

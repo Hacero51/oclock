@@ -9,7 +9,6 @@ import DispositivoForm from "./form/create/DispositivoForm";
 import HorariosForm from "./form/create/HorariosForm";
 import MarcacionForm from "./form/create/MarcacionForm";
 import PermisosEIncaForm from "./form/create/PermisosEIncaForm.jsx";
-import SucursalForm from "./form/create/SucursalForm";
 import TurnoForm from "./form/create/TurnoForm";
 
 export default function CreateModal({ type, onClose }) {
@@ -21,7 +20,6 @@ export default function CreateModal({ type, onClose }) {
     Horarios: "max-w-4xl h-[70vh]",
     Turno: "max-w-6xl h-[90vh]",
     "Centro Costo": "max-w-2xl h-[50vh]",
-    Sucursal: "max-w-2xl h-[60vh]",
     Marcacion: "max-w-2xl h-[55vh]",
     "Dia Festivo": "max-w-2xl h-[55vh]",
     "Permisos E Incapacidades": "max-w-3xl h-[65vh]",
@@ -38,7 +36,6 @@ export default function CreateModal({ type, onClose }) {
     Horarios: <HorariosForm onClose={onClose} />,
     Marcacion: <MarcacionForm onClose={onClose} />,
     "Permisos E Incapacidades": <PermisosEIncaForm onClose={onClose} />,
-    Sucursal: <SucursalForm onClose={onClose} />,
     Turno: <TurnoForm onClose={onClose} />,
   };
 

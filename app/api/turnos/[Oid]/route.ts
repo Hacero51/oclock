@@ -52,16 +52,16 @@ export async function GET(
 
         // 3. Fetch Employees with full details
         const empleadosRaw = await prisma.employee.findMany({
-            include: {
-                person: true,
+            where: {
+                OR: [
+                    { CurrentShift: Oid }, // Assigned to this shift
+                    { CurrentShift: null }  // OR Unassigned (available)
+                ]
             }
         });
-        console.log("DEBUG: Employees found:", empleadosRaw.length);
-        if (empleadosRaw.length > 0) {
-            console.log("DEBUG: First employee person:", empleadosRaw[0].person);
-        }
 
         // Extract IDs for batch fetching
+        const empIds = empleadosRaw.map(e => e.Oid);
         const departmentIds = [...new Set(empleadosRaw.map((e) => e.Department).filter((id): id is string => !!id))];
         const shiftIds = [...new Set(empleadosRaw.map((e) => e.CurrentShift).filter((id): id is string => !!id))];
         const positionIds = [...new Set(empleadosRaw.map((e) => e.Position).filter((id): id is string => !!id))];
@@ -69,12 +69,21 @@ export async function GET(
         const bossIds = [...new Set(empleadosRaw.map((e) => e.Boss).filter((id): id is string => !!id))];
 
         // Parallel fetch
-        const [departamentos, turnos, cargos, contratos, jefes] = await Promise.all([
+        const [departamentos, turnos, cargos, contratos, jefes, personas] = await Promise.all([
             prisma.department.findMany({ where: { Oid: { in: departmentIds } } }),
             prisma.shift.findMany({ where: { Oid: { in: shiftIds } } }),
             prisma.position.findMany({ where: { Oid: { in: positionIds } } }),
             prisma.agreementtype.findMany({ where: { Oid: { in: agreementTypeIds } } }),
-            prisma.eperson.findMany({ where: { Oid: { in: bossIds } } }),
+            prisma.employee.findMany({ // We need the IDs of the bosses to get their names from the persons map? No, boss needs ePerson directly.
+                where: { Oid: { in: bossIds } },
+                select: { Oid: true, Boss: true } // Just valid IDs
+            }),
+            prisma.eperson.findMany({
+                where: {
+                    Oid: { in: [...empIds, ...bossIds] }
+                },
+                select: { Oid: true, FullName: true, Document: true, FirstName: true, LastName: true }
+            }),
         ]);
 
         // Create Maps
@@ -82,18 +91,27 @@ export async function GET(
         const shiftMap = new Map(turnos.map((s) => [s.Oid, s]));
         const positionMap = new Map(cargos.map((p) => [p.Oid, p]));
         const agreementMap = new Map(contratos.map((a) => [a.Oid, a]));
-        const bossMap = new Map(jefes.map((b) => [b.Oid, b]));
+        const personMap = new Map(personas.map((p) => [p.Oid, p]));
+
+        // Map bosses names
+        // Correct logic: The 'Boss' field in Employee is an Employee OID. 
+        // That Employee has a Person OID (same value).
+        // So we look up the Boss name using the Boss OID in the Person Map.
+        const getBossName = (bossOid: string | null) => {
+            if (!bossOid) return "";
+            const p = personMap.get(bossOid);
+            return p ? (p.FullName || `${p.FirstName || ''} ${p.LastName || ''}`.trim()) : "";
+        };
 
         // Construct Response
         const empleados = empleadosRaw.map((emp) => {
-            const persona = emp.person;
+            const persona = personMap.get(emp.Oid);
             const departamento = emp.Department ? deptMap.get(emp.Department) : null;
             const turno = emp.CurrentShift ? shiftMap.get(emp.CurrentShift) : null;
             const cargo = emp.Position ? positionMap.get(emp.Position) : null;
             const contrato = emp.CurrentAgreementType ? agreementMap.get(emp.CurrentAgreementType) : null;
-            const jefe = emp.Boss ? bossMap.get(emp.Boss) : null;
 
-            const name = (persona?.FullName || "Sin Nombre").trim();
+            const name = (persona?.FullName || `${persona?.FirstName || ''} ${persona?.LastName || ''}`).trim() || "Sin Nombre";
             const displayName = name === "" ? "Sin Nombre" : name;
 
             const item = {
@@ -106,7 +124,7 @@ export async function GET(
                 "Valor Hora": emp.ValorHora ?? "",
                 Cargo: cargo?.Name ?? "",
                 Contrato: contrato?.Name ?? "",
-                Jefe: jefe?.FullName ?? "",
+                Jefe: getBossName(emp.Boss),
                 Status: emp.Status,
                 Assigned: emp.CurrentShift === Oid // Keep assignment logic
             };

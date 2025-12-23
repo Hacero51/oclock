@@ -21,7 +21,7 @@ export default function UpdateModal({ type, data, onClose }) {
     dispositivo: "max-w-5xl h-[80vh]",
     Horarios: "max-w-4xl h-[90vh]",
     turno: "max-w-5xl h-[90vh]",
-    "Centro de Costo": "max-w-6xl h-[80vh]",
+    "Centro de Costo": "max-w-7xl h-[90vh]",
     marcacion: "max-w-2xl h-[55vh]",
     diafestivo: "max-w-2xl h-[55vh]",
     permisoseinca: "max-w-3xl h-[75vh]",

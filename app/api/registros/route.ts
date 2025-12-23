@@ -107,7 +107,7 @@ export async function GET(request: Request) {
         const [persons, machines] = await Promise.all([
             prisma.eperson.findMany({
                 where: { Oid: { in: empOids } },
-                select: { Oid: true, FirstName: true, LastName: true }
+                select: { Oid: true, FirstName: true, LastName: true, FullName: true }
             }),
             prisma.machine.findMany({
                 where: { Oid: { in: machineOids } },
@@ -136,9 +136,13 @@ export async function GET(request: Request) {
             else if (log.CheckType === 3) tipoStr = 'Fin Descanso';   // BreakIn
             else tipoStr = String(log.CheckType);
 
+            const nombreStr = person ? (person.FullName || `${person.FirstName || ''} ${person.LastName || ''}`).trim() : 'Desconocido';
+
+            if (!nombreStr || nombreStr === 'Desconocido') return null;
+
             return {
                 id: log.Oid,
-                empleado: person ? `${person.FirstName || ''} ${person.LastName || ''}`.trim() : 'Desconocido',
+                empleado: nombreStr,
                 tiempo: log.CheckTime,
                 tipo: tipoStr,
                 año: date.getUTCFullYear(),
@@ -147,7 +151,7 @@ export async function GET(request: Request) {
                 metodoverificacion: verifyTypeStr,
                 lector: machine?.Name || 'Desconocido'
             };
-        });
+        }).filter((item): item is NonNullable<typeof item> => item !== null);
 
         return NextResponse.json({
             data,

@@ -130,13 +130,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           {/* Logo y nombre */}
           <Link href="/dashboard" className="flex items-center gap-3 cursor-pointer group">
             <div className={`p-1 bg-white/10 rounded-xl shadow-lg group-hover:bg-white/20 transition-all border border-white/5`}>
-              <Image
+              <img
                 src="/logo.png"
                 alt="Logo"
-                width={isExpanded ? 75 : 75}
-                height={isExpanded ? 75 : 75}
+                width="75"
+                height="75"
                 className="rounded-lg shadow-inner object-contain"
-                priority
               />
             </div>
 

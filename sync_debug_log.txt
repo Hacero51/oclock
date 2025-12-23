@@ -1,0 +1,13 @@
+2025-12-23T21:29:37.722Z - [SYNC-TIME-DEBUG] Machine: PRENSADOS INR, Raw: 2025-12-18T05:37:57, ParsedAsLocal: Thu Dec 18 2025 05:37:57 GMT-0500 (hora estándar de Colombia)
+2025-12-23T21:29:37.816Z - [SYNC-TIME-DEBUG] Machine: PRENSADOS INR, Raw: 2025-12-19T14:28:25, ParsedAsLocal: Fri Dec 19 2025 14:28:25 GMT-0500 (hora estándar de Colombia)
+2025-12-23T21:29:45.272Z - [MATCH-OK] Encontrado: 1029 / 1004359877 para entrada 1029
+2025-12-23T21:29:48.237Z - [SYNC-TIME-DEBUG] Machine: PRENSADOS INR, Raw: 2025-12-23T14:27:22, ParsedAsLocal: Tue Dec 23 2025 14:27:22 GMT-0500 (hora estándar de Colombia)
+2025-12-23T21:29:50.974Z - [SYNC-TIME-DEBUG] Machine: PRENSADOS INR, Raw: 2025-12-19T14:24:08, ParsedAsLocal: Fri Dec 19 2025 14:24:08 GMT-0500 (hora estándar de Colombia)
+2025-12-23T21:29:51.148Z - [SYNC] Finalizado. Total Logs: 53092, Nuevos: 0
+2025-12-23T21:30:31.987Z - [SYNC] Iniciando sincronización...
+2025-12-23T21:30:31.996Z - [SYNC] Máquinas encontradas en DB: 2 (MOSQUERA, PRENSADOS INR)
+2025-12-23T21:30:32.004Z - [SYNC] Conectando a MOSQUERA (IP: 172.17.1.248) via Python Service...
+2025-12-23T21:30:36.000Z - [SYNC-PY] Resultado para MOSQUERA: EXITO
+2025-12-23T21:30:36.001Z - [SYNC-PY] MOSQUERA: 8146 logs descargados.
+2025-12-23T21:30:36.023Z - [SYNC-PY] Filtrados 7418 logs antiguos. Procesando 728 recientes.
+2025-12-23T21:30:42.040Z - [SYNC-TIME-DEBUG] Machine: MOSQUERA, Raw: 2025-12-18T16:30:04, ParsedAsLocal: Thu Dec 18 2025 16:30:04 GMT-0500 (hora estándar de Colombia)

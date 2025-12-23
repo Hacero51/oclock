@@ -2,6 +2,7 @@
 const nextConfig = {
   experimental: {
     // turbo option removed as it is invalid
+    instrumentationHook: true,
   },
 };
 

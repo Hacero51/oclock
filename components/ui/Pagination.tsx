@@ -37,7 +37,7 @@ export function Pagination({
     }
 
     return (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 py-4 px-4 sm:px-6 bg-white border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 py-2 px-4 sm:px-6 bg-white border-t border-gray-200">
             {/* Información de resultados y selector de página */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
                 <div className="text-sm text-gray-500 font-medium flex items-center gap-2">
@@ -71,6 +71,7 @@ export function Pagination({
             {/* Navegación de páginas */}
             <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
+                    type="button"
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage === 1}
                     className="flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-white transition-all shadow-sm bg-white"
@@ -95,6 +96,7 @@ export function Pagination({
 
                         return (
                             <button
+                                type="button"
                                 key={pageNum}
                                 onClick={() => onPageChange(pageNum)}
                                 className={`w-7 h-7 sm:w-8 sm:h-8 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center justify-center ${currentPage === pageNum
@@ -110,6 +112,7 @@ export function Pagination({
                 </div>
 
                 <button
+                    type="button"
                     onClick={() => onPageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
                     className="flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-indigo-600 disabled:opacity-40 disabled:hover:bg-white transition-all shadow-sm bg-white"

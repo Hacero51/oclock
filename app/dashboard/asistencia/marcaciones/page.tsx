@@ -12,6 +12,10 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import Tabla from "@/components/Table";
+import { AdvancedFilterDialog } from "@/components/advanced-filtrer";
+import type { FilterNode } from "@/components/advanced-filtrer";
+import MarcacionForm from "@/components/form/create/MarcacionForm";
+import { Dialog } from "@/components/ui/dialog";
 import {
   Clock,
   Search,
@@ -24,7 +28,10 @@ import {
   AlertCircle,
   FileText,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MoreVertical,
+  Trash2,
+  Plus
 } from "lucide-react";
 
 // Componente de controles de paginación mejorado
@@ -138,53 +145,83 @@ function PaginationControls({
 const formatearFechaHora = (fechaHoraString: string) => {
   if (!fechaHoraString) return "";
   const fecha = new Date(fechaHoraString);
+
   const diasSemana = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
-  const meses = [
-    'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
-    'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
-  ];
+  const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+
   const diaSemana = diasSemana[fecha.getDay()];
   const dia = fecha.getDate();
   const mes = meses[fecha.getMonth()];
   const año = fecha.getFullYear();
+
   let horas = fecha.getHours();
   let minutos = fecha.getMinutes();
   const ampm = horas >= 12 ? 'P. M.' : 'A. M.';
   horas = horas % 12;
   horas = horas ? horas : 12;
   const minutosStr = minutos.toString().padStart(2, '0');
+
+  // Format: DIA, DD DE MM DE YYYY HH:MM AM/PM
   return `${diaSemana}, ${dia} DE ${mes} DE ${año} ${horas}:${minutosStr} ${ampm}`;
 };
 
 const parsearFechaHora = (fechaHoraLegible: string) => {
-  if (!fechaHoraLegible) return "";
+  if (!fechaHoraLegible || fechaHoraLegible === "N/A" || fechaHoraLegible.includes("SIN SALIDA")) return "";
   try {
-    const partes = fechaHoraLegible.split(' ');
-    const dia = parseInt(partes[1]);
-    const mes = partes[3];
-    const año = parseInt(partes[5]);
-    const horaMinuto = partes[6];
-    const ampm = partes[7] + (partes[8] ? ' ' + partes[8] : '');
+    // Limpieza agresiva de la cadena
+    const clean = fechaHoraLegible.replace(/,/g, '').toUpperCase().trim();
+    const partes = clean.split(/\s+/).filter(Boolean);
+
+    // Buscar el número del día (usualmente la segunda o primera parte que sea un número pequeño)
+    const diaIdx = partes.findIndex(p => !isNaN(parseInt(p)) && p.length <= 2);
+    if (diaIdx === -1) return "";
+
+    const dia = parseInt(partes[diaIdx]);
+    const mesNombre = partes[diaIdx + 2] || ""; // Pasa de "15 DE DICIEMBRE"
+    const anio = parseInt(partes[diaIdx + 4]);
+    const horaMinutoStr = partes[diaIdx + 5] || "";
+
     const meses: Record<string, number> = {
-      'ENERO': 0, 'FEBRERO': 1, 'MARZO': 2, 'ABRIL': 3,
-      'MAYO': 4, 'JUNIO': 5, 'JULIO': 6, 'AGOSTO': 7,
-      'SEPTIEMBRE': 8, 'OCTUBRE': 9, 'NOVIEMBRE': 10, 'DICIEMBRE': 11
+      'ENERO': 0, 'FEBRERO': 1, 'MARZO': 2, 'ABRIL': 3, 'MAYO': 4, 'JUNIO': 5,
+      'JULIO': 6, 'AGOSTO': 7, 'SEPTIEMBRE': 8, 'OCTUBRE': 9, 'NOVIEMBRE': 10, 'DICIEMBRE': 11
     };
-    const [horaStr, minutoStr] = horaMinuto.split(':');
+    const mes = meses[mesNombre];
+
+    if (mes === undefined || isNaN(anio) || !horaMinutoStr) return "";
+
+    const [horaStr, minutoStr] = horaMinutoStr.split(':');
     let hora = parseInt(horaStr);
     const minuto = parseInt(minutoStr);
-    if (ampm.includes('P. M.') && hora < 12) hora += 12;
-    if (ampm.includes('A. M.') && hora === 12) hora = 0;
-    const fecha = new Date(año, meses[mes], dia, hora, minuto);
-    return fecha.toISOString().slice(0, 16);
+
+    // Detección robusta de PM/AM
+    // Buscamos "P. M.", "PM", "P.M." o simplemente la presencia de "P" después de la hora
+    const isPM = /P\.?\s*M\.?|PM/i.test(clean);
+    const isAM = /A\.?\s*M\.?|AM/i.test(clean);
+
+    if (isPM && hora < 12) hora += 12;
+    if (isAM && hora === 12) hora = 0;
+
+    const fecha = new Date(anio, mes, dia, hora, minuto);
+    if (isNaN(fecha.getTime())) return "";
+
+    const lYear = fecha.getFullYear();
+    const lMonth = String(fecha.getMonth() + 1).padStart(2, '0');
+    const lDay = String(fecha.getDate()).padStart(2, '0');
+    const lHour = String(fecha.getHours()).padStart(2, '0');
+    const lMin = String(fecha.getMinutes()).padStart(2, '0');
+
+    return `${lYear}-${lMonth}-${lDay}T${lHour}:${lMin}`;
   } catch (error) {
+    console.error("Error parseando fecha:", fechaHoraLegible, error);
     return "";
   }
 };
 
 const obtenerFechaActual = () => {
   const ahora = new Date();
-  return ahora.toISOString().slice(0, 16);
+  const offset = ahora.getTimezoneOffset() * 60000;
+  const localISO = new Date(ahora.getTime() - offset).toISOString().slice(0, 16);
+  return localISO;
 };
 
 const obtenerFechaMinima = (entrada: string) => {
@@ -197,7 +234,8 @@ const obtenerFechaMinima = (entrada: string) => {
 const validarSalida = (salida: string, entrada: string, marcacion: any) => {
   if (!salida) return { valido: false, mensaje: "La salida no puede estar vacía" };
   const fechaSalida = new Date(salida);
-  const fechaEntrada = parsearFechaHora(entrada) ? new Date(parsearFechaHora(entrada)) : null;
+  const parsedEntrada = parsearFechaHora(entrada);
+  const fechaEntrada = parsedEntrada ? new Date(parsedEntrada) : null;
   const fechaActual = new Date();
   if (fechaEntrada && fechaSalida < fechaEntrada) {
     return {
@@ -234,6 +272,7 @@ const validarSalida = (salida: string, entrada: string, marcacion: any) => {
 
 type Marcacion = {
   id: string;
+  cedula: string;
   empleado: string;
   turno: string;
   fecha: string;
@@ -246,7 +285,7 @@ type Marcacion = {
   estado: string;
 };
 
-export default function FormMarcaciones() {
+export default function MarcacionesPage() {
   const [filtros, setFiltros] = useState({
     empleado: "",
     turno: "",
@@ -260,60 +299,61 @@ export default function FormMarcaciones() {
   const [isLoading, setIsLoading] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
+  const [openManual, setOpenManual] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [salidaEditada, setSalidaEditada] = useState("");
+  const [editandoEntradaId, setEditandoEntradaId] = useState<string | null>(null);
+  const [entradaEditada, setEntradaEditada] = useState("");
   const [errorValidacion, setErrorValidacion] = useState("");
   const [editandoCheckbox, setEditandoCheckbox] = useState<string | null>(null);
 
-  useEffect(() => setIsMounted(true), []);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [advancedFilterRoot, setAdvancedFilterRoot] = useState<FilterNode | undefined>(undefined);
+  const [turnosOptions, setTurnosOptions] = useState<{ value: string; label: string }[]>([]);
+  const [empleadosOptions, setEmpleadosOptions] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    setIsMounted(true);
+    fetch('/api/turnos')
+      .then(res => res.json())
+      .then(data => {
+        const turnoList = Array.isArray(data) ? data : (data.data || []);
+        const uniqueShifts = Array.from(new Set(turnoList.map((t: any) => t.Name))).filter(name => !!name);
+        setTurnosOptions(uniqueShifts.map(name => ({ value: name as string, label: name as string })));
+      }).catch(err => console.error(err));
+
+    fetch('/api/empleados')
+      .then(res => res.json())
+      .then(data => {
+        const empList = Array.isArray(data) ? data : (data.data || []);
+        const uniqueNames = Array.from(new Set(empList.map((e: any) => `${e.FirstName} ${e.LastName}`))).filter(name => !!name);
+        setEmpleadosOptions(uniqueNames.map(name => ({ value: name as string, label: name as string })));
+      }).catch(err => console.error(err));
+  }, []);
 
   const calculateDateRange = (period: string) => {
     const today = new Date();
     let from = new Date();
     let to = new Date();
-
     switch (period) {
-      case "hoy":
-        from = today;
-        to = today;
-        break;
-      case "mes_actual":
-        from = new Date(today.getFullYear(), today.getMonth(), 1);
-        to = today;
-        break;
-      case "ultimos_30":
-        from.setDate(today.getDate() - 30);
-        to = today;
-        break;
-      case "ultimos_60":
-        from.setDate(today.getDate() - 60);
-        to = today;
-        break;
-      case "anio_actual":
-        from = new Date(today.getFullYear(), 0, 1);
-        to = today;
-        break;
-      case "todos":
-        return { desde: null, hasta: null };
-      default:
-        from = new Date(today.getFullYear(), today.getMonth(), 1);
-        to = today;
+      case "hoy": from = today; to = today; break;
+      case "mes_actual": from = new Date(today.getFullYear(), today.getMonth(), 1); to = today; break;
+      case "ultimos_30": from.setDate(today.getDate() - 30); to = today; break;
+      case "ultimos_60": from.setDate(today.getDate() - 60); to = today; break;
+      case "anio_actual": from = new Date(today.getFullYear(), 0, 1); to = today; break;
+      case "todos": return { desde: null, hasta: null };
+      default: from = new Date(today.getFullYear(), today.getMonth(), 1); to = today;
     }
-
     const toLocalISODate = (d: Date) => {
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     };
-
-    return {
-      desde: toLocalISODate(from),
-      hasta: toLocalISODate(to)
-    };
+    return { desde: toLocalISODate(from), hasta: toLocalISODate(to) };
   };
 
   const fetchMarcaciones = async () => {
@@ -324,10 +364,8 @@ export default function FormMarcaciones() {
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
       });
-
       if (filtros.empleado && filtros.empleado !== "all") params.append("empleado", filtros.empleado);
       if (filtros.estado && filtros.estado !== "all") params.append("estado", filtros.estado);
-
       if (filtros.periodo === 'personalizado' && filtros.desde && filtros.hasta) {
         params.append("desde", filtros.desde);
         params.append("hasta", filtros.hasta);
@@ -338,10 +376,8 @@ export default function FormMarcaciones() {
           params.append("hasta", hasta);
         }
       }
-
       const response = await fetch(`/api/marcaciones?${params.toString()}`);
       if (!response.ok) throw new Error("Error fetching marcaciones");
-
       const data = await response.json();
       setMarcaciones(data.data);
       setTotalItems(data.pagination.total);
@@ -357,26 +393,37 @@ export default function FormMarcaciones() {
   }, [isMounted, currentPage, itemsPerPage, filtros.periodo, filtros.desde, filtros.hasta, filtros.estado]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (isMounted) fetchMarcaciones();
-    }, 500);
+    setCurrentPage(1);
+  }, [advancedFilterRoot]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { if (isMounted) fetchMarcaciones(); }, 500);
     return () => clearTimeout(timer);
   }, [filtros.empleado]);
 
   const handleFiltroChange = (campo: string, valor: string) => {
-    setFiltros(prev => ({ ...prev, [campo]: valor }));
+    setFiltros(prev => {
+      const nuevosFiltros = { ...prev, [campo]: valor };
+
+      // Si cambia a un periodo predefinido, limpiar fechas personalizadas
+      if (campo === 'periodo' && valor !== 'personalizado') {
+        nuevosFiltros.desde = "";
+        nuevosFiltros.hasta = "";
+      }
+
+      // Si selecciona una fecha manualmente, cambiar periodo a personalizado
+      if ((campo === 'desde' || campo === 'hasta') && valor !== "") {
+        nuevosFiltros.periodo = "personalizado";
+      }
+
+      return nuevosFiltros;
+    });
     if (campo !== 'empleado') setCurrentPage(1);
   };
 
   const handleClearAllFilters = () => {
-    setFiltros({
-      empleado: "",
-      turno: "",
-      estado: "",
-      desde: "",
-      hasta: "",
-      periodo: "mes_actual"
-    });
+    setFiltros({ empleado: "", turno: "", estado: "", desde: "", hasta: "", periodo: "mes_actual" });
+    setAdvancedFilterRoot(undefined);
     setCurrentPage(1);
   };
 
@@ -386,12 +433,39 @@ export default function FormMarcaciones() {
   };
 
   const iniciarEdicionSalida = (marcacion: Marcacion) => {
-    if (marcacion.estado === "Incompleto" || !marcacion.salida) {
+    setEditandoEntradaId(null); // Cancelar edición de entrada
+    // Solo permitir editar salida si REALMENTE falta
+    const salidaFalta = !marcacion.salida || marcacion.salida === "N/A" || marcacion.salida.includes("SIN SALIDA");
+
+    if (salidaFalta) {
       setEditandoId(marcacion.id);
-      const salidaInicial = marcacion.salida && marcacion.salida !== "N/A"
-        ? parsearFechaHora(marcacion.salida)
-        : obtenerFechaActual();
-      setSalidaEditada(salidaInicial);
+      setSalidaEditada(obtenerFechaActual());
+      setErrorValidacion("");
+    }
+  };
+
+  const validarEntrada = (entrada: string, salidaVal: string) => {
+    if (!entrada) return { valido: false, mensaje: "La entrada no puede estar vacía" };
+    const fechaEntrada = new Date(entrada);
+    const parsedSalida = parsearFechaHora(salidaVal);
+    const fechaSalida = parsedSalida ? new Date(parsedSalida) : null;
+    const fechaActual = new Date();
+
+    if (fechaSalida && fechaEntrada > fechaSalida) {
+      return { valido: false, mensaje: "La entrada no puede ser posterior a la salida" };
+    }
+    if (fechaEntrada > fechaActual) {
+      return { valido: false, mensaje: "La entrada no puede ser posterior a la fecha actual" };
+    }
+    return { valido: true, mensaje: "" };
+  };
+
+  const handleEntradaChange = (nuevaEntrada: string, marcacion: Marcacion) => {
+    setEntradaEditada(nuevaEntrada);
+    if (nuevaEntrada) {
+      const validacion = validarEntrada(nuevaEntrada, marcacion.salida);
+      setErrorValidacion(validacion.valido ? "" : validacion.mensaje);
+    } else {
       setErrorValidacion("");
     }
   };
@@ -406,376 +480,356 @@ export default function FormMarcaciones() {
     }
   };
 
-  const guardarSalida = (marcacion: Marcacion) => {
-    if (!salidaEditada) {
-      setErrorValidacion("La salida no puede estar vacía");
-      return;
-    }
+  const guardarSalida = async (marcacion: Marcacion) => {
+    if (!salidaEditada) { setErrorValidacion("La salida no puede estar vacía"); return; }
     const validacion = validarSalida(salidaEditada, marcacion.entrada, marcacion);
-    if (!validacion.valido) {
-      setErrorValidacion(validacion.mensaje);
-      return;
+    if (!validacion.valido) { setErrorValidacion(validacion.mensaje); return; }
+    try {
+      const response = await fetch('/api/marcaciones', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: marcacion.id, salida: salidaEditada })
+      });
+      if (!response.ok) throw new Error("Error actualizando marcación");
+      const nuevaSalidaFormateada = formatearFechaHora(salidaEditada);
+      setMarcaciones(prev => prev.map(m => m.id === marcacion.id ? { ...m, salida: nuevaSalidaFormateada, estado: "OK" } : m));
+      setEditandoId(null);
+      setSalidaEditada("");
+      setErrorValidacion("");
+    } catch (error) {
+      console.error(error);
+      setErrorValidacion("Error al guardar en el servidor");
     }
-    const nuevaSalidaFormateada = formatearFechaHora(salidaEditada);
-    setMarcaciones(prev => prev.map(m =>
-      m.id === marcacion.id
-        ? { ...m, salida: nuevaSalidaFormateada, estado: "OK" }
-        : m
-    ));
-    setEditandoId(null);
-    setSalidaEditada("");
-    setErrorValidacion("");
   };
 
-  const cancelarEdicion = () => {
-    setEditandoId(null);
-    setSalidaEditada("");
-    setErrorValidacion("");
+  const iniciarEdicionEntrada = (marcacion: Marcacion) => {
+    setEditandoId(null); // Cancelar edición de salida
+    // Solo si entrada está vacía y salida tiene datos
+    const entradaVacia = !marcacion.entrada || marcacion.entrada === "N/A" || marcacion.entrada === "-" || marcacion.entrada === "";
+    const salidaTieneDatos = marcacion.salida && marcacion.salida !== "N/A" && !marcacion.salida.includes("SIN SALIDA");
+
+    if (entradaVacia && salidaTieneDatos) {
+      setEditandoEntradaId(marcacion.id);
+      setEntradaEditada(obtenerFechaActual());
+      setErrorValidacion("");
+    }
   };
 
-  const handleCheckboxChange = (marcacionId: string, campo: string, valor: boolean) => {
-    setMarcaciones(prev => prev.map(m =>
-      m.id === marcacionId ? { ...m, [campo]: valor } : m
-    ));
+  const guardarEntrada = async (marcacion: Marcacion) => {
+    if (!entradaEditada) { setErrorValidacion("La entrada no puede estar vacía"); return; }
+    const validacion = validarEntrada(entradaEditada, marcacion.salida);
+    if (!validacion.valido) { setErrorValidacion(validacion.mensaje); return; }
+
+    try {
+      const response = await fetch('/api/marcaciones', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: marcacion.id, entrada: entradaEditada })
+      });
+      if (!response.ok) throw new Error("Error actualizando marcación");
+
+      const nuevaEntradaFormateada = formatearFechaHora(entradaEditada);
+      setMarcaciones(prev => prev.map(m => m.id === marcacion.id ? { ...m, entrada: nuevaEntradaFormateada, estado: "OK" } : m));
+      setEditandoEntradaId(null);
+      setEntradaEditada("");
+      setErrorValidacion("");
+    } catch (error) {
+      console.error(error);
+      setErrorValidacion("Error al guardar en el servidor");
+    }
   };
 
-  const iniciarEdicionCheckbox = (marcacionId: string) => setEditandoCheckbox(marcacionId);
-  const finalizarEdicionCheckbox = () => setEditandoCheckbox(null);
+  const handleCheckboxChange = async (marcacionId: string, campo: string, valor: boolean) => {
+    try {
+      const response = await fetch('/api/marcaciones', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: marcacionId, [campo]: valor })
+      });
+      if (!response.ok) throw new Error("Error actualizando checkbox");
+      setMarcaciones(prev => prev.map(m => m.id === marcacionId ? { ...m, [campo]: valor } : m));
+    } catch (error) {
+      console.error(error);
+      alert("Error al actualizar el estado");
+    }
+  };
+
+  const evaluateFilter = (marcacion: Marcacion, node: FilterNode): boolean => {
+    if (node.type === "group") {
+      if (!node.children || node.children.length === 0) return true;
+      const results = node.children.map(child => evaluateFilter(marcacion, child));
+      switch (node.logic) {
+        case "AND": return results.every(r => r);
+        case "OR": return results.some(r => r);
+        default: return true;
+      }
+    } else {
+      if (!node.field || !node.operator) return true;
+      const mapping: any = { "Nombre a mostrar": "empleado", "Turno Actual": "turno", "Fecha": "fecha", "Entrada": "entrada", "Salida": "salida" };
+      const field = mapping[node.field] || node.field;
+      let val: any = marcacion[field as keyof Marcacion] || "";
+      const valFiltro = node.value || "";
+      if (typeof val === "string") val = val.toLowerCase();
+      const valFiltroNorm = valFiltro.toLowerCase();
+      switch (node.operator) {
+        case "igual": return val === valFiltroNorm;
+        case "contiene": return val.includes(valFiltroNorm);
+        case "vacio": return !val;
+        default: return true;
+      }
+    }
+  };
+
+  const marcacionesFiltradas = useMemo(() => {
+    if (!advancedFilterRoot) return marcaciones;
+    return marcaciones.filter(m => evaluateFilter(m, advancedFilterRoot));
+  }, [marcaciones, advancedFilterRoot]);
 
   const datosParaTabla = useMemo(() => {
-    return marcaciones.map((marcacion) => ({
-      'Empleado': marcacion.empleado,
-      'Turno': marcacion.turno,
-      'Fecha': marcacion.fecha,
-      'Entrada': marcacion.entrada,
-      'Salida': editandoId === marcacion.id ? (
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <Input
-              type="datetime-local"
-              value={salidaEditada}
-              onChange={(e) => handleSalidaChange(e.target.value, marcacion)}
-              className="w-48 bg-gray-50 border-gray-300 focus:bg-white"
-              max={obtenerFechaActual()}
-              min={obtenerFechaMinima(marcacion.entrada)}
-            />
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                onClick={() => guardarSalida(marcacion)}
-                className="bg-green-600 hover:bg-green-700 text-white"
-                disabled={!!errorValidacion}
-              >
-                <CheckCircle2 className="h-3 w-3" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={cancelarEdicion}>
-                <X className="h-3 w-3" />
-              </Button>
+    return marcacionesFiltradas.map((marcacion) => ({
+      'Documento': <span className="text-xs">{marcacion.cedula}</span>,
+      'Empleado': <span className="text-xs font-medium">{marcacion.empleado}</span>,
+      'Turno': <span className="text-[10px] text-gray-500">{marcacion.turno}</span>,
+      'Fecha': <span className="text-xs">{marcacion.fecha}</span>,
+      'Entrada': (
+        <div
+          className="min-w-[170px] cursor-pointer"
+          onClick={() => { if (editandoEntradaId !== marcacion.id) iniciarEdicionEntrada(marcacion); }}
+        >
+          {editandoEntradaId === marcacion.id ? (
+            <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+              <div className="flex gap-2">
+                <Input
+                  autoFocus
+                  type="datetime-local"
+                  value={entradaEditada}
+                  onChange={(e) => handleEntradaChange(e.target.value, marcacion)}
+                  className="w-40 text-xs h-8"
+                />
+                <Button size="sm" onClick={() => guardarEntrada(marcacion)} className="bg-green-600 h-8 w-8 p-0"><CheckCircle2 className="h-3.5 w-3.5" /></Button>
+                <Button size="sm" variant="outline" onClick={() => setEditandoEntradaId(null)} className="h-8 w-8 p-0"><X className="h-3.5 w-3.5" /></Button>
+              </div>
+              {errorValidacion && <div className="text-[10px] text-red-600">{errorValidacion}</div>}
             </div>
-          </div>
-          {errorValidacion && (
-            <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200 flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              {errorValidacion}
+          ) : (
+            <div
+              className={`p-1.5 rounded-lg border transition-all w-full text-[11px] ${(!marcacion.entrada || marcacion.entrada === "N/A" || marcacion.entrada === "-" || marcacion.entrada === "")
+                ? (marcacion.salida && !marcacion.salida.includes("SIN SALIDA") ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" : "bg-gray-100 text-gray-400 border-gray-200")
+                : "bg-gray-50 text-gray-700 border-gray-200"
+                }`}
+              title={(!marcacion.entrada || marcacion.entrada === "N/A") && (marcacion.salida && !marcacion.salida.includes("SIN SALIDA")) ? "Haga clic para registrar entrada faltante" : ""}
+            >
+              {marcacion.entrada || "-"}
             </div>
           )}
         </div>
-      ) : (
+      ),
+      'Salida': (
         <div
-          className={`cursor-pointer p-2 rounded-lg border transition-all duration-200 ${(marcacion.estado === "Incompleto" || !marcacion.salida || marcacion.salida === "N/A")
-            ? "bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100"
-            : "text-gray-700 border-gray-200 bg-gray-50 hover:bg-gray-100"
-            }`}
-          onClick={() => iniciarEdicionSalida(marcacion)}
-          title={marcacion.estado === "Incompleto" ? "Click para editar salida" : "Salida completa"}
+          className="min-w-[170px] cursor-pointer"
+          onClick={() => { if (editandoId !== marcacion.id) iniciarEdicionSalida(marcacion); }}
         >
-          {marcacion.salida || "--- SIN SALIDA ---"}
+          {editandoId === marcacion.id ? (
+            <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+              <div className="flex gap-2">
+                <Input
+                  autoFocus
+                  type="datetime-local"
+                  value={salidaEditada}
+                  onChange={(e) => handleSalidaChange(e.target.value, marcacion)}
+                  className="w-40 text-xs h-8"
+                />
+                <Button size="sm" onClick={() => guardarSalida(marcacion)} className="bg-green-600 h-8 w-8 p-0"><CheckCircle2 className="h-3.5 w-3.5" /></Button>
+                <Button size="sm" variant="outline" onClick={() => setEditandoId(null)} className="h-8 w-8 p-0"><X className="h-3.5 w-3.5" /></Button>
+              </div>
+              {errorValidacion && <div className="text-[10px] text-red-600">{errorValidacion}</div>}
+            </div>
+          ) : (
+            <div
+              className={`p-1.5 rounded-lg border transition-all w-full text-[11px] ${(!marcacion.salida || marcacion.salida === "N/A" || marcacion.salida.includes("SIN SALIDA"))
+                ? "bg-yellow-50 text-yellow-700 border-yellow-200 cursor-pointer hover:bg-yellow-100"
+                : "bg-gray-50 text-gray-700 border-gray-200"
+                }`}
+            >
+              {marcacion.salida || "--- SIN SALIDA ---"}
+            </div>
+          )}
         </div>
       ),
       'Inicia Turno': (
-        <div
-          className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
-          onClick={() => iniciarEdicionCheckbox(marcacion.id)}
-        >
-          <Checkbox
-            checked={marcacion.iniciaTurno}
-            onCheckedChange={(checked) => handleCheckboxChange(marcacion.id, 'iniciaTurno', checked === true)}
-            disabled={editandoCheckbox !== marcacion.id}
-          />
-          {editandoCheckbox === marcacion.id && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
-              onClick={(e) => { e.stopPropagation(); finalizarEdicionCheckbox(); }}
-            >
-              <CheckCircle2 className="h-3 w-3 text-green-600" />
-            </Button>
-          )}
-        </div>
+        // @ts-ignore
+        <Checkbox checked={marcacion.iniciaTurno} onCheckedChange={(v) => handleCheckboxChange(marcacion.id, 'iniciaTurno', !!v)} />
       ),
-      'Tiempo Extra Después': (
-        <div
-          className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
-          onClick={() => iniciarEdicionCheckbox(marcacion.id)}
-        >
-          <Checkbox
-            checked={marcacion.tiempoExtraDespues}
-            onCheckedChange={(checked) => handleCheckboxChange(marcacion.id, 'tiempoExtraDespues', checked === true)}
-            disabled={editandoCheckbox !== marcacion.id}
-          />
-          {editandoCheckbox === marcacion.id && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
-              onClick={(e) => { e.stopPropagation(); finalizarEdicionCheckbox(); }}
-            >
-              <CheckCircle2 className="h-3 w-3 text-green-600" />
-            </Button>
-          )}
-        </div>
+      'Extra Después': (
+        // @ts-ignore
+        <Checkbox checked={marcacion.tiempoExtraDespues} onCheckedChange={(v) => handleCheckboxChange(marcacion.id, 'tiempoExtraDespues', !!v)} />
       ),
-      'Tiempo Extra Festivo': (
-        <div
-          className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
-          onClick={() => iniciarEdicionCheckbox(marcacion.id)}
-        >
-          <Checkbox
-            checked={marcacion.tiempoExtraFestivo}
-            onCheckedChange={(checked) => handleCheckboxChange(marcacion.id, 'tiempoExtraFestivo', checked === true)}
-            disabled={editandoCheckbox !== marcacion.id}
-          />
-          {editandoCheckbox === marcacion.id && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
-              onClick={(e) => { e.stopPropagation(); finalizarEdicionCheckbox(); }}
-            >
-              <CheckCircle2 className="h-3 w-3 text-green-600" />
-            </Button>
-          )}
-        </div>
+      'Extra Festivo': (
+        // @ts-ignore
+        <Checkbox checked={marcacion.tiempoExtraFestivo} onCheckedChange={(v) => handleCheckboxChange(marcacion.id, 'tiempoExtraFestivo', !!v)} />
       ),
       'Autorizar': (
-        <div
-          className="flex justify-center cursor-pointer p-2 rounded-lg border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
-          onClick={() => iniciarEdicionCheckbox(marcacion.id)}
-        >
-          <Checkbox
-            checked={marcacion.autorizar}
-            onCheckedChange={(checked) => handleCheckboxChange(marcacion.id, 'autorizar', checked === true)}
-            disabled={editandoCheckbox !== marcacion.id}
-          />
-          {editandoCheckbox === marcacion.id && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="ml-1 h-6 w-6 p-0 hover:bg-green-50"
-              onClick={(e) => { e.stopPropagation(); finalizarEdicionCheckbox(); }}
-            >
-              <CheckCircle2 className="h-3 w-3 text-green-600" />
-            </Button>
-          )}
-        </div>
+        // @ts-ignore
+        <Checkbox checked={marcacion.autorizar} onCheckedChange={(v) => handleCheckboxChange(marcacion.id, 'autorizar', !!v)} />
       ),
+      'Estado': (
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${marcacion.estado === "OK"
+          ? "bg-green-100 text-green-700 border border-green-200"
+          : "bg-red-100 text-red-700 border border-red-200"
+          }`}>
+          {marcacion.estado.toUpperCase()}
+        </span>
+      )
     }));
-  }, [marcaciones, editandoId, salidaEditada, errorValidacion, editandoCheckbox]);
+  }, [marcacionesFiltradas, editandoId, salidaEditada, errorValidacion, editandoEntradaId, entradaEditada]);
 
   if (!isMounted) return null;
 
   return (
-    <div className="p-4 md:p-8 bg-gray-50/50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex flex-col gap-8">
-          {/* Header Section */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-8 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-200"><Clock className="h-8 w-8 text-royal-blue-600" /></div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Marcaciones</h1>
+            <p className="text-gray-500">{totalItems} marcaciones encontradas</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          {(filtros.empleado || filtros.desde || filtros.hasta || filtros.estado !== "") && (
+            <Button
+              variant="outline"
+              className="text-gray-600 border-gray-300 hover:bg-gray-50 flex items-center gap-2"
+              onClick={handleClearAllFilters}
+            >
+              <X className="h-4 w-4" />
+              Limpiar Filtros
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => setIsFilterOpen(true)}>
+            <Filter className="mr-2 h-4 w-4" /> Filtros Avanzados
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900">Filtros de Búsqueda</h3>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Periodo</label>
+            <Select
+              value={filtros.periodo}
+              onValueChange={(value) => handleFiltroChange("periodo", value)}
+            >
+              <SelectTrigger className="bg-gray-50 border-gray-300 focus:bg-white">
+                <SelectValue placeholder="Seleccionar periodo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hoy">Hoy</SelectItem>
+                <SelectItem value="mes_actual">Mes Actual</SelectItem>
+                <SelectItem value="ultimos_30">Últimos 30 días</SelectItem>
+                <SelectItem value="ultimos_60">Últimos 60 días</SelectItem>
+                <SelectItem value="anio_actual">Año Actual</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="personalizado">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Empleado</label>
             <div className="relative">
-              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
-                <div className="p-3 bg-blue-600 rounded-xl shadow-lg shadow-blue-200">
-                  <Clock className="h-7 w-7 text-white" />
-                </div>
-                Gestión de Marcaciones
-              </h1>
-              <p className="mt-2 text-gray-500 font-medium">
-                Control y seguimiento de entradas, salidas y tiempos extra
-              </p>
-            </div>
-            <div className="flex items-center gap-3 relative z-10">
-              <Button
-                variant="outline"
-                className="rounded-xl border-gray-200 hover:bg-gray-50 hover:border-gray-300 font-semibold h-11 transition-all active:scale-95"
-              >
-                <Download className="h-4 w-4 mr-2 text-blue-600" />
-                Exportar Reporte
-              </Button>
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Nombre o C.C."
+                value={filtros.empleado}
+                onChange={(e) => handleFiltroChange("empleado", e.target.value)}
+                className="pl-10 bg-gray-50 border-gray-300 focus:bg-white"
+              />
             </div>
           </div>
 
-          {/* Filtros Section */}
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700 ml-1 flex items-center gap-2">
-                  <User className="h-4 w-4 text-blue-600" />
-                  Buscar Empleado
-                </label>
-                <div className="relative group">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                  <Input
-                    placeholder="Nombre o código..."
-                    value={filtros.empleado}
-                    onChange={(e) => handleFiltroChange("empleado", e.target.value)}
-                    className="pl-11 h-12 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all text-sm font-medium"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700 ml-1 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-blue-600" />
-                  Periodo
-                </label>
-                <Select
-                  value={filtros.periodo}
-                  onValueChange={(val) => handleFiltroChange("periodo", val)}
-                >
-                  <SelectTrigger className="h-12 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 text-sm font-medium transition-all hover:bg-white">
-                    <SelectValue placeholder="Seleccionar periodo" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-gray-100 shadow-xl">
-                    <SelectItem value="hoy">Hoy</SelectItem>
-                    <SelectItem value="mes_actual">Mes Actual</SelectItem>
-                    <SelectItem value="ultimos_30">Últimos 30 días</SelectItem>
-                    <SelectItem value="ultimos_60">Últimos 60 días</SelectItem>
-                    <SelectItem value="anio_actual">Este Año</SelectItem>
-                    <SelectItem value="personalizado">Rango Personalizado</SelectItem>
-                    <SelectItem value="todos">Todos los registros</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700 ml-1 flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-blue-600" />
-                  Estado de Marcación
-                </label>
-                <Select
-                  value={filtros.estado}
-                  onValueChange={(val) => handleFiltroChange("estado", val)}
-                >
-                  <SelectTrigger className="h-12 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 text-sm font-medium transition-all hover:bg-white">
-                    <SelectValue placeholder="Todos los estados" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-gray-100 shadow-xl">
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="Completado">Completado (E y S)</SelectItem>
-                    <SelectItem value="Incompleto">Incompleto (Solo E)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-end h-12 mt-7">
-                <Button
-                  variant="ghost"
-                  onClick={handleClearAllFilters}
-                  className="w-full h-12 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl font-bold flex items-center justify-center gap-2 transition-all group"
-                >
-                  <X className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
-                  Limpiar Filtros
-                </Button>
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Desde</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                type="date"
+                value={filtros.desde}
+                onChange={(e) => handleFiltroChange("desde", e.target.value)}
+                className="pl-10 bg-gray-50 border-gray-300 focus:bg-white"
+              />
             </div>
-
-            {filtros.periodo === 'personalizado' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-blue-50/30 rounded-xl border border-blue-100/50 animate-in fade-in slide-in-from-top-4 duration-300">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-blue-700 uppercase tracking-wider ml-1">Fecha Desde</label>
-                  <Input
-                    type="date"
-                    value={filtros.desde}
-                    onChange={(e) => handleFiltroChange("desde", e.target.value)}
-                    className="h-11 bg-white border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-500/20 text-sm"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-blue-700 uppercase tracking-wider ml-1">Fecha Hasta</label>
-                  <Input
-                    type="date"
-                    value={filtros.hasta}
-                    onChange={(e) => handleFiltroChange("hasta", e.target.value)}
-                    className="h-11 bg-white border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-500/20 text-sm"
-                  />
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Table Section */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px] flex flex-col">
-            <div className="p-1.5 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between px-8">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest py-2">
-                Listado de Asistencias
-              </span>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Hasta</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                type="date"
+                value={filtros.hasta}
+                onChange={(e) => handleFiltroChange("hasta", e.target.value)}
+                className="pl-10 bg-gray-50 border-gray-300 focus:bg-white"
+              />
             </div>
+          </div>
 
-            <div className="flex-1">
-              {isLoading ? (
-                <div className="h-full flex flex-col items-center justify-center gap-4 py-32">
-                  <div className="relative">
-                    <div className="h-16 w-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin" />
-                    <Clock className="h-6 w-6 text-blue-600 absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 animate-pulse" />
-                  </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-lg font-bold text-gray-900">Cargando datos</span>
-                    <span className="text-sm text-gray-500">Esto tomará solo un momento...</span>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {datosParaTabla.length > 0 ? (
-                    <Tabla
-                      columnas={['Empleado', 'Turno', 'Fecha', 'Entrada', 'Salida', 'Inicia Turno', 'Tiempo Extra Después', 'Tiempo Extra Festivo', 'Autorizar']}
-                      datos={datosParaTabla}
-                      onRowClick={() => { }}
-                    />
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center gap-4 py-32">
-                      <div className="p-6 bg-gray-50 rounded-full border-2 border-dashed border-gray-200">
-                        <User className="h-12 w-12 text-gray-300" />
-                      </div>
-                      <div className="text-center space-y-1">
-                        <h3 className="text-xl font-bold text-gray-900">No se encontraron marcaciones</h3>
-                        <p className="text-gray-500 max-w-sm">
-                          Prueba ajustando los filtros de búsqueda o cambia el periodo de tiempo
-                        </p>
-                        <Button
-                          variant="link"
-                          onClick={handleClearAllFilters}
-                          className="text-blue-600 font-bold hover:no-underline hover:text-blue-700"
-                        >
-                          Restablecer todos los filtros
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <PaginationControls
-              currentPage={currentPage}
-              totalPages={Math.ceil(totalItems / itemsPerPage)}
-              totalItems={totalItems}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={handleItemsPerPageChange}
-            />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+            <Select
+              value={filtros.estado}
+              onValueChange={(value) => handleFiltroChange("estado", value)}
+            >
+              <SelectTrigger className="bg-gray-50 border-gray-300 focus:bg-white">
+                <SelectValue placeholder="Todos los estados" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="OK">Completo</SelectItem>
+                <SelectItem value="Incompleto">Incompleto</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+            <Clock className="h-8 w-8 text-blue-600 animate-spin" />
+          </div>
+        )}
+        <Tabla
+          columnas={['Documento', 'Empleado', 'Turno', 'Fecha', 'Entrada', 'Salida', 'Inicia Turno', 'Extra Después', 'Extra Festivo', 'Autorizar', 'Estado']}
+          datos={datosParaTabla}
+          onRowClick={() => { }}
+        />
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={Math.ceil(totalItems / itemsPerPage)}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      </div>
+
+      <AdvancedFilterDialog
+        open={isFilterOpen}
+        onOpenChange={setIsFilterOpen}
+        onApply={setAdvancedFilterRoot}
+        initialFilter={advancedFilterRoot}
+        fieldOptions={{ "Turno Actual": turnosOptions, "Nombre a mostrar": empleadosOptions }}
+      />
+
+      <Dialog open={openManual} onOpenChange={setOpenManual}>
+        <MarcacionForm
+          onClose={() => setOpenManual(false)}
+          // @ts-ignore
+          onSaved={() => fetchMarcaciones()}
+        />
+      </Dialog>
     </div>
   );
 }

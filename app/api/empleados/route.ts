@@ -3,13 +3,32 @@ import prisma from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import { isValidName, isAdult } from "@/lib/utils";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // 1. Obtener empleados con su relación 'person'
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get("query");
+    const status = searchParams.get("status"); // 'activo', 'inactivo', 'todos'
+
+    const whereClause: any = {};
+    const personWhere: any = {};
+
+    if (query) {
+      personWhere.OR = [
+        { FirstName: { contains: query } },
+        { LastName: { contains: query } },
+        { FullName: { contains: query } },
+        { Document: { contains: query } },
+      ];
+    }
+
+    if (status === "activo") {
+      whereClause.Status = 0;
+    } else if (status === "inactivo") {
+      whereClause.Status = 1;
+    }
+
     const empleados = await prisma.employee.findMany({
-      include: {
-        person: true,
-      },
+      where: whereClause,
     });
 
     // 2. Extraer IDs únicos para consultas en lote
@@ -29,13 +48,17 @@ export async function GET() {
       ...new Set(empleados.map((e) => e.Boss).filter((id): id is string => !!id)),
     ];
 
+    // 2a. Recolectar IDs de empleados para buscar sus datos personales (eperson)
+    const employeeIds = empleados.map((e) => e.Oid);
+
     // 3. Consultar departamentos y turnos en paralelo
-    const [departamentos, turnos, cargos, contratos, jefes] = await Promise.all([
+    const [departamentos, turnos, cargos, contratos, jefes, personas] = await Promise.all([
       prisma.department.findMany({ where: { Oid: { in: departmentIds } } }),
       prisma.shift.findMany({ where: { Oid: { in: shiftIds } } }),
       prisma.position.findMany({ where: { Oid: { in: positionIds } } }),
       prisma.agreementtype.findMany({ where: { Oid: { in: agreementTypeIds } } }),
       prisma.eperson.findMany({ where: { Oid: { in: bossIds } } }),
+      prisma.eperson.findMany({ where: { Oid: { in: employeeIds } } }),
     ]);
 
     // 4. Crear mapas para acceso rápido
@@ -44,15 +67,29 @@ export async function GET() {
     const positionMap = new Map(cargos.map((p) => [p.Oid, p]));
     const agreementMap = new Map(contratos.map((a) => [a.Oid, a]));
     const bossMap = new Map(jefes.map((b) => [b.Oid, b]));
+    const personMap = new Map(personas.map((p) => [p.Oid, p]));
 
     // 5. Construir respuesta
     const resultado = empleados.map((emp) => {
-      const persona = emp.person;
+      // Obtenemos la persona del mapa en lugar del include fallido
+      const persona = personMap.get(emp.Oid);
       const departamento = emp.Department ? deptMap.get(emp.Department) : null;
       const turno = emp.CurrentShift ? shiftMap.get(emp.CurrentShift) : null;
       const cargo = emp.Position ? positionMap.get(emp.Position) : null;
       const contrato = emp.CurrentAgreementType ? agreementMap.get(emp.CurrentAgreementType) : null;
       const jefe = emp.Boss ? bossMap.get(emp.Boss) : null;
+
+      // Filtro manual de búsqueda si se pasó 'query'
+      if (query) {
+        const q = query.toLowerCase();
+        const matches =
+          (persona?.FirstName?.toLowerCase().includes(q)) ||
+          (persona?.LastName?.toLowerCase().includes(q)) ||
+          (persona?.FullName?.toLowerCase().includes(q)) ||
+          (persona?.Document?.toLowerCase().includes(q));
+
+        if (!matches) return null;
+      }
 
       const item = {
         "Número Lector": emp.AcNumber ?? "",
@@ -126,7 +163,7 @@ export async function POST(req: Request) {
         Oid: newOid,
         DisplayName: (data.fullName || "").toUpperCase(),
         CreatedDate: new Date(),
-        ObjectType: 1, // 1 suele representar 'Person' en estructuras XAF/ZKTeco
+        ObjectType: 1,
         OptimisticLockField: 0,
         GCRecord: null,
       },

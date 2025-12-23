@@ -30,7 +30,7 @@ export default function LoginPage() {
     } else {
       setError("Usuario o contraseña incorrectos");
     }
-    
+
     setIsLoading(false);
   }
 
@@ -48,18 +48,18 @@ export default function LoginPage() {
       {/* Tarjeta de login */}
       <div className="relative w-full max-w-md mx-4">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-500">
-          
-         
-          <div className="bg-gradient-to-r from-royal-blue via-royal-blue/600 to-brown-600 p-8 text-center">
+
+
+          <div className="bg-gradient-to-r from-royal-blue-600 via-royal-blue-500 to-brown-600 p-8 text-center text-white">
             <div className="flex flex-col items-center">
-              <div className="p-2 bg-red/700 rounded-2xl shadow-lg mb-4">
-                  <Image 
-                    src="/logo.png" 
-                    alt="Logo" 
-                    width={70} 
-                    height={70} 
-                    priority 
-                  />
+              <div className="p-2 bg-white/20 rounded-2xl shadow-lg mb-4 backdrop-blur-sm">
+                <img
+                  src="/logo.png"
+                  alt="Logo"
+                  width="70"
+                  height="70"
+                  className="object-contain"
+                />
               </div>
               <h1 className="text-2xl font-bold text-black mb-1">En Punto</h1>
               <p className="text-black/90 text-sm">Sistema de gestión</p>
@@ -115,8 +115,8 @@ export default function LoginPage() {
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-royal-blue transition-colors p-1"
                     disabled={isLoading}
                   >
-                    {showPassword ? 
-                      <EyeOff className="w-5 h-5" /> : 
+                    {showPassword ?
+                      <EyeOff className="w-5 h-5" /> :
                       <Eye className="w-5 h-5" />
                     }
                   </button>

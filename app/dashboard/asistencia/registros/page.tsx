@@ -330,36 +330,45 @@ export default function RegistroTiempoForm() {
   // Preparar datos para la tabla
   const datosParaTabla = useMemo(() => {
     return registros.map((registro) => {
-      // Formatear fecha para mostrar
       const dateObj = new Date(registro.tiempo);
-      // Formato: 10/11/2025 05:50:00 AM
-      // Usamos timeZone: 'UTC' para evitar que el navegador reste 5 horas (Colombia GMT-5)
-      // ya que los datos vienen "sin zona horaria" en la BD y Prisma los devuelve como UTC.
-      const fechaFormateada = dateObj.toLocaleString('es-CO', {
-        day: 'numeric', month: 'long', year: 'numeric',
-        hour: '2-digit', minute: '2-digit', hour12: true,
-        timeZone: 'UTC'
-      });
+
+      const diasSemana = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
+      const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+
+      const diaSemana = diasSemana[dateObj.getDay()];
+      const dia = dateObj.getDate();
+      const mes = meses[dateObj.getMonth()];
+      const año = dateObj.getFullYear();
+
+      let horas = dateObj.getHours();
+      let minutos = dateObj.getMinutes();
+      const ampm = horas >= 12 ? 'P. M.' : 'A. M.';
+      horas = horas % 12;
+      horas = horas ? horas : 12;
+      const minutosStr = minutos.toString().padStart(2, '0');
+
+      // Format: DIA, DD DE MM DE YYYY HH:MM AM/PM
+      const fechaFormateada = `${diaSemana}, ${dia} DE ${mes} DE ${año} ${horas}:${minutosStr} ${ampm}`;
 
       return {
-        'Empleado': registro.empleado,
-        'Tiempo': fechaFormateada.toUpperCase(),
+        'Empleado': <span className="text-xs font-medium">{registro.empleado}</span>,
+        'Tiempo': <span className="text-xs">{fechaFormateada}</span>,
         'Tipo': (
-          <span className={`px-2 py-1 rounded text-xs font-medium ${registro.tipo === "Entrada"
+          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${registro.tipo === "Entrada"
             ? "bg-green-100 text-green-800"
             : (registro.tipo === "Salida" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800")
             }`}>
             {registro.tipo}
           </span>
         ),
-        'Año': registro.año,
-        'Mes': registro.mes,
+        'Año': <span className="text-xs">{registro.año}</span>,
+        'Mes': <span className="text-xs">{registro.mes}</span>,
         'Método de Verificación': (
-          <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">
             {registro.metodoverificacion}
           </span>
         ),
-        'Lector': registro.lector
+        'Lector': <span className="text-[10px] text-gray-500">{registro.lector}</span>
       };
     });
   }, [registros]);

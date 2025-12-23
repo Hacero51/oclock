@@ -91,7 +91,6 @@ export async function GET() {
       // Override tipo si no se detectó (logic fallback)
       if (!variable && fijo) tipo = "HORARIO FIJO";
 
-
       return {
         Oid: h.Oid,
         Name: displayName,

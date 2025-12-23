@@ -68,14 +68,14 @@ export default function Tabla({ columnas, datos, onRowClick }: TablaProps) {
             {/* Tabla Desktop - CON MEJOR RESPONSIVE */}
             <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-200 shadow-sm bg-white ring-1 ring-gray-100">
                 <div className="min-w-full">
-                    <table className="w-full text-sm text-left">
+                    <table className="w-full text-[12px] text-left">
                         <thead className="bg-blue-500 border-b border-white-900">
                             <tr>
                                 {columnas.map((col) => (
                                     <th
                                         key={col}
                                         onClick={() => handleSort(col)}
-                                        className="px-4 py-3 text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors group select-none"
+                                        className="px-3 py-2 text-[11px] font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors group select-none"
                                     >
                                         <div className="flex items-center gap-2">
                                             <span>{col}</span>
@@ -83,7 +83,7 @@ export default function Tabla({ columnas, datos, onRowClick }: TablaProps) {
                                         </div>
                                     </th>
                                 ))}
-                                {onRowClick && <th className="px-4 py-3 w-10"></th>}
+                                {onRowClick && <th className="px-3 py-2 w-10"></th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white-900">
@@ -97,13 +97,13 @@ export default function Tabla({ columnas, datos, onRowClick }: TablaProps) {
                                         {columnas.map((col) => (
                                             <td
                                                 key={col}
-                                                className="px-4 py-3 text-white-600 font-medium group-hover:text-gray-900 transition-colors whitespace-nowrap"
+                                                className="px-3 py-2.5 text-white-600 font-medium group-hover:text-gray-900 transition-colors whitespace-nowrap"
                                             >
                                                 {fila[col] || "-"}
                                             </td>
                                         ))}
                                         {onRowClick && (
-                                            <td className="px-4 py-3 text-gray-400 group-hover:text-indigo-500 transition-colors text-right">
+                                            <td className="px-3 py-2.5 text-gray-400 group-hover:text-indigo-500 transition-colors text-right">
                                                 <ChevronRight className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
                                             </td>
                                         )}

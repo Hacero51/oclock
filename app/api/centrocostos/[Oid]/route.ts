@@ -20,12 +20,10 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
         // Buscar empleados asociados a este centro de costo
         const employees = await prisma.employee.findMany({
             where: { CostCenter: Oid },
-            include: {
-                person: true
-            }
         });
 
         // Extraer IDs para consultas en lote
+        const empIds = employees.map(e => e.Oid);
         const deptIds = [...new Set(employees.map(e => e.Department).filter((id): id is string => !!id))];
         const shiftIds = [...new Set(employees.map(e => e.CurrentShift).filter((id): id is string => !!id))];
         const positionIds = [...new Set(employees.map(e => e.Position).filter((id): id is string => !!id))];
@@ -33,12 +31,13 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
         const bossIds = [...new Set(employees.map(e => e.Boss).filter((id): id is string => !!id))];
 
         // Consultas paralelas
-        const [departments, shifts, positions, agreements, bosses] = await Promise.all([
+        const [departments, shifts, positions, agreements, bosses, persons] = await Promise.all([
             prisma.department.findMany({ where: { Oid: { in: deptIds } } }),
             prisma.shift.findMany({ where: { Oid: { in: shiftIds } } }),
             prisma.position.findMany({ where: { Oid: { in: positionIds } } }),
             prisma.agreementtype.findMany({ where: { Oid: { in: agreementIds } } }),
-            prisma.eperson.findMany({ where: { Oid: { in: bossIds } } })
+            prisma.eperson.findMany({ where: { Oid: { in: [...bossIds, ...bossIds] } } }), // Jefes
+            prisma.eperson.findMany({ where: { Oid: { in: empIds } } }) // Empleados
         ]);
 
         // Crear mapas
@@ -46,16 +45,28 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
         const shiftMap = new Map(shifts.map(s => [s.Oid, s]));
         const posMap = new Map(positions.map(p => [p.Oid, p]));
         const agMap = new Map(agreements.map(a => [a.Oid, a]));
-        const bossMap = new Map(bosses.map(b => [b.Oid, b]));
+
+        // Mapa de Personas (Oid -> Data)
+        const personMap = new Map(persons.map(p => [p.Oid, p]));
+
+        // Mapa de Jefes (necesitamos buscar su nombre en el mapa de jefes/personas)
+        // Nota: bosses en la query anterior trae eperson de jefes.
+        const bossPersonMap = new Map(bosses.map(b => [b.Oid, b]));
 
         // Mapear empleados
         const empleados = employees.map(emp => {
-            const person = emp.person;
+            const person = personMap.get(emp.Oid);
             const dept = emp.Department ? deptMap.get(emp.Department) : null;
             const shift = emp.CurrentShift ? shiftMap.get(emp.CurrentShift) : null;
             const pos = emp.Position ? posMap.get(emp.Position) : null;
             const ag = emp.CurrentAgreementType ? agMap.get(emp.CurrentAgreementType) : null;
-            const boss = emp.Boss ? bossMap.get(emp.Boss) : null;
+
+            // Resolver Jefe
+            let bossName = '';
+            if (emp.Boss) {
+                const bossPerson = bossPersonMap.get(emp.Boss);
+                bossName = bossPerson ? `${bossPerson.FirstName || ''} ${bossPerson.LastName || ''}`.trim() : '';
+            }
 
             return {
                 Oid: emp.Oid,
@@ -64,7 +75,7 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
                 Cargo: pos?.Name || emp.Position || '',
                 Departamento: dept?.Name || '',
                 Contrato: ag?.Name || '',
-                Jefe: boss?.FullName || '',
+                Jefe: bossName,
                 "Turno Actual": shift?.Name || '',
                 "Valor Hora": emp.ValorHora || emp.BaseSalary || 0,
                 Status: emp.Status

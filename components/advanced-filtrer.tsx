@@ -61,6 +61,11 @@ export interface FilterNode {
   value?: string;
 }
 
+export interface FieldOption {
+  value: string;
+  label: string;
+}
+
 // ---------------- CONSTANTES ---------------- //
 
 const LOGIC_LABELS: Record<LogicOperator, string> = {
@@ -78,13 +83,10 @@ const LOGIC_COLORS: Record<LogicOperator, string> = {
 };
 
 const CAMPOS_DISPONIBLES = [
-  { value: "Departamento", label: "Departamento", type: "text" },
   { value: "Nombre a mostrar", label: "Empleado", type: "text" },
-  { value: "Documento", label: "Documento", type: "text" },
   { value: "Turno Actual", label: "Turno", type: "text" },
-  { value: "Valor Hora", label: "Valor Hora", type: "number" },
-  { value: "Fecha", label: "Fecha Contrato", type: "date" },
-  { value: "Estado", label: "Estado", type: "select", options: [{ value: "0", label: "Activo" }, { value: "1", label: "Inactivo" }] },
+  { value: "Fecha", label: "Fecha", type: "date" },
+  { value: "Estado", label: "Estado", type: "select", options: [{ value: "OK", label: "Completado" }, { value: "Incompleto", label: "Incompleto" }] },
   { value: "Entrada", label: "Entrada", type: "datetime" },
   { value: "Salida", label: "Salida", type: "datetime" },
 ];
@@ -111,11 +113,13 @@ const NodeItem = ({
   onChange,
   onDelete,
   depth = 0,
+  fieldOptions = {},
 }: {
   node: FilterNode;
   onChange: (newNode: FilterNode) => void;
   onDelete: () => void;
   depth?: number;
+  fieldOptions?: Record<string, FieldOption[]>;
 }) => {
   // Manejo de actualización de un hijo específico dentro de un grupo
   const handleChildChange = (childIndex: number, newChildNode: FilterNode) => {
@@ -235,6 +239,7 @@ const NodeItem = ({
                   depth={depth + 1}
                   onChange={(newChild) => handleChildChange(index, newChild)}
                   onDelete={() => handleDeleteChild(index)}
+                  fieldOptions={fieldOptions}
                 />
               ))
             ) : (
@@ -304,22 +309,37 @@ const NodeItem = ({
           <span className="text-gray-300 hidden sm:inline">|</span>
 
           {/* Valor Dinámico */}
-          <div className="flex-1 w-full min-w-[150px]">
+          <div className="flex-1 w-full min-w-[200px]">
             {node.operator === "vacio" || node.operator === "no_vacio" ? (
               <div className="h-8 flex items-center px-3 text-xs text-gray-400 italic bg-gray-50 rounded">
                 Sin valor requerido
               </div>
-            ) : fieldType === "select" && selectedFieldConfig?.options ? (
+            ) : fieldType === "select" ? (
               <Select value={node.value} onValueChange={(v) => onChange({ ...node, value: v })}>
                 <SelectTrigger className="h-8 text-xs border-transparent bg-gray-50 hover:bg-white focus:ring-0">
                   <SelectValue placeholder="Seleccione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {selectedFieldConfig.options.map(opt => (
+                  {selectedFieldConfig?.options?.map(opt => (
                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            ) : (node.field && fieldOptions[node.field]) ? (
+              <>
+                <Input
+                  value={node.value}
+                  list={`list-${node.id}`}
+                  onChange={(e) => onChange({ ...node, value: e.target.value })}
+                  className="h-8 text-xs border-transparent bg-gray-50 hover:bg-white focus:bg-white focus:border-blue-500 transition-all rounded-md"
+                  placeholder="Escriba o seleccione..."
+                />
+                <datalist id={`list-${node.id}`}>
+                  {fieldOptions[node.field].map((opt, idx) => (
+                    <option key={`${opt.value}-${idx}`} value={opt.value}>{opt.label}</option>
+                  ))}
+                </datalist>
+              </>
             ) : fieldType === "date" ? (
               <Input
                 type="date"
@@ -374,11 +394,13 @@ export function AdvancedFilterDialog({
   onOpenChange,
   onApply,
   initialFilter,
+  fieldOptions = {},
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onApply: (root: FilterNode) => void;
   initialFilter?: FilterNode;
+  fieldOptions?: Record<string, FieldOption[]>;
 }) {
   const defaultRoot: FilterNode = {
     id: "root",
@@ -411,7 +433,7 @@ export function AdvancedFilterDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} size="3xl">
+    <Dialog open={open} onOpenChange={onOpenChange} size="6xl">
       <DialogContent className="flex flex-col p-0 gap-0 bg-gray-50 overflow-hidden h-full max-h-[85vh]">
         <DialogHeader className="p-6 pb-2 bg-white border-b">
           <div className="flex items-center gap-3">
@@ -434,6 +456,7 @@ export function AdvancedFilterDialog({
             node={rootNode}
             onChange={setRootNode}
             onDelete={() => {/* Root no se borra */ }}
+            fieldOptions={fieldOptions}
           />
 
           <div className="text-xs text-gray-400 text-center max-w-lg mx-auto">

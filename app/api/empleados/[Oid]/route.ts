@@ -9,18 +9,17 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
   try {
     const { Oid } = await context.params;
 
-    const persona = await prisma.eperson.findUnique({
-      where: { Oid },
-      include: {
-        employee: true,
-      },
-    });
+    // Fetches paralelos de persona y empleado (ya que no hay relación directa en schema)
+    const [persona, e] = await Promise.all([
+      prisma.eperson.findUnique({ where: { Oid } }),
+      prisma.employee.findUnique({ where: { Oid } }),
+    ]);
 
     if (!persona) {
       return NextResponse.json({ error: "Empleado no encontrado" }, { status: 404 });
     }
 
-    const e = persona.employee;
+
 
     return NextResponse.json({
       Oid,

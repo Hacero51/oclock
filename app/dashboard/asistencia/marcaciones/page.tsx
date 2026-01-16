@@ -302,6 +302,7 @@ export default function MarcacionesPage() {
   const [openManual, setOpenManual] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [salidaEditada, setSalidaEditada] = useState("");
@@ -390,7 +391,7 @@ export default function MarcacionesPage() {
 
   useEffect(() => {
     fetchMarcaciones();
-  }, [isMounted, currentPage, itemsPerPage, filtros.periodo, filtros.desde, filtros.hasta, filtros.estado]);
+  }, [isMounted, currentPage, itemsPerPage, filtros.periodo, filtros.desde, filtros.hasta, filtros.estado, refreshKey]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -491,8 +492,7 @@ export default function MarcacionesPage() {
         body: JSON.stringify({ id: marcacion.id, salida: salidaEditada })
       });
       if (!response.ok) throw new Error("Error actualizando marcación");
-      const nuevaSalidaFormateada = formatearFechaHora(salidaEditada);
-      setMarcaciones(prev => prev.map(m => m.id === marcacion.id ? { ...m, salida: nuevaSalidaFormateada, estado: "OK" } : m));
+      setRefreshKey(prev => prev + 1);
       setEditandoId(null);
       setSalidaEditada("");
       setErrorValidacion("");
@@ -528,8 +528,7 @@ export default function MarcacionesPage() {
       });
       if (!response.ok) throw new Error("Error actualizando marcación");
 
-      const nuevaEntradaFormateada = formatearFechaHora(entradaEditada);
-      setMarcaciones(prev => prev.map(m => m.id === marcacion.id ? { ...m, entrada: nuevaEntradaFormateada, estado: "OK" } : m));
+      setRefreshKey(prev => prev + 1);
       setEditandoEntradaId(null);
       setEntradaEditada("");
       setErrorValidacion("");
@@ -547,7 +546,7 @@ export default function MarcacionesPage() {
         body: JSON.stringify({ id: marcacionId, [campo]: valor })
       });
       if (!response.ok) throw new Error("Error actualizando checkbox");
-      setMarcaciones(prev => prev.map(m => m.id === marcacionId ? { ...m, [campo]: valor } : m));
+      setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error(error);
       alert("Error al actualizar el estado");
@@ -587,10 +586,10 @@ export default function MarcacionesPage() {
 
   const datosParaTabla = useMemo(() => {
     return marcacionesFiltradas.map((marcacion) => ({
-      'Documento': <span className="text-xs">{marcacion.cedula}</span>,
-      'Empleado': <span className="text-xs font-medium">{marcacion.empleado}</span>,
-      'Turno': <span className="text-[10px] text-gray-500">{marcacion.turno}</span>,
-      'Fecha': <span className="text-xs">{marcacion.fecha}</span>,
+      'Documento': <span className="text-[10px]">{marcacion.cedula}</span>,
+      'Empleado': <span className="text-[10px] font-medium">{marcacion.empleado}</span>,
+      'Turno': <span className="text-[9px] text-gray-500">{marcacion.turno}</span>,
+      'Fecha': <span className="text-[10px]">{marcacion.fecha}</span>,
       'Entrada': (
         <div
           className="min-w-[170px] cursor-pointer"
@@ -604,7 +603,7 @@ export default function MarcacionesPage() {
                   type="datetime-local"
                   value={entradaEditada}
                   onChange={(e) => handleEntradaChange(e.target.value, marcacion)}
-                  className="w-40 text-xs h-8"
+                  className="w-36 text-[10px] h-7"
                 />
                 <Button size="sm" onClick={() => guardarEntrada(marcacion)} className="bg-green-600 h-8 w-8 p-0"><CheckCircle2 className="h-3.5 w-3.5" /></Button>
                 <Button size="sm" variant="outline" onClick={() => setEditandoEntradaId(null)} className="h-8 w-8 p-0"><X className="h-3.5 w-3.5" /></Button>
@@ -613,7 +612,7 @@ export default function MarcacionesPage() {
             </div>
           ) : (
             <div
-              className={`p-1.5 rounded-lg border transition-all w-full text-[11px] ${(!marcacion.entrada || marcacion.entrada === "N/A" || marcacion.entrada === "-" || marcacion.entrada === "")
+              className={`p-1 px-2 rounded-md border transition-all w-full text-[10px] ${(!marcacion.entrada || marcacion.entrada === "N/A" || marcacion.entrada === "-" || marcacion.entrada === "")
                 ? (marcacion.salida && !marcacion.salida.includes("SIN SALIDA") ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100" : "bg-gray-100 text-gray-400 border-gray-200")
                 : "bg-gray-50 text-gray-700 border-gray-200"
                 }`}
@@ -637,7 +636,7 @@ export default function MarcacionesPage() {
                   type="datetime-local"
                   value={salidaEditada}
                   onChange={(e) => handleSalidaChange(e.target.value, marcacion)}
-                  className="w-40 text-xs h-8"
+                  className="w-36 text-[10px] h-7"
                 />
                 <Button size="sm" onClick={() => guardarSalida(marcacion)} className="bg-green-600 h-8 w-8 p-0"><CheckCircle2 className="h-3.5 w-3.5" /></Button>
                 <Button size="sm" variant="outline" onClick={() => setEditandoId(null)} className="h-8 w-8 p-0"><X className="h-3.5 w-3.5" /></Button>
@@ -646,7 +645,7 @@ export default function MarcacionesPage() {
             </div>
           ) : (
             <div
-              className={`p-1.5 rounded-lg border transition-all w-full text-[11px] ${(!marcacion.salida || marcacion.salida === "N/A" || marcacion.salida.includes("SIN SALIDA"))
+              className={`p-1 px-2 rounded-md border transition-all w-full text-[10px] ${(!marcacion.salida || marcacion.salida === "N/A" || marcacion.salida.includes("SIN SALIDA"))
                 ? "bg-yellow-50 text-yellow-700 border-yellow-200 cursor-pointer hover:bg-yellow-100"
                 : "bg-gray-50 text-gray-700 border-gray-200"
                 }`}

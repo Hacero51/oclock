@@ -68,14 +68,14 @@ export default function Tabla({ columnas, datos, onRowClick }: TablaProps) {
             {/* Tabla Desktop - CON MEJOR RESPONSIVE */}
             <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-200 shadow-sm bg-white ring-1 ring-gray-100">
                 <div className="min-w-full">
-                    <table className="w-full text-[12px] text-left">
+                    <table className="w-full text-[11px] text-left">
                         <thead className="bg-blue-500 border-b border-white-900">
                             <tr>
                                 {columnas.map((col) => (
                                     <th
                                         key={col}
                                         onClick={() => handleSort(col)}
-                                        className="px-3 py-2 text-[11px] font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors group select-none"
+                                        className="px-2 py-1.5 text-[10px] font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors group select-none"
                                     >
                                         <div className="flex items-center gap-2">
                                             <span>{col}</span>
@@ -97,7 +97,7 @@ export default function Tabla({ columnas, datos, onRowClick }: TablaProps) {
                                         {columnas.map((col) => (
                                             <td
                                                 key={col}
-                                                className="px-3 py-2.5 text-white-600 font-medium group-hover:text-gray-900 transition-colors whitespace-nowrap"
+                                                className="px-2 py-1.5 text-white-600 font-medium group-hover:text-gray-900 transition-colors whitespace-nowrap"
                                             >
                                                 {fila[col] || "-"}
                                             </td>

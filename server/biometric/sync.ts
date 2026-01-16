@@ -91,12 +91,17 @@ export async function sincronizarRelojes(devicesToSync?: string[]) {
                         }
                     }
 
-                    // INVERTIR ORDEN: Priorizar los registros más recientes
-                    const logsInversos = [...logsAProcesar].reverse();
+                    // ORDENAR CRONOLÓGICAMENTE: Priorizar los registros más antiguos primero para que la lógica "Primer Golpe = Entrada" funcione.
+                    // Los dispositivos a veces envían desordenado o Newest-First.
+                    const logsOrdenados = [...logsAProcesar].sort((a, b) => {
+                        const tA = new Date((a as any).timestamp || a.recordTime).getTime();
+                        const tB = new Date((b as any).timestamp || b.recordTime).getTime();
+                        return tA - tB;
+                    });
 
                     // OPTIMIZACIÓN 1: Agrupar logs por usuario para procesar usuarios en paralelo
                     const logsPorUsuario: { [key: string]: BiometricLog[] } = {};
-                    logsInversos.forEach(log => {
+                    logsOrdenados.forEach(log => {
                         // FIX: Typescript property check
                         const uid = (log as any).user_id || log.deviceUserId;
                         if (!logsPorUsuario[uid]) {
@@ -134,7 +139,7 @@ export async function sincronizarRelojes(devicesToSync?: string[]) {
                                     normalizedTime.setMilliseconds(0);
 
                                     const devUserId = (log as any).user_id || log.deviceUserId;
-                                    const status = (log as any).status || log.activity;
+                                    const status = (log as any).status ?? log.activity ?? 0;
                                     const uid = (log as any).uid || log.userSn;
 
                                     const created = await procesarRegistroDoble({
@@ -260,13 +265,92 @@ async function procesarRegistroDoble(log: BiometricLog, machineOid: string, empC
             where: { Employee: emp.Oid, CheckTime: normalizedTime }
         });
 
+
         if (!existeCheck) {
             try {
+                // OPCIÓN B (Refinada): Interceptación y Limpieza de Datos
+                // 1. Detectar si 'activity' es en realidad un VerifyCode (15, 16, etc.)
+                const safeActivity = log.activity ?? 0;
+                let finalCheckType = safeActivity;
+                let finalVerifyCode = 1; // Default
+
+                if (safeActivity > 5) {
+                    finalVerifyCode = safeActivity; // Movemos el valor "erróneo" a VerifyCode
+                    // Ahora CheckType queda ambiguo. Usaremos la heurística para definirlo.
+                }
+
+                // 2. Heurística de Corrección de CheckType
+                // Si el CheckType es 1 (Salida), o >5 (VerifyCode), evaluamos el contexto.
+                // Si es el PRIMER registro del día -> Forzamos ENTRADA (0).
+                // Si YA EXISTEN registros hoy -> Forzamos SALIDA (1) (Asumiendo paridad).
+
+                // MEJORA: Lógica Cronológica Estricta
+                // En lugar de confiar en el botón que presiona el usuario (Entry/Exit),
+                // usamos el historial del día para determinar qué debería ser.
+
+                const recDate = new Date(normalizedTime);
+                const startOfDay = new Date(Date.UTC(recDate.getUTCFullYear(), recDate.getUTCMonth(), recDate.getUTCDate(), 0, 0, 0));
+                const endOfDay = new Date(Date.UTC(recDate.getUTCFullYear(), recDate.getUTCMonth(), recDate.getUTCDate(), 23, 59, 59));
+
+                // Obtener todos los fichajes de HOY para este empleado
+                const registrosHoy = await prisma.checkinout.findMany({
+                    where: {
+                        Employee: emp.Oid,
+                        CheckTime: { gte: startOfDay, lte: endOfDay }
+                    },
+                    orderBy: { CheckTime: 'asc' }
+                });
+
+                const countToday = registrosHoy.length;
+                // Normalización preliminar de códigos de verificación (>5)
+                if (finalCheckType > 5) {
+                    // Si es un código especial (ej. 15), asumimos momentáneamente Entrada (0)
+                    // pero dejamos que las reglas abajo lo cambien si es necesario.
+                    finalCheckType = 0;
+                }
+
+                if (countToday === 0) {
+                    // REGLA 1: El PRIMER registro del día SIEMPRE es Entrada (0).
+                    // No importa si marcó Salida, Break, etc.
+                    if (finalCheckType !== 0) {
+                        console.log(`[SYNC-FIX] Forzando Entrada (0) para ${emp.Oid} (Original: ${log.activity}) - Primer registro del día.`);
+                        finalCheckType = 0;
+                    }
+                } else {
+                    // REGLA 2: Registros posteriores.
+                    const ultimoRegistro = registrosHoy[registrosHoy.length - 1];
+
+                    if (ultimoRegistro.CheckTime) {
+                        const diffMinutos = (normalizedTime.getTime() - ultimoRegistro.CheckTime.getTime()) / 60000;
+
+                        // Si tenemos una Entrada previa abierta (CheckType 0)
+                        if (ultimoRegistro.CheckType === 0) {
+                            // Y han pasado más de 3 horas (180 min)
+                            if (diffMinutos > 180) {
+                                // Debería ser una SALIDA para cerrar el turno.
+                                if (finalCheckType !== 1) {
+                                    console.log(`[SYNC-FIX] Forzando Salida (1) para ${emp.Oid}. (Original: ${log.activity}, Diff: ${diffMinutos.toFixed(0)}m desde entrada).`);
+                                    finalCheckType = 1;
+                                }
+                            } else {
+                                // Si es < 3 horas, podría ser un duplicado o un re-intento de entrada.
+                            }
+                        } else {
+                            // El último fue Salida (1). Estamos abriendo un NUEVO turno en el mismo día.
+                            // Debería ser Entrada (0).
+                            if (finalCheckType !== 0) {
+                                console.log(`[SYNC-FIX] Forzando Entrada (0) para ${emp.Oid} (Original: ${log.activity}) - Apertura de segundo turno.`);
+                                finalCheckType = 0;
+                            }
+                        }
+                    }
+                }
+
                 await prisma.checkinout.create({
                     data: {
                         Oid: crypto.randomUUID(),
                         CheckTime: normalizedTime,
-                        CheckType: 0,
+                        CheckType: finalCheckType,
                         Employee: emp.Oid,
                         Machine: machineOid,
                         VerifyCode: 1
@@ -294,7 +378,7 @@ async function procesarRegistroDoble(log: BiometricLog, machineOid: string, empC
                 data: {
                     emp_code: log.deviceUserId,
                     punch_time: normalizedTime,
-                    punch_state: "0",
+                    punch_state: String(log.activity ?? 0),
                     verify_type: 1,
                     terminal_sn: machineOid.substring(0, 20),
                     emp_id: pEmp ? pEmp.id : null,
@@ -316,59 +400,117 @@ async function procesarRegistroDoble(log: BiometricLog, machineOid: string, empC
     }
 
     // --- IMPACTO 3: marking (Consolidación - Solo Legacy) ---
-    if (emp) {
-        const inicioDia = new Date(normalizedTime);
-        inicioDia.setHours(0, 0, 0, 0);
+    // Inicio de día en UTC estricto para evitar duplicados por zona horaria
+    // Formato: YYYY-MM-DDT00:00:00.000Z
+    const year = normalizedTime.getUTCFullYear();
+    const month = normalizedTime.getUTCMonth();
+    const day = normalizedTime.getUTCDate();
+    const inicioDia = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
 
-        let marking = await prisma.marking.findFirst({
+    let marking = await prisma.marking.findFirst({
+        where: {
+            Employee: emp.Oid,
+            Day: inicioDia // Match exacto con el día UTC
+        }
+    });
+
+    logToDebugFile(`[SYNC-SEARCH] Emp: ${emp.AcNumber}, Date: ${normalizedTime.toISOString()}, DaySearch: ${inicioDia.toISOString()} -> ${marking ? 'FOUND' : 'NULL'}`);
+
+    // FAILSAFE: Si no encuentra por día exacto, buscar por rango de fecha (MarkingIn dentro del día UTC)
+    // Esto previene duplicados si la columna Day tiene disparidad o si se quiere garantizar unicidad diaria.
+    if (!marking) {
+        const endOfDay = new Date(inicioDia);
+        endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
+
+        marking = await prisma.marking.findFirst({
             where: {
                 Employee: emp.Oid,
-                Day: { gte: inicioDia, lte: new Date(inicioDia.getTime() + 86399999) }
-            }
-        });
-
-        if (!marking) {
-            try {
-                await prisma.marking.create({
-                    data: {
-                        Oid: crypto.randomUUID(),
-                        Employee: emp.Oid,
-                        Day: inicioDia,
-                        MarkingIn: normalizedTime,
-                        Status: 1
-                    }
-                });
-            } catch (error: any) {
-                if (error.code === 'P2002') {
-                    // Race condition: Ya existe, intentamos actualizar el existente si es necesario
-                    // Re-buscamos para asegurarnos de tener el último
-                    const markingRecheck = await prisma.marking.findFirst({
-                        where: {
-                            Employee: emp.Oid,
-                            Day: { gte: inicioDia, lte: new Date(inicioDia.getTime() + 86399999) }
-                        }
-                    });
-                    if (markingRecheck && (!markingRecheck.MarkingOut || normalizedTime > markingRecheck.MarkingOut)) {
-                        const diffMinutos = (normalizedTime.getTime() - (markingRecheck.MarkingIn?.getTime() || 0)) / 60000;
-                        if (diffMinutos > 5) {
-                            await prisma.marking.update({
-                                where: { Oid: markingRecheck.Oid },
-                                data: { MarkingOut: normalizedTime }
-                            });
-                        }
-                    }
-                } else {
-                    throw error;
+                MarkingIn: {
+                    gte: inicioDia,
+                    lt: endOfDay
                 }
             }
-        } else {
-            if (!marking.MarkingOut || normalizedTime > marking.MarkingOut) {
-                const diffMinutos = (normalizedTime.getTime() - (marking.MarkingIn?.getTime() || 0)) / 60000;
-                if (diffMinutos > 5) {
+        });
+        logToDebugFile(`[SYNC-FAILSAFE] Emp: ${emp.AcNumber}, Range: ${inicioDia.toISOString()} - ${endOfDay.toISOString()} -> ${marking ? 'FOUND' : 'NULL'}`);
+    }
+
+    if (!marking) {
+        // Lógica de "Primer Golpe = Entrada":
+        // Si no hay marcación para este día, creamos una nueva ASUMIENDO que este primer registro es la ENTRADA,
+        // sin importar qué CheckType/Activity envíe el dispositivo (0, 1, 15, etc.).
+        // Esto corrige casos donde dispositivos mal configurados envían 'Salida' (1) como primer fichaje del día.
+        logToDebugFile(`[SYNC-CREATE] Creando nueva marking para Emp: ${emp.AcNumber}`);
+        try {
+            // Obtener turno y ciclo del empleado
+            const shiftOid = (emp as any).CurrentShift || null;
+            const cycle = (emp as any).CurrentCycle || null;
+
+            await prisma.marking.create({
+                data: {
+                    Oid: crypto.randomUUID(),
+                    Employee: emp.Oid,
+                    Day: inicioDia,
+                    MarkingIn: normalizedTime,
+                    Status: 1, // Default Normal
+                    Shift: shiftOid,
+                    Cycle: cycle,
+                    StartShiftMarkingIn: false,
+                    OverTimeBeforeEntry: false,
+                    OverTimeAfterExit: false,
+                    OverTimeInHoliday: false,
+                    Approve: false
+                }
+            });
+        } catch (error: any) {
+            // Si falla por duplicado (P2002), es que se creó en paralelo, intentamos update abajo
+            if (error.code !== 'P2002') throw error;
+        }
+    } else {
+        // Si ya existe la marcación:
+        // - Si el log es SALIDA (1) -> Actualizamos MarkingOut
+        // - Si el log es ENTRADA (0) -> No deberíamos sobreescribir MarkingIn (ya está), salvo update forzado? 
+        //   (Dejamos la lógica actual que actualiza MarkingOut si es posterior, pero la restringimos a Exits o logs posteriores)
+
+        // Lógica Mejorada:
+        // Lógica Mejorada:
+        if (log.activity === 1) {
+            // Es explícitamente una salida
+
+            // GUARD: Evitar "Auto-Cierre" por reprocesamiento del mismo log.
+            // Si el tiempo de salida es casi idéntico al de entrada (ej. < 60 segundos),
+            // asumimos que es el MISMO fichaje que creó la entrada (por la lógica de "Primer Golpe"),
+            // y lo ignoramos como salida.
+            const diffSeconds = marking.MarkingIn ? (normalizedTime.getTime() - marking.MarkingIn.getTime()) / 1000 : 9999;
+
+            if (diffSeconds > 1200) {
+                if (!marking.MarkingOut || normalizedTime > marking.MarkingOut) {
                     await prisma.marking.update({
                         where: { Oid: marking.Oid },
                         data: { MarkingOut: normalizedTime }
                     });
+                }
+            }
+        } else {
+            // Es entrada (0). 
+            // NUEVA LÓGICA (Petición Usuario):
+            // "si ya tiene una marcacion de entrada y la segunda marcacion es de entrada esta sea verificada y aparezca como salida"
+
+            // Verificamos si podemos usar esta "Entrada Tardía" para cerrar el turno.
+            // VERIFICAR MINIMO 3 HORAS (180 minutos)
+            const diffMinutos = marking.MarkingIn ? (normalizedTime.getTime() - marking.MarkingIn.getTime()) / 60000 : 0;
+
+            // Debug Log
+            logToDebugFile(`[SYNC-CHECK] Empleado ${emp.AcNumber}: Revisando cierre. Diff: ${diffMinutos.toFixed(1)} min. Existente Out: ${marking.MarkingOut || 'NULL'}`);
+
+            if (!marking.MarkingOut || normalizedTime > marking.MarkingOut) {
+                if (diffMinutos > 180) {
+                    logToDebugFile(`[SYNC-UPDATE] Cerrando turno para ${emp.AcNumber}. Diff > 180 min.`);
+                    await prisma.marking.update({
+                        where: { Oid: marking.Oid },
+                        data: { MarkingOut: normalizedTime }
+                    });
+                } else {
+                    logToDebugFile(`[SYNC-IGNORE] Entrada cercana (${diffMinutos.toFixed(1)} min) ignorada para evitar cierre prematuro (Req: 180 min).`);
                 }
             }
         }
@@ -376,3 +518,4 @@ async function procesarRegistroDoble(log: BiometricLog, machineOid: string, empC
 
     return createdNew;
 }
+

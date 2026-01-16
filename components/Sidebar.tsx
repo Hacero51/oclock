@@ -23,7 +23,8 @@ import {
   FolderTree,
   Calendar,
   FileText,
-  Settings
+  Settings,
+  BadgeDollarSign
 } from "lucide-react";
 
 const menuItems = [

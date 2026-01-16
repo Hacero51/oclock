@@ -43,13 +43,18 @@ export async function GET(request: Request) {
         // PRE-FILTRO: Búsqueda de empleado por nombre (Legacy)
         // Si el usuario busca "Juan", primero buscamos en eperson y obtenemos los Oids
         if (empleado && empleado !== "all") {
+            const terms = empleado.trim().split(/\s+/).filter(Boolean);
+            const searchConditions = terms.map(term => ({
+                OR: [
+                    { FirstName: { contains: term } },
+                    { LastName: { contains: term } },
+                    { Document: { contains: term } }
+                ]
+            }));
+
             const persons = await prisma.eperson.findMany({
                 where: {
-                    OR: [
-                        { FirstName: { contains: empleado } },
-                        { LastName: { contains: empleado } },
-                        { Document: { contains: empleado } }
-                    ]
+                    AND: searchConditions
                 },
                 select: { Oid: true }
             });
@@ -147,20 +152,21 @@ export async function GET(request: Request) {
                 turnoNombre = shiftMap.get(empShiftId)!;
             }
 
-            // UTC-5 (Colombia)
+            // UTC-5 (Colombia) handled at storage time
             const formatLocale = (d: Date | null) => {
                 if (!d) return "";
-                const colombiaTime = new Date(d.getTime() - 5 * 60 * 60 * 1000);
-                const dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
-                const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-
+                // No restamos 5h porque ya se almacenó con la hora correcta en UTC
+                const colombiaTime = d;
                 let hours = colombiaTime.getUTCHours();
                 const minutes = colombiaTime.getUTCMinutes().toString().padStart(2, '0');
                 const ampm = hours >= 12 ? 'P. M.' : 'A. M.';
                 hours = hours % 12;
                 hours = hours ? hours : 12;
 
-                return `${dias[colombiaTime.getUTCDay()]}, ${colombiaTime.getUTCDate()} DE ${meses[colombiaTime.getUTCMonth()]} DE ${colombiaTime.getUTCFullYear()}, ${hours}:${minutes} ${ampm}`;
+                const day = colombiaTime.getUTCDate().toString().padStart(2, '0');
+                const month = (colombiaTime.getUTCMonth() + 1).toString().padStart(2, '0');
+                const year = colombiaTime.getUTCFullYear();
+                return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
             };
 
             const formatDateOnly = (d: Date | null) => {
@@ -177,7 +183,9 @@ export async function GET(request: Request) {
                 cleanName !== 'Desconocido' &&
                 cleanName !== 'N/A' &&
                 !cleanName.startsWith('ID:') &&
-                cleanName.toLowerCase() !== cleanOid.toLowerCase(); // Comparacion insensible a mayusculas
+                cleanName.toLowerCase() !== cleanOid.toLowerCase() && // Comparacion insensible a mayusculas
+                !/^[0-9a-fA-F-]{30,}$/.test(cleanName) && // Validar que no sea un UUID o hash largo
+                !(cleanName === documento && cleanName.length > 20); // Validar si es igual al documento y el documento es sospechosamente largo
 
             if (!esNombreValido) return null;
 

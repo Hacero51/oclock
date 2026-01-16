@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Fingerprint, RefreshCcw, Wifi, WifiOff, MoreVertical, Download, Power, PowerOff } from "lucide-react";
 import Tabla from "@/components/Table";
+import UpdateModal from "@/components/UpdateModal";
 import { useState, useEffect, useRef } from "react";
 
 export default function DispositivosPage({ params, searchParams }) {
@@ -11,6 +12,7 @@ export default function DispositivosPage({ params, searchParams }) {
   const [cargando, setCargando] = useState(true);
   const [sincronizando, setSincronizando] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(null);
+  const [selectedDevice, setSelectedDevice] = useState(null);
   const menuRefs = useRef({});
 
   // Datos de ejemplo
@@ -306,9 +308,14 @@ export default function DispositivosPage({ params, searchParams }) {
 
   // Función para manejar el click en una fila
   const manejarClickFila = (fila) => {
-    // Evitamos loguear el objeto completo porque contiene JSX y causa error en Next.js 15
+    // La fila contiene datos formateados para la tabla.
+    // Usamos el ID ('Número de Dispositivo') para encontrar el objeto original.
     if (fila) {
-      console.log('Fila seleccionada');
+      const idDispositivo = fila['Número de Dispositivo'];
+      const dispositivoOriginal = dispositivos.find(d => d.id === idDispositivo);
+      if (dispositivoOriginal) {
+        setSelectedDevice(dispositivoOriginal);
+      }
     }
   };
 
@@ -393,6 +400,18 @@ export default function DispositivosPage({ params, searchParams }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Actualización */}
+      {selectedDevice && (
+        <UpdateModal
+          type="dispositivo"
+          data={selectedDevice}
+          onClose={() => {
+            setSelectedDevice(null);
+            cargarDispositivos(); // Recargar al cerrar por si hubo cambios
+          }}
+        />
+      )}
     </div>
   );
 }

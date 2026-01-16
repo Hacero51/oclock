@@ -5,7 +5,7 @@ import UpdateEmpleadoForm from "./form/update/UpdateEmpleadoForm";
 import UpdateCargoForm from "./form/update/CargoForm";
 import UpdateCentroCostoForm from "./form/update/UpdateCentroCostoForm";
 import UpdateDiaFestivoForm from "./form/update/DiaFestivoForm";
-import UpdateDispositivoForm from "./form/update/DispositivoForm";
+import UpdateDispositivoForm from "./form/update/UpdateDispositivoForm";
 import UpdateHorariosForm from "./form/update/UpdateHorariosForm";
 import UpdateMarcacionForm from "./form/update/MarcacionForm";
 import UpdatePermisosEIncaForm from "./form/update/UpdatePermisosEIncaForm";

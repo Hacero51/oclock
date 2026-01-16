@@ -86,12 +86,25 @@ export class ADMSService {
     /**
      * Guarda el registro usando la lógica de "Doble Impacto" existente
      */
+    /**
+     * Guarda el registro usando la lógica de "Doble Impacto" existente
+     */
     private async saveAttendance(userId: string, recordTime: Date, machineOid: string, sn: string, state: string, verify: string) {
         // 1. Buscar empleado (Legacy)
-        const emp = await prisma.employee.findFirst({
-            where: { OR: [{ AcNumber: parseInt(userId) }, { person: { Document: userId } }] },
-            include: { person: true }
+        let emp = await prisma.employee.findFirst({
+            where: { AcNumber: parseInt(userId) }
         });
+
+        if (!emp) {
+            const p = await prisma.eperson.findFirst({
+                where: { Document: userId }
+            });
+            if (p) {
+                emp = await prisma.employee.findFirst({
+                    where: { Oid: p.Oid }
+                });
+            }
+        }
 
         // 2. Buscar empleado (Personnel/ZK)
         const pEmp = await prisma.personnel_employee.findFirst({
@@ -100,13 +113,12 @@ export class ADMSService {
 
         if (!emp && !pEmp) {
             console.warn(`[ADMS] Empleado no encontrado (ni Legacy ni Personnel) para ID: ${userId} (SN: ${sn})`);
-            // Podríamos guardar en iclock_transaction aun sin empleado vinculado, pero depende de la lógica de negocio.
-            // Asumiremos que si no existe en ningun lado, es un registro huérfano que igual queremos ver en logs crudos?
-            // Para seguridad, guardemos el iclock_transaction siempre que haya userId.
         }
 
-        const normalizedTime = recordTime; // Ya viene parseado
+        const normalizedTime = recordTime;
         normalizedTime.setMilliseconds(0);
+
+        const checkTypeInt = parseInt(state) || 0; // 0=In, 1=Out, etc.
 
         // --- IMPACTO 1: checkinout (Solo si existe emp Legacy) ---
         if (emp) {
@@ -115,11 +127,44 @@ export class ADMSService {
             });
 
             if (!existsCheck) {
+                // OPCIÓN B (Refinada): Interceptación y Limpieza
+                let finalCheckType = checkTypeInt;
+                let finalVerifyCode = parseInt(verify) || 1;
+
+                // 1. Detectar VerifyCode en la actividad/estado
+                if (checkTypeInt > 5) {
+                    finalVerifyCode = checkTypeInt;
+                    // CheckType queda ambiguo (ej: 15).
+                }
+
+                // 2. Heurística Entrada/Salida
+                if (finalCheckType === 1 || finalCheckType > 5) {
+                    const recDate = new Date(normalizedTime);
+                    const startOfDay = new Date(Date.UTC(recDate.getUTCFullYear(), recDate.getUTCMonth(), recDate.getUTCDate(), 0, 0, 0));
+                    const endOfDay = new Date(Date.UTC(recDate.getUTCFullYear(), recDate.getUTCMonth(), recDate.getUTCDate(), 23, 59, 59));
+
+                    const countToday = await prisma.checkinout.count({
+                        where: { Employee: emp.Oid, CheckTime: { gte: startOfDay, lte: endOfDay } }
+                    });
+
+                    if (countToday === 0) {
+                        if (finalCheckType !== 0) {
+                            console.log(`[ADMS-FIX] Forzando Entrada (0) para ${emp.Oid} (Original: ${checkTypeInt})`);
+                            finalCheckType = 0;
+                        }
+                    } else {
+                        if (finalCheckType > 5) {
+                            console.log(`[ADMS-FIX] Forzando Salida (1) para ${emp.Oid} (Original: ${checkTypeInt})`);
+                            finalCheckType = 1;
+                        }
+                    }
+                }
+
                 await prisma.checkinout.create({
                     data: {
                         Oid: crypto.randomUUID(),
                         CheckTime: normalizedTime,
-                        CheckType: parseInt(state) || 0,
+                        CheckType: finalCheckType,
                         Employee: emp.Oid,
                         Machine: machineOid,
                         VerifyCode: parseInt(verify) || 1
@@ -150,34 +195,80 @@ export class ADMSService {
 
         // --- IMPACTO 3: marking (Consolidación) - Solo si existe emp Legacy ---
         if (emp) {
-            const inicioDia = new Date(normalizedTime);
-            inicioDia.setHours(0, 0, 0, 0);
+            // FIX: Uso estricto de UTC para el inicio del día, igual que en sync.ts
+            const year = normalizedTime.getUTCFullYear();
+            const month = normalizedTime.getUTCMonth();
+            const day = normalizedTime.getUTCDate();
+            const inicioDia = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
 
-            const marking = await prisma.marking.findFirst({
+            let marking = await prisma.marking.findFirst({
                 where: { Employee: emp.Oid, Day: inicioDia }
             });
 
+            // FAILSAFE: Si no encuentra por día exacto, buscar por rango de fecha (MarkingIn dentro del día UTC)
             if (!marking) {
+                const endOfDay = new Date(inicioDia);
+                endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
+
+                marking = await prisma.marking.findFirst({
+                    where: {
+                        Employee: emp.Oid,
+                        MarkingIn: {
+                            gte: inicioDia,
+                            lt: endOfDay
+                        }
+                    }
+                });
+            }
+
+            if (!marking) {
+                // Lógica de "Primer Golpe = Entrada":
+                // Si no hay marcación para este día, creamos una nueva ASUMIENDO que este primer registro es la ENTRADA,
+                // sin importar qué CheckType/Status envíe el dispositivo (0, 1, 15, etc.).
+                // Esto permite que el primer fichaje del día siempre abra turno, aunque el usuario marque 'Salida' por error.
+
+                // Obtener turno y ciclo (simulado, idealmente deberíamos traerlo de emp)
+                const shiftOid = (emp as any).CurrentShift || null;
+                const cycle = (emp as any).CurrentCycle || null;
+
                 await prisma.marking.create({
                     data: {
                         Oid: crypto.randomUUID(),
                         Employee: emp.Oid,
+                        Shift: shiftOid,
+                        Cycle: cycle,
                         Day: inicioDia,
                         MarkingIn: normalizedTime,
-                        Status: 1
+                        Status: 1,
+                        StartShiftMarkingIn: false,
+                        OverTimeBeforeEntry: false,
+                        OverTimeAfterExit: false,
+                        OverTimeInHoliday: false,
+                        Approve: false
                     }
                 });
             } else {
-                // Actualizar salida si es posterior
-                if (!marking.MarkingOut || normalizedTime > marking.MarkingOut) {
-                    const diff = (normalizedTime.getTime() - (marking.MarkingIn?.getTime() || 0)) / 60000;
-                    if (diff > 5) { // Evitar rebote
-                        await prisma.marking.update({
-                            where: { Oid: marking.Oid },
-                            data: { MarkingOut: normalizedTime }
-                        });
+                // Si ya existe:
+                // Si es Salida (1) -> Actualizar MarkingOut
+                // Si es Salida (1) -> Actualizar MarkingOut
+                if (checkTypeInt === 1) {
+                    // GUARD: Evitar "Auto-Cierre" por reprocesamiento (mismo timestamp que entrada)
+                    if (marking.MarkingIn) {
+                        const diffSeconds = (normalizedTime.getTime() - marking.MarkingIn.getTime()) / 1000;
+
+
+                        if (diffSeconds > 1200) {
+                            if (!marking.MarkingOut || normalizedTime > marking.MarkingOut) {
+                                await prisma.marking.update({
+                                    where: { Oid: marking.Oid },
+                                    data: { MarkingOut: normalizedTime }
+                                });
+                            }
+                        }
                     }
                 }
+                // Si es Entrada (0) -> Ignorar (ya tenemos MarkingIn), no sobrescribir, 
+                // para mantener la primera entrada del día.
             }
         }
     }

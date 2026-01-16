@@ -13,6 +13,7 @@ export async function GET(request: Request) {
         const desde = searchParams.get("desde");
         const hasta = searchParams.get("hasta");
         const tipo = searchParams.get("tipo"); // 'Entrada', 'Salida', etc.
+        const dispositivo = searchParams.get("dispositivo");
 
         // Construir where clause para checkinout
         const whereClause: any = {};
@@ -61,17 +62,31 @@ export async function GET(request: Request) {
             else if (tipo === 'Salida') whereClause.CheckType = 1;
         }
 
+        // Filtro por dispositivo (Machine Oid)
+        if (dispositivo) {
+            whereClause.Machine = dispositivo;
+        }
+
         // Para filtrar por empleado (nombre), es más complejo porque el nombre está en otra tabla
         // y no hay relación directa en Prisma.
         // Estrategia: Si hay filtro de empleado, buscar primero los IDs en eperson y luego filtrar checkinout.
         let employeeIds: string[] = [];
         if (empleado && empleado !== "all") {
+            const terms = empleado.trim().split(/\s+/).filter(Boolean);
+
+            // Construir condición AND para cada término
+            // Cada término debe estar en (FirstName OR LastName OR Document)
+            const searchConditions = terms.map(term => ({
+                OR: [
+                    { FirstName: { contains: term } },
+                    { LastName: { contains: term } },
+                    { Document: { contains: term } }
+                ]
+            }));
+
             const persons = await prisma.eperson.findMany({
                 where: {
-                    OR: [
-                        { FirstName: { contains: empleado } },
-                        { LastName: { contains: empleado } }
-                    ]
+                    AND: searchConditions
                 },
                 select: { Oid: true }
             });
@@ -134,6 +149,10 @@ export async function GET(request: Request) {
             else if (log.CheckType === 1) tipoStr = 'Salida';
             else if (log.CheckType === 2) tipoStr = 'Inicio Descanso'; // BreakOut
             else if (log.CheckType === 3) tipoStr = 'Fin Descanso';   // BreakIn
+            else if (log.CheckType === 4) tipoStr = 'Entrada HE';
+            else if (log.CheckType === 5) tipoStr = 'Salida HE';
+            else if (log.CheckType === 15) tipoStr = 'Entrada'; // Por defecto para ZK Face/General
+            else if (log.CheckType === 16) tipoStr = 'Entrada'; // Otro código de entrada observado
             else tipoStr = String(log.CheckType);
 
             const nombreStr = person ? (person.FullName || `${person.FirstName || ''} ${person.LastName || ''}`).trim() : 'Desconocido';

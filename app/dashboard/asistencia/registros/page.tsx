@@ -166,6 +166,7 @@ export default function RegistroTiempoForm() {
   const [isMounted, setIsMounted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Modal Update
   const [selectedRegistro, setSelectedRegistro] = useState<Registro | null>(null);
@@ -260,7 +261,7 @@ export default function RegistroTiempoForm() {
     if (!isMounted) return;
     const timer = setTimeout(fetchRegistros, 300); // Debounce simple
     return () => clearTimeout(timer);
-  }, [itemsPerPage, currentPage, filtros, isMounted]);
+  }, [itemsPerPage, currentPage, filtros, isMounted, refreshKey]);
 
   // Limpiar filtros
   const handleClearAllFilters = () => {
@@ -292,7 +293,7 @@ export default function RegistroTiempoForm() {
       if (!response.ok) throw new Error("Error actualizando registro");
 
       setOpenUpdate(false);
-      fetchRegistros(); // Recargar datos
+      setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error("Error guardando actualización:", error);
       alert("Error al guardar los cambios");
@@ -335,13 +336,13 @@ export default function RegistroTiempoForm() {
       const diasSemana = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
       const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
 
-      const diaSemana = diasSemana[dateObj.getDay()];
-      const dia = dateObj.getDate();
-      const mes = meses[dateObj.getMonth()];
-      const año = dateObj.getFullYear();
+      const diaSemana = diasSemana[dateObj.getUTCDay()];
+      const dia = dateObj.getUTCDate();
+      const mes = meses[dateObj.getUTCMonth()];
+      const año = dateObj.getUTCFullYear();
 
-      let horas = dateObj.getHours();
-      let minutos = dateObj.getMinutes();
+      let horas = dateObj.getUTCHours();
+      let minutos = dateObj.getUTCMinutes();
       const ampm = horas >= 12 ? 'P. M.' : 'A. M.';
       horas = horas % 12;
       horas = horas ? horas : 12;

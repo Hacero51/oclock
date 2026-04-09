@@ -18,20 +18,15 @@ interface FiltrosInforme {
 }
 
 interface RegistroOfima {
-  FECHA: string;
-  FECING: string;
-  CODIGO: string;
   CODCC: string;
+  GRUPO: string;
+  CODIGO: string;
+  NOTA: string;
   CONCEP: string;
   NROHORAS: number;
   VALOR: number;
-  GRUPO: string;
-  FECLIQUIDA: string;
-  FECMOD: string;
-  INTEGRADO: number;
-  NOMABIERTA: number;
-  PASSWORDIN: string;
-  PASSWORDMO: string;
+  NOMCONCEPTO: string;
+  FECHA: string;
 }
 
 interface RegistroAsistencia {
@@ -227,30 +222,28 @@ export default function ExportacionInformes() {
               <table className="w-full text-xs text-left text-gray-500">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="px-3 py-2">FECHA</th>
-                    <th className="px-3 py-2">FECING</th>
-                    <th className="px-3 py-2">CODIGO</th>
                     <th className="px-3 py-2">CODCC</th>
+                    <th className="px-3 py-2">CODIGO</th>
                     <th className="px-3 py-2">CONCEP</th>
+                    <th className="px-3 py-2">FECHA</th>
+                    <th className="px-3 py-2">GRUPO</th>
+                    <th className="px-3 py-2">NOTA</th>
                     <th className="px-3 py-2">NROHORAS</th>
                     <th className="px-3 py-2">VALOR</th>
-                    <th className="px-3 py-2">GRUPO</th>
-                    <th className="px-3 py-2">NOMABIERTA</th>
                   </tr>
                 </thead>
                 <tbody>
                   {datosOfima.length > 0 ? (
                     datosOfima.map((row, i) => (
                       <tr key={i} className="bg-white border-b hover:bg-gray-50 whitespace-nowrap">
-                        <td className="px-3 py-1">{row.FECHA}</td>
-                        <td className="px-3 py-1">{row.FECING}</td>
-                        <td className="px-3 py-1">{row.CODIGO}</td>
                         <td className="px-3 py-1">{row.CODCC}</td>
+                        <td className="px-3 py-1">{row.CODIGO}</td>
                         <td className="px-3 py-1">{row.CONCEP}</td>
+                        <td className="px-3 py-1">{row.FECHA}</td>
+                        <td className="px-3 py-1">{row.GRUPO}</td>
+                        <td className="px-3 py-1">{row.NOTA}</td>
                         <td className="px-3 py-1">{row.NROHORAS.toFixed(2)}</td>
                         <td className="px-3 py-1">{row.VALOR}</td>
-                        <td className="px-3 py-1">{row.GRUPO}</td>
-                        <td className="px-3 py-1">{row.NOMABIERTA}</td>
                       </tr>
                     ))
                   ) : (

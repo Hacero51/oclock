@@ -13,12 +13,9 @@ import crypto from "crypto";
 import fs from 'fs';
 
 function logToDebugFile(message: string) {
-    try {
-        const timestamp = new Date().toISOString();
-        fs.appendFileSync('c:/proyectos/oclock/sync_debug_log.txt', `${timestamp} - ${message}\n`);
-    } catch (e) {
-        // Ignorar error de log
-    }
+    const timestamp = new Date().toISOString();
+    fs.promises.appendFile('c:/proyectos/oclock/sync_debug_log.txt', `${timestamp} - ${message}\n`)
+        .catch(() => {}); // fire and forget error handling
 }
 
 export async function sincronizarRelojes(devicesToSync?: string[]) {
@@ -184,11 +181,24 @@ export async function sincronizarRelojes(devicesToSync?: string[]) {
 }
 
 async function syncWithPython(ip: string, port: number, password: number = 0) {
-    const res = await fetch(`http://127.0.0.1:8000/sync?ip=${ip}&port=${port}&password=${password}`, {
-        method: 'GET',
-        cache: 'no-store'
-    });
-    return await res.json();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 segundos máximo por reloj
+
+    try {
+        const res = await fetch(`http://127.0.0.1:8005/sync?ip=${ip}&port=${port}&password=${password}`, {
+            method: 'GET',
+            cache: 'no-store',
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return await res.json();
+    } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            return { success: false, error: 'TIMEOUT: El servicio Python no respondió o el reloj está colgado/apagado.' };
+        }
+        return { success: false, error: error.message };
+    }
 }
 
 async function procesarRegistroDoble(log: BiometricLog, machineOid: string, empCache?: Map<string, any>): Promise<boolean> {

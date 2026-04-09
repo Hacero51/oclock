@@ -17,11 +17,15 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const startDate = new Date(startDateStr);
-        const endDate = new Date(endDateStr);
-        // Ajustar fin para cubrir todo el día final
-        const endDateAdjusted = new Date(endDateStr);
-        endDateAdjusted.setHours(23, 59, 59, 999);
+        // Analizar y crear fechas explícitas en zona horaria local (Colombia)
+        // en lugar de depender de new Date() genérico que asume UTC y retrasa unas horas
+        const [sYear, sMonth, sDay] = startDateStr.split('-').map(Number);
+        const startDate = new Date(sYear, sMonth - 1, sDay, 0, 0, 0);
+
+        const [eYear, eMonth, eDay] = endDateStr.split('-').map(Number);
+        const endDate = new Date(eYear, eMonth - 1, eDay);
+        // Ajustar fin para cubrir todo el día final localmente
+        const endDateAdjusted = new Date(eYear, eMonth - 1, eDay, 23, 59, 59, 999);
 
         console.log(`Generando reporte Ofima de ${startDate.toISOString()} a ${endDateAdjusted.toISOString()}`);
 
@@ -63,6 +67,8 @@ export async function GET(request: NextRequest) {
             select: { Oid: true, Document: true }
         });
         const personMap = new Map(people.map(p => [p.Oid, p.Document]));
+
+
 
         // Employee -> Cost Center
         // Need to fetch Employee to get CostCenter OID, then CostCenter to get Code
@@ -108,9 +114,12 @@ export async function GET(request: NextRequest) {
         details.forEach(d => {
             if (!d.Employee || !d.AttendanceType) return;
             const concept = typeMap.get(d.AttendanceType);
-            if (!concept) return; // Skip if no export code
+            // Ignorar conceptos vacíos o no mapeables
+            if (!concept || typeof concept !== 'string' || concept.trim() === '') return;
 
-            const key = `${d.Employee}|${concept}`;
+            const finalConcept = concept.trim();
+
+            const key = `${d.Employee}|${finalConcept}`;
             const current = aggregation.get(key) || 0;
             aggregation.set(key, current + (d.Hours || 0));
         });
@@ -133,22 +142,14 @@ export async function GET(request: NextRequest) {
             const fecIngReporte = endDate.toLocaleDateString('es-CO');
 
             reportData.push({
-                FECHA: fechaReporte,
-                FECING: fecIngReporte,
-                CODIGO: codigo,
                 CODCC: codcc,
+                CODIGO: codigo,
                 CONCEP: conceptCode,
-                NROHORAS: totalHours, // Number, frontend will format decimal
-                VALOR: 0,
+                FECHA: fechaReporte,
                 GRUPO: "REINO",
-                FECLIQUIDA: FECLIQUIDA_CONST,
-                FECMOD: FECMOD_CONST,
-                INTEGRADO: 0,
-                NOMABIERTA: 1, // Note: Image says NOMABIERTA (singular/plural difference check? Image: NOMABIERTA column header, row 1)
-                // Wait, schema interface in frontend had "NOMABIERTO". Image has "NOMABIERTA". I will use Image.
-                // And Password columns
-                PASSWORDIN: "SUPER",
-                PASSWORDMO: "SUPER"
+                NOTA: "",
+                NROHORAS: totalHours,
+                VALOR: 0,
             });
         }
 

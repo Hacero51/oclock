@@ -30,83 +30,17 @@ export default function PanelConfiguracionAdmin() {
   useEffect(() => {
     const cargarConfiguraciones = async () => {
       setCargando(true);
-
-      // Simular carga de API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const datosIniciales: ConfiguracionGrupo[] = [
-        {
-          id: 'grupo-Asistencia',
-          nombre: 'Grupo Asistencia',
-          recuperable: 4,
-          configuraciones: [
-            {
-              id: 'tiempo-minimo-entrada',
-              nombre: 'Tempo minivo entre marcaciones de entrada',
-              valor: '00:30:00',
-              tipo: 'time'
-            },
-            {
-              id: 'tiempo-minimo-salida',
-              nombre: 'Tempo minivo entre marcaciones de salida',
-              valor: '00:30:00',
-              tipo: 'time'
-            },
-            {
-              id: 'valor-minimo-dia',
-              nombre: 'Valor minimo de horas por dia',
-              valor: '01:00:00',
-              tipo: 'time'
-            },
-            {
-              id: 'tiempo-corregir-navegador',
-              nombre: 'Tempo minivo para corregir marcacion',
-              valor: '02:00:00',
-              tipo: 'time'
-            }
-          ]
-        },
-        {
-          id: 'grupo-pre-nomina',
-          nombre: 'Grupo Pre-Nomina',
-          recuperable: 5,
-          configuraciones: [
-            {
-              id: 'ajuste-tiempo',
-              nombre: 'Ajuste de tiempo',
-              valor: '03:00:00',
-              tipo: 'time'
-            },
-            {
-              id: 'ajuste-concepto',
-              nombre: 'Ajuste tiempo por concreto',
-              valor: '00:30:00',
-              tipo: 'time'
-            },
-            {
-              id: 'tiempo-exportacion',
-              nombre: 'Tiempo minino de exportación por concepto',
-              valor: '01:00:00',
-              tipo: 'time'
-            },
-            {
-              id: 'inicio-jornada',
-              nombre: 'Note de jornada nocturna',
-              valor: '08:00:00',
-              tipo: 'time'
-            },
-            {
-              id: 'fin-jornada',
-              nombre: 'Fin de jornada nocturna',
-              valor: '17:00:00',
-              tipo: 'time'
-            }
-          ]
-        }
-      ];
-
-      setConfiguraciones(datosIniciales);
-      setCargando(false);
+      try {
+        const response = await fetch('/api/configuracion');
+        if (!response.ok) throw new Error('Error al cargar configuraciones');
+        const data: ConfiguracionGrupo[] = await response.json();
+        setConfiguraciones(data);
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error conectando a la base de datos de configuraciones');
+      } finally {
+        setCargando(false);
+      }
     };
 
     cargarConfiguraciones();
@@ -130,9 +64,21 @@ export default function PanelConfiguracionAdmin() {
   const handleGuardarConfiguraciones = async () => {
     setGuardando(true);
     try {
-      // Simular guardado en API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log('Configuraciones guardadas:', configuraciones);
+      // Recolectar todos los items que son editables (tipo 'time')
+      const updates: { id: string; valor: string }[] = [];
+      configuraciones.forEach(grupo => {
+        grupo.configuraciones.forEach(config => {
+          updates.push({ id: config.id, valor: config.valor });
+        });
+      });
+
+      const response = await fetch('/api/configuracion', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) throw new Error('Error al guardar configuraciones');
       alert('Configuraciones guardadas exitosamente');
     } catch (error) {
       console.error('Error guardando configuraciones:', error);
@@ -149,13 +95,26 @@ export default function PanelConfiguracionAdmin() {
           <div className="relative">
             <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              type="time"
-              step="1"
-              value={config.valor.slice(0, 5)}
-              onChange={(e) => handleConfigChange(grupoId, config.id, e.target.value + ':00')}
+              type="text"
+              placeholder="HH:mm:ss"
+              value={config.valor}
+              onChange={(e) => handleConfigChange(grupoId, config.id, e.target.value)}
               className="pl-10 bg-gray-50 border-gray-300 focus:bg-white"
             />
           </div>
+        );
+
+      case 'select':
+        return (
+          <select
+            value={config.valor}
+            onChange={(e) => handleConfigChange(grupoId, config.id, e.target.value)}
+            className="w-full p-2 rounded-md border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+          >
+            {config.opciones?.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
         );
 
       default:

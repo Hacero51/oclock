@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useContext } from "react";
 import { useSession } from "next-auth/react";
@@ -25,14 +26,24 @@ import {
   FileText,
   MapPin,
   CalendarSync,
+  RefreshCw,
 } from "lucide-react";
 
 import { DashboardContext } from "@/app/dashboard/layout";
 
 export default function Navbar({ onOpenCreate }) {
-  const { estadoEmpleados, setEstadoEmpleados } = useContext(DashboardContext);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const { estadoEmpleados, setEstadoEmpleados, triggerRefresh } = useContext(DashboardContext);
   const { data: session } = useSession();
   const [menuAbierto, setMenuAbierto] = useState(false);
+
+  const handleRefresh = () => {
+    if (triggerRefresh) triggerRefresh();
+    startTransition(() => {
+      router.refresh();
+    });
+  };
 
   const opciones = [
     { label: "Empleado", icon: Users, type: "Empleado" },
@@ -85,7 +96,20 @@ export default function Navbar({ onOpenCreate }) {
       </div>
 
       {/* Grupo Derecha: Filtro + Usuario */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 sm:gap-6">
+        
+        {/* Botón de Recargar */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleRefresh}
+          disabled={isPending}
+          title="Recargar información"
+          className="bg-white/10 text-white border-white/20 hover:bg-white/20 h-9 w-9 p-0 flex items-center justify-center transition-all disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${isPending ? 'animate-spin' : ''}`} />
+        </Button>
+
         {/* Select Estado (usa contexto) */}
         <div className="flex items-center gap-2">
           <span className="text-white text-sm hidden md:inline">Filtrar por:</span>

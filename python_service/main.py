@@ -54,4 +54,4 @@ def sync_device(ip: str, port: int = 4370, timeout: int = 20, password: int = 0)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8005)

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useState, ReactNode } from "react";
+import { createContext, useState, ReactNode, useMemo } from "react";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
 import CreateModal from "@/components/CreateModal";
@@ -9,6 +9,8 @@ export const DashboardContext = createContext({
   openCreate: (type: string) => { },
   estadoEmpleados: "todos",
   setEstadoEmpleados: (v: string) => { },
+  refreshTrigger: 0,
+  triggerRefresh: () => {},
 });
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -16,15 +18,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [createType, setCreateType] = useState<string | null>(null);
 
   const [estadoEmpleados, setEstadoEmpleados] = useState<string>("todos");
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+
+  const triggerRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const contextValue = useMemo(() => ({
+    openCreate: (t: string) => setCreateType(t),
+    estadoEmpleados,
+    setEstadoEmpleados,
+    refreshTrigger,
+    triggerRefresh,
+  }), [estadoEmpleados, refreshTrigger]);
 
   return (
-    <DashboardContext.Provider
-      value={{
-        openCreate: (t) => setCreateType(t),
-        estadoEmpleados,
-        setEstadoEmpleados,
-      }}
-    >
+    <DashboardContext.Provider value={contextValue}>
       <div className="flex h-screen bg-gray-50 overflow-y-auto">
 
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />

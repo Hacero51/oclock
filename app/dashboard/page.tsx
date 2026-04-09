@@ -38,12 +38,7 @@ export default function DashboardPage() {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    // Simular carga de datos
-    const timer = setTimeout(() => {
-      setCargando(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    setCargando(false);
   }, []);
 
   // Componente de barra de progreso para cumplimiento

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { laborEngine } from "@/server/biometric/engine";
 
 // Forzar recompilacion - v5 (LEGACY IDENTITY RESTORATION)
 export async function GET(request: Request) {
@@ -35,6 +36,8 @@ export async function GET(request: Request) {
             }
             if (hasta) {
                 const hastaFecha = new Date(hasta);
+                // Asegurar que incluya el dia completo hasta la medianoche (T00 del dia siguiente)
+                // si buscamos por bloques de T00
                 hastaFecha.setUTCHours(23, 59, 59, 999);
                 whereClause.Day.lte = hastaFecha;
             }
@@ -260,6 +263,15 @@ export async function PATCH(request: Request) {
             data: updateData
         });
 
+        // RECALCULO INSTANTANEO SI HUBO ACTUALIZACION MANUAL
+        if (updated.Employee && updated.Day) {
+            try {
+                await laborEngine.processDay(updated.Employee, updated.Day);
+            } catch (err) {
+                console.error("Error silently ignored on processDay for PATCH:", err);
+            }
+        }
+
         return NextResponse.json(updated);
     } catch (error) {
         console.error("Error updating marcación:", error);
@@ -297,10 +309,18 @@ export async function POST(request: Request) {
                 Day: new Date(fecha),
                 MarkingIn: markingInData,
                 MarkingOut: markingOutData,
-                StartShiftMarkingIn: true, // Por defecto se asume que inicia turno si es manual
+                StartShiftMarkingIn: true, 
                 Approve: false
             }
         });
+
+        if (newMarking.Employee && newMarking.Day) {
+            try {
+                await laborEngine.processDay(newMarking.Employee, newMarking.Day);
+            } catch (err) {
+                console.error("Error silently ignored on processDay for POST:", err);
+            }
+        }
 
         return NextResponse.json(newMarking);
     } catch (error) {
@@ -311,3 +331,27 @@ export async function POST(request: Request) {
         );
     }
 }
+
+export async function DELETE(request: Request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get("id");
+
+        if (!id) {
+            return NextResponse.json({ error: "ID de marcación requerido" }, { status: 400 });
+        }
+
+        await prisma.marking.delete({
+            where: { Oid: id }
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting marcación:", error);
+        return NextResponse.json(
+            { error: "Error eliminando marcación" },
+            { status: 500 }
+        );
+    }
+}
+

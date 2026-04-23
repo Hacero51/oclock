@@ -33,6 +33,13 @@ function PaginationControls({
   itemsPerPage, 
   onPageChange,
   tableType 
+}: {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  tableType: 'asistencia' | 'permiso';
 }) {
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
@@ -123,7 +130,7 @@ export default function GestionConceptos() {
   
   // Estados para paginación de asistencia
   const [currentPageAsistencia, setCurrentPageAsistencia] = useState(1);
-  const [itemsPerPageAsistencia] = useState(5);
+  const [itemsPerPageAsistencia] = useState(10);
   
   // Estados para paginación de permisos
   const [currentPagePermisos, setCurrentPagePermisos] = useState(1);
@@ -144,15 +151,20 @@ export default function GestionConceptos() {
       console.error('Error fetching conceptos asistencia:', error);
       // Datos de ejemplo como fallback
       return [
-        { id: '1', codigo: '00', codigoExportar: '', nombre: '00.TURNO', estado: 'Activo', factor: '0,' },
-        { id: '2', codigo: '01', codigoExportar: '', nombre: '01.TIEMPO LABORADO', estado: 'Activo', factor: '0,' },
-        { id: '3', codigo: '02', codigoExportar: 'A49', nombre: '02.RECARGO NOCTURNO', estado: 'Activo', factor: '1,35' },
-        { id: '4', codigo: '03.1', codigoExportar: 'R48', nombre: '03.DESCUENTOS EN TIEMPO LABORADO', estado: 'Activo', factor: '1,' },
-        { id: '5', codigo: '03', codigoExportar: 'A02', nombre: '03.HORAS EXTRAS ORDINARIAS DIURNAS', estado: 'Activo', factor: '1,25' },
-        { id: '6', codigo: '04', codigoExportar: 'A04', nombre: '04.HORAS EXTRAS ORDINARIAS NOCTURNAS', estado: 'Activo', factor: '1,75' },
-        { id: '7', codigo: '08', codigoExportar: 'A46', nombre: '08.HORAS EXTRAS FESTIVAS DIURNAS', estado: 'Activo', factor: '2,' },
-        { id: '8', codigo: '98', codigoExportar: '', nombre: '98.RETARDO', estado: 'Activo', factor: '0,' },
-        { id: '9', codigo: '99', codigoExportar: '', nombre: '99.AUSENCIA', estado: 'Activo', factor: '0,' },
+        { id: '1', codigo: '00', codigoExportar: '', nombre: '00.TURNO', estado: 'Activo', factor: '0' },
+        { id: '2', codigo: '01', codigoExportar: 'A01', nombre: '01.HORA ORDINARIA DIURNA', estado: 'Activo', factor: '1' },
+        { id: '3', codigo: '02', codigoExportar: 'A49', nombre: '02.RECARGO NOCTURNO', estado: 'Activo', factor: '1.35' },
+        { id: '4', codigo: '03.1', codigoExportar: 'R48', nombre: '03.DESCUENTOS EN TIEMPO LABORADO', estado: 'Activo', factor: '1' },
+        { id: '5', codigo: '03', codigoExportar: 'A02', nombre: '03.HORAS EXTRAS ORDINARIAS DIURNAS', estado: 'Activo', factor: '1.25' },
+        { id: '6', codigo: '04', codigoExportar: 'A04', nombre: '04.HORAS EXTRAS ORDINARIAS NOCTURNAS', estado: 'Activo', factor: '1.75' },
+        { id: '7', codigo: '04.1', codigoExportar: 'A36', nombre: '04.BONIFICACION DIURNA', estado: 'Activo', factor: '0' },
+        { id: '8', codigo: '04.2', codigoExportar: 'A35', nombre: '04.BONIFICACION NOCTURNA', estado: 'Activo', factor: '0' },
+        { id: '9', codigo: '05', codigoExportar: 'A05', nombre: '05.HORA FESTIVA DIURNA', estado: 'Activo', factor: '1.75' },
+        { id: '10', codigo: '06', codigoExportar: 'A50', nombre: '06.HORA FESTIVA NOCTURNA', estado: 'Activo', factor: '2.10' },
+        { id: '11', codigo: '07', codigoExportar: 'A06', nombre: '07.HORAS EXTRAS FESTIVAS DIURNAS', estado: 'Activo', factor: '2.00' },
+        { id: '12', codigo: '08', codigoExportar: 'A08', nombre: '08.HORAS EXTRAS FESTIVAS NOCTURNAS', estado: 'Activo', factor: '2.50' },
+        { id: '13', codigo: '98', codigoExportar: '', nombre: '98.RETARDO', estado: 'Activo', factor: '0' },
+        { id: '14', codigo: '99', codigoExportar: '', nombre: '99.AUSENCIA', estado: 'Activo', factor: '0' },
       ];
     }
   };
@@ -225,7 +237,7 @@ export default function GestionConceptos() {
     'Código': concepto.codigo,
     'Código Exportar': concepto.codigoExportar || '-',
     'Nombre': concepto.nombre,
-    'Fecha/Proga': concepto.factor,
+    'Factor': concepto.factor,
     'Estado': (
       <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${
         concepto.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -255,7 +267,7 @@ export default function GestionConceptos() {
     )
   }));
 
-  const columnasAsistencia = ['Código', 'Código Exportar', 'Nombre', 'Fecha/Proga', 'Estado'];
+  const columnasAsistencia = ['Código', 'Código Exportar', 'Nombre', 'Factor', 'Estado'];
   const columnasPermisos = ['Código', 'Código Exportar', 'Nombre', 'Pago', 'Estado'];
 
   // Función para manejar el click en una fila (abrir modal)

@@ -5,7 +5,8 @@ export async function GET() {
     try {
         const machines = await prisma.machine.findMany({
             where: {
-                Name: { in: ['MOSQUERA', 'PRENSADOS INR'] }
+                MachineNumber: { in: [4, 91] },
+                ConnectionStatus: 1
             },
             select: {
                 Oid: true,

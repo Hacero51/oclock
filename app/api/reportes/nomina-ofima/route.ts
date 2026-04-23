@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
@@ -17,141 +16,152 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Analizar y crear fechas explícitas en zona horaria local (Colombia)
-        // en lugar de depender de new Date() genérico que asume UTC y retrasa unas horas
+        // Las fechas en DB están guardadas como T05:00:00.000Z (medianoche local Colombia)
+        // startDate = primer día del período (inclusive)
+        // endDate   = último día del período (inclusive)
         const [sYear, sMonth, sDay] = startDateStr.split('-').map(Number);
-        const startDate = new Date(sYear, sMonth - 1, sDay, 0, 0, 0);
+        const startDate = new Date(Date.UTC(sYear, sMonth - 1, sDay, 0, 0, 0, 0));
 
         const [eYear, eMonth, eDay] = endDateStr.split('-').map(Number);
-        const endDate = new Date(eYear, eMonth - 1, eDay);
-        // Ajustar fin para cubrir todo el día final localmente
-        const endDateAdjusted = new Date(eYear, eMonth - 1, eDay, 23, 59, 59, 999);
+        // lte = límite exacto para la medianoche del último día
+        const endDateInclusive = new Date(Date.UTC(eYear, eMonth - 1, eDay, 5, 0, 0, 0));
 
-        console.log(`Generando reporte Ofima de ${startDate.toISOString()} a ${endDateAdjusted.toISOString()}`);
+        console.log(`[OFIMA] Reporte de ${startDate.toISOString()} a ${endDateInclusive.toISOString()}`);
 
-        // 1. Fetch Details within range
+        // Conceptos excluidos del reporte (R48 = datos legados, no generados por el motor nuevo)
+        const EXCLUDED_CODES = ['R48'];
+
+        // 1. OIDs de conceptos excluidos
+        const excludedTypes = await prisma.attendancetype.findMany({
+            where: { CodeToExport: { in: EXCLUDED_CODES } },
+            select: { Oid: true }
+        });
+        const excludedTypeOids = excludedTypes.map(t => t.Oid);
+
+        // 2. Detalles del período, sin R48, solo registros con horas
         const details = await prisma.attendancedetail.findMany({
             where: {
                 Day: {
                     gte: startDate,
-                    lte: endDateAdjusted,
+                    lte: endDateInclusive,
                 },
-                Hours: { gt: 0 } // Sólo registros con horas
+                Hours: { gt: 0 },
+                ...(excludedTypeOids.length > 0 && {
+                    AttendanceType: { notIn: excludedTypeOids }
+                })
             },
             select: {
                 Day: true,
                 Employee: true,
                 AttendanceType: true,
                 Hours: true
-            }
+            },
+            orderBy: [
+                { Day: 'asc' },
+                { Employee: 'asc' }
+            ]
         });
 
         if (details.length === 0) {
             return NextResponse.json([]);
         }
 
-        // 2. Fetch Related Data (Optimization: only fetch used IDs)
+        // 3. Cargar relaciones (solo IDs usados para eficiencia)
         const distinctEmpIds = [...new Set(details.map(d => d.Employee).filter((id): id is string => !!id))];
         const distinctTypeIds = [...new Set(details.map(d => d.AttendanceType).filter((id): id is string => !!id))];
 
-        // Attendance Types (Concepts)
         const attTypes = await prisma.attendancetype.findMany({
             where: { Oid: { in: distinctTypeIds } },
-            select: { Oid: true, CodeToExport: true } // CodeToExport maps to CONCEP
+            select: { Oid: true, CodeToExport: true }
         });
         const typeMap = new Map(attTypes.map(t => [t.Oid, t.CodeToExport]));
 
-        // People (Documents)
         const people = await prisma.eperson.findMany({
             where: { Oid: { in: distinctEmpIds } },
             select: { Oid: true, Document: true }
         });
         const personMap = new Map(people.map(p => [p.Oid, p.Document]));
 
-
-
-        // Employee -> Cost Center
-        // Need to fetch Employee to get CostCenter OID, then CostCenter to get Code
         const employees = await prisma.employee.findMany({
             where: { Oid: { in: distinctEmpIds } },
             select: { Oid: true, CostCenter: true }
         });
-
-        // Fetch distinct CostCenters used
         const distinctCcIds = [...new Set(employees.map(e => e.CostCenter).filter((id): id is string => !!id))];
         const costCenters = await prisma.costcenter.findMany({
             where: { Oid: { in: distinctCcIds } },
             select: { Oid: true, Code: true }
         });
         const ccMap = new Map(costCenters.map(cc => [cc.Oid, cc.Code]));
-
-        // Map Employee OID -> Cost Center Code
         const empToCcCodeMap = new Map<string, string>();
         employees.forEach(e => {
-            if (e.CostCenter && ccMap.has(e.CostCenter)) {
-                empToCcCodeMap.set(e.Oid, ccMap.get(e.CostCenter) || "000");
+            empToCcCodeMap.set(e.Oid, (e.CostCenter && ccMap.get(e.CostCenter)) || "000");
+        });
+
+        // 4. Agrupar: UNA FILA por Empleado + Día + Concepto
+        //    (suma horas si hay sub-segmentos del mismo concepto en el mismo día)
+        const aggregation = new Map<string, {
+            empOid: string;
+            day: Date;
+            conceptCode: string;
+            hours: number;
+        }>();
+
+        details.forEach(d => {
+            if (!d.Employee || !d.AttendanceType || !d.Day) return;
+            const concept = typeMap.get(d.AttendanceType);
+            if (!concept || concept.trim() === '') return;
+
+            const dayKey = d.Day.toISOString();
+            const key = `${d.Employee}|${dayKey}|${concept.trim()}`;
+
+            const existing = aggregation.get(key);
+            if (existing) {
+                existing.hours += (d.Hours || 0);
             } else {
-                empToCcCodeMap.set(e.Oid, "000");
+                aggregation.set(key, {
+                    empOid: d.Employee,
+                    day: d.Day,
+                    conceptCode: concept.trim(),
+                    hours: d.Hours || 0
+                });
             }
         });
 
-        // 3. Transform Data to RegistroOfima format
-        // Aggregation might be needed? Usually payroll reports line-by-line or aggregated by day/concept. 
-        // The image shows repeated dates for same person/concept? No, image dates are 16/12/2024 (period start/end?).
-        // Actually image shows "FECHA" 16/12/2024 for all rows. "FECING" 31/12/2025.
-        // If FECHA is always Period Start, we should change logic. 
-        // BUT usually usage is "Date of event". The image might be showing a summarized view or a specific period usage.
-        // Let's assume FECHA = Day of attendance for now, unless instructed otherwise.
-        // Wait, the image shows "16/12/2024" for ALL rows visible. It looks like a "Period Start Date" or "Pay Date".
-        // Let's use `startDate` as "FECHA" for aggregation if the user wants a single line per concept per period?
-        // User said "dependiendo del rango de fechas haga el informe".
-        // If I group by Employee + Concept, sum Hours, then FECHA = startDate (or EndDate).
-        // Let's Aggregate: Sum Attributes by Employee + Concept.
-        // Result: One row per Employee per Concept with Total Hours in that range.
-
-        const aggregation = new Map<string, number>(); // Key: "EmpOID|ConceptCode", Value: Hours
-
-        details.forEach(d => {
-            if (!d.Employee || !d.AttendanceType) return;
-            const concept = typeMap.get(d.AttendanceType);
-            // Ignorar conceptos vacíos o no mapeables
-            if (!concept || typeof concept !== 'string' || concept.trim() === '') return;
-
-            const finalConcept = concept.trim();
-
-            const key = `${d.Employee}|${finalConcept}`;
-            const current = aggregation.get(key) || 0;
-            aggregation.set(key, current + (d.Hours || 0));
-        });
-
+        // 5. Construir fila de reporte
         const reportData: any[] = [];
-        // Constants from image/request
-        const FECING_FMT = endDate.toLocaleDateString('es-CO'); // 31/12/2025 style?
-        const FECLIQUIDA_CONST = "01/01/1900";
-        const FECMOD_CONST = "01/01/1900";
 
-        for (const [key, totalHours] of aggregation.entries()) {
-            const [empOid, conceptCode] = key.split('|');
+        for (const row of aggregation.values()) {
+            const codigo = personMap.get(row.empOid) || "0";
+            const codcc = empToCcCodeMap.get(row.empOid) || "000";
 
-            const codigo = personMap.get(empOid) || "0";
-            const codcc = empToCcCodeMap.get(empOid) || "000";
-
-            // FECHA: Use startDate of the requested period? Or end date?
-            // Image "16/12/2024" suggests start of period.
-            const fechaReporte = startDate.toLocaleDateString('es-CO');
-            const fecIngReporte = endDate.toLocaleDateString('es-CO');
+            // La fecha en DB = YYYY-MM-DDTT05:00:00Z = medianoche local Colombia.
+            // getUTCDate/Month/FullYear nos da el día del calendario correcto.
+            const d = row.day;
+            const fechaStr = `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`;
 
             reportData.push({
                 CODCC: codcc,
                 CODIGO: codigo,
-                CONCEP: conceptCode,
-                FECHA: fechaReporte,
+                CONCEP: row.conceptCode,
+                FECHA: fechaStr,
                 GRUPO: "REINO",
                 NOTA: "",
-                NROHORAS: totalHours,
+                NROHORAS: Math.round(row.hours * 100) / 100,
                 VALOR: 0,
             });
         }
+
+        // Ordenar por fecha ASC, luego documento, luego concepto
+        reportData.sort((a, b) => {
+            // Fechas en formato dd/MM/yyyy — comparar por partes
+            const [da, ma, ya] = a.FECHA.split('/').map(Number);
+            const [db, mb, yb] = b.FECHA.split('/').map(Number);
+            const dateA = ya * 10000 + ma * 100 + da;
+            const dateB = yb * 10000 + mb * 100 + db;
+            if (dateA !== dateB) return dateA - dateB;
+            if (String(a.CODIGO) !== String(b.CODIGO)) return String(a.CODIGO).localeCompare(String(b.CODIGO));
+            return a.CONCEP.localeCompare(b.CONCEP);
+        });
 
         return NextResponse.json(reportData);
 

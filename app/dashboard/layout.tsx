@@ -42,7 +42,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           className={`flex-1 flex flex-col transition-all duration-300 min-w-0 ml-20 ${collapsed ? "md:ml-20" : "md:ml-72"}`}
         >
           <Navbar
-            onOpenCreate={(t) => setCreateType(t)}
+            onOpenCreate={(t: any) => setCreateType(t)}
           />
 
           <main className="flex-1 p-6 overflow-y-auto">

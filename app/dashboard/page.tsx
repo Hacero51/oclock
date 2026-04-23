@@ -36,13 +36,31 @@ const datosEjemplo = {
 export default function DashboardPage() {
   const [datos, setDatos] = useState(datosEjemplo);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [periodo, setPeriodo] = useState('today');
+
+  const fetchStats = async (p: string) => {
+    try {
+      setCargando(true);
+      const response = await fetch(`/api/dashboard/stats?period=${p}`);
+      if (!response.ok) throw new Error("Error fetching dashboard statistics");
+      const data = await response.json();
+      setDatos(data);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("No se pudieron cargar las estadísticas reales.");
+    } finally {
+      setCargando(false);
+    }
+  };
 
   useEffect(() => {
-    setCargando(false);
-  }, []);
+    fetchStats(periodo);
+  }, [periodo]);
 
   // Componente de barra de progreso para cumplimiento
-  const BarraProgreso = ({ porcentaje, color = "bg-blue-500" }) => (
+  const BarraProgreso = ({ porcentaje, color = "bg-blue-500" }: { porcentaje: number; color?: string }) => (
     <div className="w-full bg-gray-200 rounded-full h-2">
       <div 
         className={`h-2 rounded-full ${color} transition-all duration-500`}
@@ -52,7 +70,7 @@ export default function DashboardPage() {
   );
 
   // Componente de gráfica de barras simple
-  const GraficaBarras = ({ datos, color = "bg-blue-500" }) => (
+  const GraficaBarras = ({ datos, color = "bg-blue-500" }: { datos: any[]; color?: string }) => (
     <div className="flex items-end justify-between h-32 gap-1 pt-4">
       {datos.map((item, index) => (
         <div key={index} className="flex flex-col items-center flex-1">
@@ -67,7 +85,7 @@ export default function DashboardPage() {
     </div>
   );
 
-  if (cargando) {
+  if (cargando && !datos) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -96,16 +114,37 @@ export default function DashboardPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Hoy:</span>
-          <span className="text-sm font-medium text-gray-700">
-            {new Date().toLocaleDateString('es-ES', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </span>
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200">
+            {[
+              { id: 'today', label: 'Hoy' },
+              { id: 'week', label: 'Semana' },
+              { id: 'month', label: 'Mes' }
+            ].map((btn) => (
+              <button
+                key={btn.id}
+                onClick={() => setPeriodo(btn.id)}
+                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                  periodo === btn.id 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">Hoy:</span>
+            <span className="text-sm font-medium text-gray-700">
+              {new Date().toLocaleDateString('es-ES', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -295,20 +334,12 @@ export default function DashboardPage() {
           <CardHeader className="pb-4 border-b border-gray-200 bg-white">
             <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-purple-600" />
-              Tendencia Mensual de Cumplimiento
+              Tendencia de Cumplimiento
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             <GraficaBarras
-              datos={[
-                { label: 'Lun', valor: 85 },
-                { label: 'Mar', valor: 88 },
-                { label: 'Mié', valor: 82 },
-                { label: 'Jue', valor: 90 },
-                { label: 'Vie', valor: 87 },
-                { label: 'Sáb', valor: 92 },
-                { label: 'Dom', valor: 78 }
-              ]}
+              datos={(datos as any).tendencia || []}
               color="bg-purple-500"
             />
           </CardContent>
@@ -325,27 +356,23 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="p-6">
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
-              <div className="text-sm">
-                <span className="font-medium text-yellow-800">Departamento de Producción</span>
-                <span className="text-yellow-700"> tiene un 22% de retrasos esta semana</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <Clock className="h-4 w-4 text-blue-600 flex-shrink-0" />
-              <div className="text-sm">
-                <span className="font-medium text-blue-800">Turno de la tarde</span>
-                <span className="text-blue-700"> muestra mejoría en puntualidad (+8%)</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-              <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-              <div className="text-sm">
-                <span className="font-medium text-green-800">Cumplimiento general</span>
-                <span className="text-green-700"> ha aumentado un 5% este mes</span>
-              </div>
-            </div>
+            {(datos.alertas || []).map((alerta, index) => {
+              const colorMap = {
+                warning: { bg: 'bg-yellow-50', border: 'border-yellow-200', title: 'text-yellow-800', msg: 'text-yellow-700', icon: <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0" /> },
+                info: { bg: 'bg-blue-50', border: 'border-blue-200', title: 'text-blue-800', msg: 'text-blue-700', icon: <Clock className="h-4 w-4 text-blue-600 flex-shrink-0" /> },
+                success: { bg: 'bg-green-50', border: 'border-green-200', title: 'text-green-800', msg: 'text-green-700', icon: <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" /> }
+              };
+              const c = colorMap[alerta.tipo] || colorMap.info;
+              return (
+                <div key={index} className={`flex items-center gap-3 p-3 ${c.bg} rounded-lg border ${c.border}`}>
+                  {c.icon}
+                  <div className="text-sm">
+                    <span className={`font-medium ${c.title}`}>{alerta.titulo}</span>
+                    <span className={c.msg}> {alerta.mensaje}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

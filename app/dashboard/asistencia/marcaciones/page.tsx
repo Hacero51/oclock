@@ -20,7 +20,6 @@ import {
   Clock,
   Search,
   Filter,
-  Download,
   X,
   User,
   Calendar,
@@ -31,8 +30,19 @@ import {
   ChevronRight,
   MoreVertical,
   Trash2,
-  Plus
+  Plus,
+  RefreshCw,
+  Copy,
+  FilePlus,
+  ExternalLink,
+  Download,
+  Upload
 } from "lucide-react";
+import {
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+} from "@/components/ui/context-menu";
 
 // Componente de controles de paginación mejorado
 function PaginationControls({
@@ -310,6 +320,8 @@ export default function MarcacionesPage() {
   const [entradaEditada, setEntradaEditada] = useState("");
   const [errorValidacion, setErrorValidacion] = useState("");
   const [editandoCheckbox, setEditandoCheckbox] = useState<string | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [advancedFilterRoot, setAdvancedFilterRoot] = useState<FilterNode | undefined>(undefined);
@@ -553,6 +565,52 @@ export default function MarcacionesPage() {
     }
   };
 
+  const handleDeleteMarcacion = async (id: string) => {
+    setIsDeletingId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!isDeletingId) return;
+    try {
+      const response = await fetch(`/api/marcaciones?id=${isDeletingId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error("Error eliminando marcación");
+      setRefreshKey(prev => prev + 1);
+      setIsDeletingId(null);
+      setSelectedRowId(null);
+    } catch (error) {
+      console.error(error);
+      alert("Error al eliminar la marcación");
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+N: Nuevo
+      if (e.ctrlKey && e.key === 'n') {
+        e.preventDefault();
+        setOpenManual(true);
+      }
+      // Ctrl+D: Suprimir
+      if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        if (selectedRowId) {
+          handleDeleteMarcacion(selectedRowId);
+        } else {
+          alert("Por favor, seleccione una fila primero para eliminar.");
+        }
+      }
+      // F5: Actualizar
+      if (e.key === 'F5') {
+        e.preventDefault();
+        fetchMarcaciones();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const evaluateFilter = (marcacion: Marcacion, node: FilterNode): boolean => {
     if (node.type === "group") {
       if (!node.children || node.children.length === 0) return true;
@@ -678,7 +736,8 @@ export default function MarcacionesPage() {
           }`}>
           {marcacion.estado.toUpperCase()}
         </span>
-      )
+      ),
+      id: marcacion.id
     }));
   }, [marcacionesFiltradas, editandoId, salidaEditada, errorValidacion, editandoEntradaId, entradaEditada]);
 
@@ -802,7 +861,61 @@ export default function MarcacionesPage() {
         <Tabla
           columnas={['Documento', 'Empleado', 'Turno', 'Fecha', 'Entrada', 'Salida', 'Inicia Turno', 'Extra Después', 'Extra Festivo', 'Autorizar', 'Estado']}
           datos={datosParaTabla}
-          onRowClick={() => { }}
+          selectedRowId={selectedRowId}
+          onRowClick={(fila: any) => setSelectedRowId(fila.id)}
+          renderContextMenu={(fila: any) => {
+            // Buscamos la marcación original para tener los IDs reales
+            const m = marcaciones.find(x => x.id === fila.id);
+            return (
+              <>
+                <ContextMenuItem onClick={() => setOpenManual(true)}>
+                  <Plus className="mr-2 h-4 w-4 text-blue-600" />
+                  <span>Nuevo</span>
+                  <ContextMenuShortcut>Ctrl+N</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem onClick={() => { if (m) handleDeleteMarcacion(m.id); }}>
+                  <Trash2 className="mr-2 h-4 w-4 text-red-600" />
+                  <span>Suprimir</span>
+                  <ContextMenuShortcut>Ctrl+D</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={() => {
+                  if (m) {
+                    const entradaVacia = !m.entrada || m.entrada === "N/A" || m.entrada === "-";
+                    if (entradaVacia) iniciarEdicionEntrada(m);
+                    else iniciarEdicionSalida(m);
+                  }
+                }}>
+                  <ExternalLink className="mr-2 h-4 w-4 text-gray-500" />
+                  <span>Abrir el objeto</span>
+                </ContextMenuItem>
+                <ContextMenuItem onClick={() => fetchMarcaciones()}>
+                  <RefreshCw className="mr-2 h-4 w-4 text-green-600" />
+                  <span>Actualizar</span>
+                  <ContextMenuShortcut>F5</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={() => {
+                  // Lógica simple de exportar (ejemplo)
+                  console.log("Exportando...");
+                }}>
+                  <Download className="mr-2 h-4 w-4 text-blue-500" />
+                  <span>Exportar</span>
+                </ContextMenuItem>
+                <ContextMenuItem disabled>
+                  <Upload className="mr-2 h-4 w-4 text-gray-400" />
+                  <span>Importar de archivo...</span>
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={() => {
+                  if (m) navigator.clipboard.writeText(`${m.empleado} - ${m.entrada} / ${m.salida}`);
+                }}>
+                  <Copy className="mr-2 h-4 w-4 text-gray-500" />
+                  <span>Copia del valor de la celda</span>
+                </ContextMenuItem>
+              </>
+            );
+          }}
         />
         <PaginationControls
           currentPage={currentPage}
@@ -828,6 +941,22 @@ export default function MarcacionesPage() {
           // @ts-ignore
           onSaved={() => fetchMarcaciones()}
         />
+      </Dialog>
+
+      <Dialog open={!!isDeletingId} onOpenChange={(open) => !open && setIsDeletingId(null)} size="sm">
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-3 text-red-600">
+            <Trash2 className="h-6 w-6" />
+            <h3 className="text-lg font-bold">Confirmar Eliminación</h3>
+          </div>
+          <p className="text-gray-600 text-sm">
+            ¿Está seguro que desea eliminar esta marcación? Esta acción no se puede deshacer.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" onClick={() => setIsDeletingId(null)}>Cancelar</Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={confirmDelete}>Eliminar Registro</Button>
+          </div>
+        </div>
       </Dialog>
     </div>
   );

@@ -105,7 +105,7 @@ export async function GET() {
       { 
         error: true, 
         message: "Error interno del servidor al obtener usuarios",
-        details: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+        details: process.env.NODE_ENV === 'development' ? (error as Error).toString() : undefined
       },
       { status: 500 }
     );
@@ -181,7 +181,7 @@ export async function POST(req: Request) {
       { 
         error: true, 
         message: "Error interno del servidor al crear usuario",
-        details: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+        details: process.env.NODE_ENV === 'development' ? (error as Error).toString() : undefined
       },
       { status: 500 }
     );
@@ -302,7 +302,7 @@ export async function PUT(req: Request) {
       { 
         error: true, 
         message: "Error interno del servidor al actualizar usuario",
-        details: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+        details: process.env.NODE_ENV === 'development' ? (error as Error).toString() : undefined
       },
       { status: 500 }
     );
@@ -368,7 +368,7 @@ export async function DELETE(req: Request) {
       { 
         error: true, 
         message: "Error interno del servidor al eliminar usuario",
-        details: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+        details: process.env.NODE_ENV === 'development' ? (error as Error).toString() : undefined
       },
       { status: 500 }
     );

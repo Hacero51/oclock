@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { BiometricConnection } from "./connection";
 import { BiometricLog } from "./types";
 import crypto from "crypto";
+import { laborEngine } from "./engine";
 
 /**
  * Sincroniza los relojes con la DB.
@@ -21,11 +22,10 @@ function logToDebugFile(message: string) {
 export async function sincronizarRelojes(devicesToSync?: string[]) {
     try {
         logToDebugFile(`[SYNC] Iniciando sincronización...`);
-        const targetNames = devicesToSync || ['MOSQUERA', 'PRENSADOS INR', 'PRESADOS INR'];
-
+        
         const machines = await prisma.machine.findMany({
             where: {
-                Name: { in: targetNames }
+                ConnectionStatus: 1
             },
         });
 
@@ -124,14 +124,12 @@ export async function sincronizarRelojes(devicesToSync?: string[]) {
                                         logToDebugFile(`[SYNC-TIME-DEBUG] Machine: ${machine.Name}, Raw: ${rawTs}, ParsedAsLocal: ${new Date(rawTs).toString()}`);
                                     }
 
-                                    // FIX: Parsear manualmente como UTC
-                                    // El dispositivo/Python envía la hora en UTC (ej: 15:37 para las 10:37 AM).
-                                    // Si lo parseamos como Local, se convierte en 15:37 Local -> 20:37 UTC.
-                                    // Al mostrarse (UTC-5), queda 15:37 (Error: 3:37 PM).
-                                    // Solución: Forzar interpretación UTC agregando 'Z'.
-                                    let timeStr = String(rawTs);
-                                    if (!timeStr.endsWith("Z")) timeStr += "Z";
-                                    const normalizedTime = new Date(timeStr);
+                                    // FIX: Regresamos al formato LEGACY (UTC Literal).
+                                    // Guardamos la hora del reloj tal cual viene (ej: 05:59) como UTC (05:59Z).
+                                    // Esto es necesario para que el motor de cálculo (Engine) funcione correctamente
+                                    // con la base de datos restaurada.
+                                    const rawTimeStr = String((log as any).timestamp || log.recordTime).replace("T", " ");
+                                    const normalizedTime = new Date(rawTimeStr + "Z");
 
                                     normalizedTime.setMilliseconds(0);
 
@@ -163,6 +161,31 @@ export async function sincronizarRelojes(devicesToSync?: string[]) {
             } catch (e: any) {
                 console.error(`[SYNC-PY] Excepción conectando con ${machine.Name}:`, e);
                 logToDebugFile(`[SYNC-PY] Excepción critica con ${machine.Name}: ${e.message}`);
+            }
+        }
+
+        // --- FASE 2: Cálculo de Nómina (Engine) ---
+        if (totalLogs > 0) {
+            logToDebugFile(`[SYNC-ENGINE] Iniciando cálculo de horas para el día de hoy...`);
+            const today = new Date();
+            // Normalizar a medianoche UTC literal para el motor
+            const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0));
+            
+            const activeEmployees = await prisma.marking.findMany({
+                where: { Day: todayUTC },
+                select: { Employee: true }
+            });
+
+            const uniqueEmps = [...new Set(activeEmployees.map(e => e.Employee).filter((id): id is string => !!id))];
+            
+            logToDebugFile(`[SYNC-ENGINE] Recalculando ${uniqueEmps.length} empleados para ${today.toLocaleDateString()}`);
+            
+            for (const empOid of uniqueEmps) {
+                try {
+                    await laborEngine.processDay(empOid, today);
+                } catch (engErr) {
+                    console.error(`[SYNC-ENGINE] Error calculando horas para ${empOid}:`, engErr);
+                }
             }
         }
 
@@ -201,7 +224,7 @@ async function syncWithPython(ip: string, port: number, password: number = 0) {
     }
 }
 
-async function procesarRegistroDoble(log: BiometricLog, machineOid: string, empCache?: Map<string, any>): Promise<boolean> {
+export async function procesarRegistroDoble(log: BiometricLog, machineOid: string, empCache?: Map<string, any>): Promise<boolean> {
     // 1. Buscar empleado Legacy (Estrategia Manual con Cache)
     const userIdInt = parseInt(log.deviceUserId);
     const userIdStr = log.deviceUserId;
@@ -219,7 +242,11 @@ async function procesarRegistroDoble(log: BiometricLog, machineOid: string, empC
         // A. Intentar por AcNumber
         if (!isNaN(userIdInt)) {
             emp = await prisma.employee.findFirst({
-                where: { AcNumber: userIdInt }
+                where: { AcNumber: userIdInt },
+                orderBy: [
+                    { CurrentShift: 'desc' }, // Los que tienen turno primero (nulls al final)
+                    { Department: 'desc' }
+                ]
             });
         }
 
@@ -409,18 +436,17 @@ async function procesarRegistroDoble(log: BiometricLog, machineOid: string, empC
         }
     }
 
+    if (!emp) return createdNew;
+
     // --- IMPACTO 3: marking (Consolidación - Solo Legacy) ---
-    // Inicio de día en UTC estricto para evitar duplicados por zona horaria
-    // Formato: YYYY-MM-DDT00:00:00.000Z
-    const year = normalizedTime.getUTCFullYear();
-    const month = normalizedTime.getUTCMonth();
-    const day = normalizedTime.getUTCDate();
-    const inicioDia = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+    // Inicio de día literal (T00:00:00.000Z) para consistencia total en DB
+    const inicioDia = new Date(normalizedTime);
+    inicioDia.setUTCHours(0, 0, 0, 0);
 
     let marking = await prisma.marking.findFirst({
         where: {
             Employee: emp.Oid,
-            Day: inicioDia // Match exacto con el día UTC
+            Day: inicioDia // Match exacto con el día literal (T00:00:00Z)
         }
     });
 
@@ -437,7 +463,7 @@ async function procesarRegistroDoble(log: BiometricLog, machineOid: string, empC
                 Employee: emp.Oid,
                 MarkingIn: {
                     gte: inicioDia,
-                    lt: endOfDay
+                    lt: new Date(inicioDia.getTime() + 24 * 60 * 60 * 1000)
                 }
             }
         });

@@ -154,9 +154,10 @@ type Registro = {
 export default function RegistroTiempoForm() {
   const [filtros, setFiltros] = useState({
     empleado: "",
-    fecha: "", // Mantenemos fecha para el modo "personalizado"
+    desde: "",
+    hasta: "",
     tipo: "",
-    periodo: "mes_actual" // Valor por defecto
+    periodo: "mes_actual"
   });
 
   // Estado para datos y paginación
@@ -234,8 +235,9 @@ export default function RegistroTiempoForm() {
       if (filtros.tipo && filtros.tipo !== "all") params.append("tipo", filtros.tipo);
 
       // Lógica de fechas
-      if (filtros.periodo === 'personalizado' && filtros.fecha) {
-        params.append("fecha", filtros.fecha);
+      if (filtros.periodo === 'personalizado' && filtros.desde && filtros.hasta) {
+        params.append("desde", filtros.desde);
+        params.append("hasta", filtros.hasta);
       } else if (filtros.periodo && filtros.periodo !== 'personalizado') {
         const { desde, hasta } = calculateDateRange(filtros.periodo);
         if (desde && hasta) {
@@ -265,7 +267,7 @@ export default function RegistroTiempoForm() {
 
   // Limpiar filtros
   const handleClearAllFilters = () => {
-    setFiltros({ empleado: "", fecha: "", tipo: "", periodo: "mes_actual" });
+    setFiltros({ empleado: "", desde: "", hasta: "", tipo: "", periodo: "mes_actual" });
     setCurrentPage(1);
   };
 
@@ -315,11 +317,12 @@ export default function RegistroTiempoForm() {
 
       // Si cambia a periodo no personalizado, limpiar fecha específica visualmente
       if (campo === 'periodo' && valor !== 'personalizado') {
-        nuevosFiltros.fecha = "";
+        nuevosFiltros.desde = "";
+        nuevosFiltros.hasta = "";
       }
 
       // Si el usuario selecciona una fecha manualmente, cambiar periodo a personalizado automáticamente
-      if (campo === 'fecha' && valor !== "") {
+      if ((campo === 'desde' || campo === 'hasta') && valor !== "") {
         nuevosFiltros.periodo = "personalizado";
       }
 
@@ -417,7 +420,7 @@ export default function RegistroTiempoForm() {
         </div>
 
         <div className="flex gap-2">
-          {(filtros.empleado || filtros.fecha || filtros.tipo) && (
+          {(filtros.empleado || filtros.desde || filtros.hasta || filtros.tipo) && (
             <Button
               variant="outline"
               className="text-gray-600 border-gray-300 hover:bg-gray-50 flex items-center gap-2"
@@ -440,7 +443,7 @@ export default function RegistroTiempoForm() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold mb-4 text-gray-900">Filtros de Búsqueda</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Periodo
@@ -481,14 +484,29 @@ export default function RegistroTiempoForm() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fecha Específica
+              Desde
             </label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 type="date"
-                value={filtros.fecha}
-                onChange={(e) => handleFiltroChange("fecha", e.target.value)}
+                value={filtros.desde}
+                onChange={(e) => handleFiltroChange("desde", e.target.value)}
+                className="pl-10 bg-gray-50 border-gray-300 focus:bg-white"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Hasta
+            </label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                type="date"
+                value={filtros.hasta}
+                onChange={(e) => handleFiltroChange("hasta", e.target.value)}
                 className="pl-10 bg-gray-50 border-gray-300 focus:bg-white"
               />
             </div>
@@ -545,7 +563,7 @@ export default function RegistroTiempoForm() {
                   : "Cargando..."
                 }
               </p>
-              {(filtros.empleado || filtros.fecha || filtros.tipo) && (
+              {(filtros.empleado || filtros.desde || filtros.hasta || filtros.tipo) && (
                 <Button
                   variant="outline"
                   onClick={handleClearAllFilters}

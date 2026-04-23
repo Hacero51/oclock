@@ -140,11 +140,15 @@ export class ADMSService {
                 // 2. Heurística Entrada/Salida
                 if (finalCheckType === 1 || finalCheckType > 5) {
                     const recDate = new Date(normalizedTime);
-                    const startOfDay = new Date(Date.UTC(recDate.getUTCFullYear(), recDate.getUTCMonth(), recDate.getUTCDate(), 0, 0, 0));
-                    const endOfDay = new Date(Date.UTC(recDate.getUTCFullYear(), recDate.getUTCMonth(), recDate.getUTCDate(), 23, 59, 59));
+                    const inicioDia = new Date(recDate);
+                    inicioDia.setUTCHours(5, 0, 0, 0);
+                    // Si la marca es antes de las 05:00 AM, pertenece al día anterior
+                    if (recDate.getUTCHours() < 5) {
+                        inicioDia.setUTCDate(inicioDia.getUTCDate() - 1);
+                    }
 
                     const countToday = await prisma.checkinout.count({
-                        where: { Employee: emp.Oid, CheckTime: { gte: startOfDay, lte: endOfDay } }
+                        where: { Employee: emp.Oid, CheckTime: { gte: inicioDia, lt: new Date(inicioDia.getTime() + 24 * 60 * 60 * 1000) } }
                     });
 
                     if (countToday === 0) {
@@ -167,7 +171,7 @@ export class ADMSService {
                         CheckType: finalCheckType,
                         Employee: emp.Oid,
                         Machine: machineOid,
-                        VerifyCode: parseInt(verify) || 1
+                        VerifyCode: finalVerifyCode
                     }
                 });
             }
@@ -195,27 +199,28 @@ export class ADMSService {
 
         // --- IMPACTO 3: marking (Consolidación) - Solo si existe emp Legacy ---
         if (emp) {
-            // FIX: Uso estricto de UTC para el inicio del día, igual que en sync.ts
-            const year = normalizedTime.getUTCFullYear();
-            const month = normalizedTime.getUTCMonth();
-            const day = normalizedTime.getUTCDate();
-            const inicioDia = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+            // --- IMPACTO 2: marking (Consolidación) ---
+            const inicioDia = new Date(normalizedTime);
+            inicioDia.setUTCHours(5, 0, 0, 0);
+            if (normalizedTime.getUTCHours() < 5) {
+                inicioDia.setUTCDate(inicioDia.getUTCDate() - 1);
+            }
 
             let marking = await prisma.marking.findFirst({
-                where: { Employee: emp.Oid, Day: inicioDia }
+                where: {
+                    Employee: emp.Oid,
+                    Day: inicioDia
+                }
             });
 
-            // FAILSAFE: Si no encuentra por día exacto, buscar por rango de fecha (MarkingIn dentro del día UTC)
             if (!marking) {
-                const endOfDay = new Date(inicioDia);
-                endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
-
+                // Failsafe range
                 marking = await prisma.marking.findFirst({
                     where: {
                         Employee: emp.Oid,
                         MarkingIn: {
                             gte: inicioDia,
-                            lt: endOfDay
+                            lt: new Date(inicioDia.getTime() + 24 * 60 * 60 * 1000)
                         }
                     }
                 });

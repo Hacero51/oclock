@@ -50,11 +50,15 @@ export default function ExportacionInformes() {
 
   // Inicializar fechas
   useEffect(() => {
-    const hoy = new Date().toISOString().split('T')[0];
-    const haceUnaSemana = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0];
-    setFiltros((prev) => ({ ...prev, fechaInicio: haceUnaSemana, fechaFin: hoy }));
+    const hoyObj = new Date();
+    // Primer día del mes actual
+    const primerDia = new Date(hoyObj.getFullYear(), hoyObj.getMonth(), 1);
+    
+    // Formatear a YYYY-MM-DD restando offset para no tener desfase de mediodía en local
+    const hoy = new Date(hoyObj.getTime() - (hoyObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    const primerDiaStr = new Date(primerDia.getTime() - (primerDia.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    
+    setFiltros((prev) => ({ ...prev, fechaInicio: primerDiaStr, fechaFin: hoy }));
   }, []);
 
   // 🔄 Carga datos desde API

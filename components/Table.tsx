@@ -1,14 +1,17 @@
 import React, { useState, useMemo } from "react";
 import { ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent } from "@/components/ui/context-menu";
 
 interface TablaProps {
     columnas: any[];
     datos: any[];
     className?: string;
     onRowClick?: (fila: any) => void;
+    selectedRowId?: string | null;
+    renderContextMenu?: (fila: any) => React.ReactNode;
 }
 
-export default function Tabla({ columnas, datos, onRowClick }: TablaProps) {
+export default function Tabla({ columnas, datos, onRowClick, selectedRowId, renderContextMenu }: TablaProps) {
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -88,27 +91,44 @@ export default function Tabla({ columnas, datos, onRowClick }: TablaProps) {
                         </thead>
                         <tbody className="divide-y divide-white-900">
                             {sortedData.length > 0 ? (
-                                sortedData.map((fila, i) => (
-                                    <tr
-                                        key={i}
-                                        className="group hover:bg-indigo-50/40 cursor-pointer transition-all duration-200"
-                                        onClick={() => onRowClick && onRowClick(fila)}
-                                    >
-                                        {columnas.map((col) => (
-                                            <td
-                                                key={col}
-                                                className="px-2 py-1.5 text-white-600 font-medium group-hover:text-gray-900 transition-colors whitespace-nowrap"
-                                            >
-                                                {fila[col] || "-"}
-                                            </td>
-                                        ))}
-                                        {onRowClick && (
-                                            <td className="px-3 py-2.5 text-gray-400 group-hover:text-indigo-500 transition-colors text-right">
-                                                <ChevronRight className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))
+                                sortedData.map((fila, i) => {
+                                    const rowContent = (
+                                        <tr
+                                            key={i}
+                                            className={`group cursor-pointer transition-all duration-200 ${selectedRowId && selectedRowId === fila.id ? "bg-blue-100 border-l-4 border-blue-600 shadow-inner" : "hover:bg-indigo-50/40"}`}
+                                            onClick={() => onRowClick && onRowClick(fila)}
+                                        >
+                                            {columnas.map((col) => (
+                                                <td
+                                                    key={col}
+                                                    className="px-2 py-1.5 text-white-600 font-medium group-hover:text-gray-900 transition-colors whitespace-nowrap"
+                                                >
+                                                    {fila[col] || "-"}
+                                                </td>
+                                            ))}
+                                            {onRowClick && (
+                                                <td className="px-3 py-2.5 text-gray-400 group-hover:text-indigo-500 transition-colors text-right">
+                                                    <ChevronRight className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
+                                                </td>
+                                            )}
+                                        </tr>
+                                    );
+
+                                    if (renderContextMenu) {
+                                        return (
+                                            <ContextMenu key={i} onOpenChange={(open) => { if (open && onRowClick) onRowClick(fila); }}>
+                                                <ContextMenuTrigger asChild>
+                                                    {rowContent}
+                                                </ContextMenuTrigger>
+                                                <ContextMenuContent className="w-64">
+                                                    {renderContextMenu(fila)}
+                                                </ContextMenuContent>
+                                            </ContextMenu>
+                                        );
+                                    }
+
+                                    return rowContent;
+                                })
                             ) : (
                                 <tr>
                                     <td

@@ -5,8 +5,18 @@ import { Button } from "@/components/ui/Button";
 import { Users, Clock, Calendar, Target, TrendingUp, AlertTriangle, CheckCircle, BarChart3 } from "lucide-react";
 import { useState, useEffect } from "react";
 
+// ---------------- INTERFACES ---------------- //
+interface DashboardData {
+  cumplimientoPorDepartamento: { departamento: string; cumplimiento: number; empleados: number; }[];
+  retrasosPorTurno: { turno: string; retrasos: number; total: number; tasa?: number; }[];
+  marcacionesHoy: { puntuales: number; retrasos: number; ausentes: number; total: number; };
+  metricasGenerales: { totalEmpleados: number; activosHoy: number; promedioCumplimiento: number; incidenciasMes: number; };
+  tendencia?: { label: string; valor: number; }[];
+  alertas?: { tipo: 'warning' | 'info' | 'success'; titulo: string; mensaje: string; }[];
+}
+
 // Datos de ejemplo para las gráficas
-const datosEjemplo = {
+const datosEjemplo: DashboardData = {
   cumplimientoPorDepartamento: [
     { departamento: 'Administración', cumplimiento: 95, empleados: 12 },
     { departamento: 'Producción', cumplimiento: 78, empleados: 45 },
@@ -30,11 +40,13 @@ const datosEjemplo = {
     activosHoy: 104,
     promedioCumplimiento: 87,
     incidenciasMes: 42
-  }
+  },
+  tendencia: [],
+  alertas: []
 };
 
 export default function DashboardPage() {
-  const [datos, setDatos] = useState(datosEjemplo);
+  const [datos, setDatos] = useState<DashboardData>(datosEjemplo);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [periodo, setPeriodo] = useState('today');

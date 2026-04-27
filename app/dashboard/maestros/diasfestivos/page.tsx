@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
+import { DashboardContext } from "@/app/dashboard/layout";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -21,6 +22,7 @@ const API_URLS = {
 };
 
 export default function DiasFestivosPage() {
+  const { refreshTrigger } = useContext(DashboardContext);
   const [diasFestivos, setDiasFestivos] = useState<DiaFestivo[]>([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -86,7 +88,7 @@ export default function DiasFestivosPage() {
     };
 
     cargarDatos();
-  }, [filtroAnio]);
+  }, [filtroAnio, refreshTrigger]);
 
   const handleGuardarDiaFestivo = async () => {
     if (!formData.nombre || !formData.fecha) {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { DashboardContext } from "@/app/dashboard/layout";
 import Tabla from "../../../../components/Table";
 import CreateModal from "@/components/CreateModal";
 import UpdateModal from "@/components/UpdateModal";
@@ -8,6 +9,7 @@ import { CalendarSync, Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export default function TurnosPage() {
+  const { refreshTrigger } = useContext(DashboardContext);
   const columnas = ["Nombre", "Estado"];
 
   type Turnos = {
@@ -41,7 +43,7 @@ export default function TurnosPage() {
       }
     }
     fetchTurnos();
-  }, [isMounted]);
+  }, [isMounted, refreshTrigger]);
 
   const handleRowClick = (turnos: Turnos) => {
     setSelectedTurnos(turnos);

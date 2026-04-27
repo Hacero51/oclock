@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import prisma from '../../lib/prisma';
 import crypto from 'crypto';
 
 export interface CalculationResult {
@@ -9,208 +9,232 @@ export interface CalculationResult {
 }
 
 export class LaborEngine {
-    private nightStartHour = 19; // 7 PM
-    private nightEndHour = 6;    // 6 AM
-    private weekThreshold = 44;  // 44 Hours per week (Post July 2025)
+    private nightStartHour = 19; 
+    private nightEndHour = 6;    
+    private implicitLunchSeconds = 1800; 
+    private weeklyOrdinaryLimit = 44;
+    private weeklyExtraLimit = 12; // Cupo semanal de extras A02
 
-    /**
-     * Procesa la asistencia de un empleado para un día específico
-     * y puebla la tabla attendancedetail.
-     */
+    private async loadGlobalConfig() {
+        try {
+            const configs = await prisma.configuration.findMany({
+                where: { Group: { in: ['Attendance', 'Pre-payroll'] } }
+            });
+            const oids = configs.map(c => c.Oid);
+            const timeSpans = await prisma.configurationtimespan.findMany({ 
+                where: { Oid: { in: oids } } 
+            });
+            
+            const timeSpanMap = new Map(timeSpans.map(t => [t.Oid, t.Value]));
+            
+            const getVal = (id: string) => {
+                const config = configs.find(c => c.Identifier === id);
+                return config ? timeSpanMap.get(config.Oid) : null;
+            };
+
+            const nightStart = getVal('BeginningOfNight');
+            const nightEnd = getVal('EndingOfNight');
+            const lunchAdj = getVal('AdjustTheTimeByConcept');
+
+            if (nightStart !== null) this.nightStartHour = Math.floor(nightStart / 3600);
+            if (nightEnd !== null) this.nightEndHour = Math.floor(nightEnd / 3600);
+            if (lunchAdj !== null) this.implicitLunchSeconds = lunchAdj;
+
+        } catch (error) {
+            console.error("[ENGINE] Error cargando config global:", error);
+        }
+    }
+
+    private async getWeeklyAccumulated(employeeOid: string, currentDate: Date) {
+        const startOfWeek = new Date(currentDate);
+        const day = startOfWeek.getUTCDay();
+        const diff = startOfWeek.getUTCDate() - (day === 0 ? 6 : day - 1);
+        startOfWeek.setUTCDate(diff);
+        startOfWeek.setUTCHours(0, 0, 0, 0);
+
+        const types = await prisma.attendancetype.findMany();
+        const typeMap = new Map(types.map(t => [t.Oid, t.CodeToExport]));
+
+        const details = await prisma.attendancedetail.findMany({
+            where: {
+                Employee: employeeOid,
+                Day: { gte: startOfWeek, lt: currentDate },
+            }
+        });
+
+        let ordinary = 0;
+        let extras = 0;
+
+        for (const d of details) {
+            const code = typeMap.get(d.AttendanceType || '');
+            if (code === 'A01' || code === 'A05' || code === 'A49' || code === 'A50') {
+                ordinary += d.Hours || 0;
+            } else if (code === 'A02' || code === 'A04' || code === 'A06' || code === 'A08') {
+                extras += d.Hours || 0;
+            }
+        }
+
+        return { ordinary, extras };
+    }
+
     async processDay(employeeOid: string, date: Date) {
-        // 1. Limpiar registros previos del día para este empleado
-        // IMPORTANTE: El sistema legado parece guardar la medianoche literal sin zona horaria,
-        // lo cual Prisma interpreta y guarda como T00:00:00.000Z.
+        await this.loadGlobalConfig();
+        
         const startOfDayDB = new Date(date);
         startOfDayDB.setUTCHours(0, 0, 0, 0);
 
         await prisma.attendancedetail.deleteMany({
-            where: {
-                Employee: employeeOid,
-                Day: startOfDayDB
-            }
+            where: { Employee: employeeOid, Day: startOfDayDB }
         });
 
-        // 2. Obtener Turno y Horario
         const employee = await prisma.employee.findUnique({ where: { Oid: employeeOid } });
-        if (!employee || !employee.CurrentShift) return;
+        if (!employee) return;
 
-        const dayOfWeek = date.getUTCDay(); // 0 = Sunday, 1 = Monday...
-        // Mapeo: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-        // shifttimetable usa NumberDay. Generalmente 1=Mon... 7=Sun?
-        const numberDay = dayOfWeek === 0 ? 7 : dayOfWeek;
-
-        const shiftLink = await prisma.shifttimetable.findFirst({
-            where: {
-                Shift: employee.CurrentShift,
-                NumberDay: numberDay
-            }
-        });
-
-        if (!shiftLink || !shiftLink.Timetable) return;
-
-        const timetable = await prisma.timetablefixed.findUnique({
-            where: { Oid: shiftLink.Timetable }
-        });
-
-        if (!timetable) return;
-
-        // 3. Obtener Marcaciones del día
         const marking = await prisma.marking.findFirst({
-            where: {
-                Employee: employeeOid,
-                Day: startOfDayDB
-            }
+            where: { Employee: employeeOid, Day: startOfDayDB }
         });
-
         if (!marking || !marking.MarkingIn) return;
 
-        // 4. Determinar si es Festivo
+        const { ordinary: weekA01, extras: weekA02 } = await this.getWeeklyAccumulated(employeeOid, startOfDayDB);
+
+        const dayOfWeek = date.getUTCDay();
+        const numberDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+
+        const shiftLink = employee.CurrentShift ? await prisma.shifttimetable.findFirst({
+            where: { Shift: employee.CurrentShift, NumberDay: numberDay }
+        }) : null;
+
+        let timetable = null;
+        let baseTimetable = null;
+
+        if (shiftLink && shiftLink.Timetable) {
+            [timetable, baseTimetable] = await Promise.all([
+                prisma.timetablefixed.findUnique({ where: { Oid: shiftLink.Timetable } }),
+                prisma.timetable.findUnique({ where: { Oid: shiftLink.Timetable } })
+            ]);
+        }
+
         const holiday = await prisma.holiday.findFirst({
             where: { Day: startOfDayDB, Status: 1 }
         });
         const isSundayOrHoliday = (dayOfWeek === 0 || !!holiday);
 
-        // 5. Segmentación (Lógica de Almuerzo)
-        // La referencia para el cálculo de horas será T00:00:00.000Z pues las marcas 
-        // están grabadas de forma que 05:48 am = 05:48:00Z.
         const calcReference = new Date(date);
         calcReference.setUTCHours(0, 0, 0, 0);
 
         const createTimeFromSeconds = (base: Date, seconds: number) => {
             const d = new Date(base);
-            d.setUTCHours(0, 0, 0, 0); // Forzar inicio en 00:00 UTC para el cálculo relativo
+            d.setUTCHours(0, 0, 0, 0);
             d.setUTCSeconds(seconds);
             return d;
         };
 
-        const expectedIn = createTimeFromSeconds(calcReference, timetable.MarkingIn || 0);
-        const expectedOut = createTimeFromSeconds(calcReference, timetable.MarkingOut || 0);
-
-        // console.log(`[ENGINE-DEBUG] Emp: ${employeeOid.substring(0, 8)}, MarkingIn: ${marking.MarkingIn.toISOString()}, MarkingOut: ${marking.MarkingOut ? marking.MarkingOut.toISOString() : 'NULL'}`);
-        // console.log(`[ENGINE-DEBUG] ExpectedIn: ${expectedIn.toISOString()}, ExpectedOut: ${expectedOut.toISOString()}`);
-
-        const segments: { start: Date, end: Date, isExtra: boolean }[] = [];
+        const segments: { start: Date, end: Date }[] = [];
         let actualIn = marking.MarkingIn;
         let actualOut = marking.MarkingOut;
 
-        // Gracia de Llegada Temprano: Si llega hasta 60 mins antes del turno, no cuenta como extra, 
-        // simplemente se "ajusta" su entrada a la hora esperada para el cálculo.
-        if (expectedIn.getTime() - actualIn.getTime() > 0 && expectedIn.getTime() - actualIn.getTime() <= 3600000) {
-            actualIn = expectedIn;
-        }
-
-        // --- AUTO CIERRE DE MARCACIONES ---
-        // Si no pudo marcar salida porque cerraron las instalaciones
         if (!actualOut) {
-            // Tiempo de gracia de 6 horas posteriores a la salida esperada para no arruinar horas extras reales
-            const autoCloseThreshold = new Date(expectedOut.getTime() + 6 * 3600000); 
-            
-            if (new Date() > autoCloseThreshold) {
-                actualOut = expectedOut; // Cerramos INTERNAMENTE con la salida de su turno base para el cálculo de horas
-                // DESACTIVADO POR SOLICITUD DE USUARIO: El autocierre no debe persistir en la base de datos
-                /* 
-                await prisma.marking.update({
-                    where: { Oid: marking.Oid },
-                    data: { MarkingOut: expectedOut }
-                });
-                */
+            const expectedOutSecs = (timetable?.MarkingOut || 14 * 3600);
+            const expectedOut = createTimeFromSeconds(calcReference, expectedOutSecs);
+            if (new Date() > new Date(expectedOut.getTime() + 6 * 3600000)) {
+                actualOut = expectedOut;
             } else {
-                // Aún es muy temprano, podría estar haciendo horas extras, esperamos.
                 return;
             }
         }
 
-        // Implicit Lunch Splitting
-        if (timetable.Lunch && (timetable.LunchOut !== null) && (timetable.LunchIn !== null)) {
-            const lunchOut = createTimeFromSeconds(calcReference, timetable.LunchOut);
-            const lunchIn = createTimeFromSeconds(calcReference, timetable.LunchIn);
+        let expectedIn = actualIn;
+        let expectedOut = actualOut;
+        let canHaveOrdinary = false;
+        let targetA01Secs = 0;
 
-            // Segmento mañana: desde el golpe real hasta el inicio del almuerzo (o hasta que salió)
-            const MorningEnd = actualOut < lunchOut ? actualOut : lunchOut;
-            if (actualIn < MorningEnd) {
-                segments.push({ start: actualIn, end: MorningEnd, isExtra: false });
+        if (timetable) {
+            expectedIn = createTimeFromSeconds(calcReference, timetable.MarkingIn || 0);
+            targetA01Secs = baseTimetable?.TotalTime || ((timetable.MarkingOut || 0) - (timetable.MarkingIn || 0));
+            
+            const remainingA01 = Math.max(0, this.weeklyOrdinaryLimit - weekA01);
+            const effectiveA01Secs = Math.min(targetA01Secs, remainingA01 * 3600);
+            
+            expectedOut = new Date(expectedIn.getTime() + effectiveA01Secs * 1000);
+            canHaveOrdinary = effectiveA01Secs > 0;
+
+            if (expectedIn.getTime() - actualIn.getTime() > 0 && expectedIn.getTime() - actualIn.getTime() <= 3600000) {
+                actualIn = expectedIn;
             }
 
-            // Segmento tarde: desde el fin del almuerzo (o desde que entró si es después)
-            const AfternoonStart = actualIn > lunchIn ? actualIn : lunchIn;
-            if (AfternoonStart < actualOut) {
-                segments.push({ start: AfternoonStart, end: actualOut, isExtra: false });
+            const totalWorkedMs = actualOut.getTime() - actualIn.getTime();
+            const isPerformingExtra = actualOut.getTime() > expectedOut.getTime() + 60000;
+            const shouldSubtractLunch = (totalWorkedMs > 5 * 3600000) && isPerformingExtra;
+
+            if (timetable.Lunch && timetable.LunchOut !== null && timetable.LunchIn !== null) {
+                const lunchOut = createTimeFromSeconds(calcReference, timetable.LunchOut);
+                const lunchIn = createTimeFromSeconds(calcReference, timetable.LunchIn);
+                const morningEnd = actualOut < lunchOut ? actualOut : lunchOut;
+                if (actualIn < morningEnd) segments.push({ start: actualIn, end: morningEnd });
+                const afternoonStart = actualIn > lunchIn ? actualIn : lunchIn;
+                if (afternoonStart < actualOut) segments.push({ start: afternoonStart, end: actualOut });
+            } else if (shouldSubtractLunch) {
+                const implicitLunchOut = expectedOut;
+                const implicitLunchIn = new Date(expectedOut.getTime() + this.implicitLunchSeconds * 1000);
+                const morningEnd = actualOut < implicitLunchOut ? actualOut : implicitLunchOut;
+                if (actualIn < morningEnd) segments.push({ start: actualIn, end: morningEnd });
+                const afternoonStart = actualIn > implicitLunchIn ? actualIn : implicitLunchIn;
+                if (afternoonStart < actualOut) segments.push({ start: afternoonStart, end: actualOut });
+            } else {
+                segments.push({ start: actualIn, end: actualOut });
             }
         } else {
-            // Regla para turnos de corrido (ej. 6 a 2):
-            // Si no hay almuerzo configurado y se quedan a hacer extras, 
-            // los primeros 30 min despues de finalizar (ej 14:00 a 14:30) son el espacio de almuerzo y NO cuentan.
-            const implicitLunchOut = expectedOut;
-            const implicitLunchIn = new Date(expectedOut.getTime() + 30 * 60000); // +30 mins
-
-            const MorningEnd = actualOut < implicitLunchOut ? actualOut : implicitLunchOut;
-            if (actualIn < MorningEnd) {
-                segments.push({ start: actualIn, end: MorningEnd, isExtra: false });
-            }
-
-            const AfternoonStart = actualIn > implicitLunchIn ? actualIn : implicitLunchIn;
-            if (AfternoonStart < actualOut) {
-                segments.push({ start: AfternoonStart, end: actualOut, isExtra: false });
-            }
+            expectedIn = actualIn;
+            expectedOut = actualIn;
+            segments.push({ start: actualIn, end: actualOut });
         }
 
-        // 6. Clasificación de cada segmento
         const results: CalculationResult[] = [];
-        let totalDailyExtras = 0;
+        let dailyExtrasCount = 0;
+        let weeklyA02Tracker = weekA02;
 
         for (const seg of segments) {
-            // Dividir el segmento si cruza la frontera de las 19:00 o 06:00
             const subSegments = this.splitByNightBoundaries(seg.start, seg.end);
-
             for (const sub of subSegments) {
-                const hours = (sub.end.getTime() - sub.start.getTime()) / (1000 * 60 * 60);
+                const totalHours = (sub.end.getTime() - sub.start.getTime()) / 3600000;
                 const isNight = this.isNightTime(sub.start);
-
-                // Determinar si este subsegmento es Extra u Ordinario
-                // Es "Ordinario" si está total o parcialmente dentro de (expectedIn - lunch - expectedOut)
-                // Pero como ya segmentamos por almuerzo, solo comparamos contra expectedIn/Out
                 const overlapStart = sub.start > expectedIn ? sub.start : expectedIn;
                 const overlapEnd = sub.end < expectedOut ? sub.end : expectedOut;
 
                 let ordinaryHours = 0;
-                let extraHours = 0;
-
-                if (overlapStart < overlapEnd) {
-                    ordinaryHours = (overlapEnd.getTime() - overlapStart.getTime()) / (3600000);
+                if (canHaveOrdinary && overlapStart < overlapEnd) {
+                    ordinaryHours = (overlapEnd.getTime() - overlapStart.getTime()) / 3600000;
                 }
-                console.log(`[ENGINE-DEBUG] Sub: ${sub.start.toISOString()} - ${sub.end.toISOString()}, Ordinary: ${ordinaryHours.toFixed(2)}h`);
-                extraHours = hours - ordinaryHours;
 
-                // Guardar Ordinarias
+                const extraHours = Math.max(0, totalHours - ordinaryHours);
+
                 if (ordinaryHours > 0) {
                     const concept = this.getOrdinaryConcept(isSundayOrHoliday, isNight);
                     results.push({ conceptCode: concept, hours: ordinaryHours, startDate: overlapStart, endDate: overlapEnd });
                 }
 
-                // Guardar Extras con política de topes (2h -> Bonificación)
                 if (extraHours > 0) {
-                    // Determinar el rango físico de las extras en este subsegmento
-                    // (Lo que no es overlap con el turno)
-                    let currentExtraStart = new Date(sub.start);
+                    let extraStart = sub.start > expectedOut ? sub.start : (sub.end < expectedIn ? sub.start : expectedOut);
+                    if (extraStart < sub.start) extraStart = sub.start;
+                    
                     let remainingExtra = extraHours;
-
                     while (remainingExtra > 0) {
-                        const canTake = Math.min(remainingExtra, Math.max(0, 2 - totalDailyExtras));
-                        const durationMs = canTake * 3600000;
-                        const segmentEnd = new Date(currentExtraStart.getTime() + durationMs);
+                        const remainingWeeklyA02 = Math.max(0, this.weeklyExtraLimit - weeklyA02Tracker);
+                        const canTakeA02 = Math.min(remainingExtra, Math.max(0, 2 - dailyExtrasCount), remainingWeeklyA02);
 
-                        if (canTake > 0) {
+                        if (canTakeA02 > 0) {
                             const concept = this.getExtraConcept(isSundayOrHoliday, isNight);
-                            results.push({ conceptCode: concept, hours: canTake, startDate: new Date(currentExtraStart), endDate: segmentEnd });
-                            totalDailyExtras += canTake;
-                            remainingExtra -= canTake;
-                            currentExtraStart = segmentEnd;
+                            const segmentEnd = new Date(extraStart.getTime() + canTakeA02 * 3600000);
+                            results.push({ conceptCode: concept, hours: canTakeA02, startDate: new Date(extraStart), endDate: segmentEnd });
+                            
+                            dailyExtrasCount += canTakeA02;
+                            weeklyA02Tracker += canTakeA02;
+                            remainingExtra -= canTakeA02;
+                            extraStart = segmentEnd;
                         } else {
-                            // Bonificación - El resto del segmento
                             const concept = this.getBonificacionConcept(isSundayOrHoliday, isNight);
-                            const bonusEnd = new Date(currentExtraStart.getTime() + (remainingExtra * 3600000));
-                            results.push({ conceptCode: concept, hours: remainingExtra, startDate: new Date(currentExtraStart), endDate: bonusEnd });
+                            const bonusEnd = new Date(extraStart.getTime() + remainingExtra * 3600000);
+                            results.push({ conceptCode: concept, hours: remainingExtra, startDate: new Date(extraStart), endDate: bonusEnd });
                             remainingExtra = 0;
                         }
                     }
@@ -218,14 +242,12 @@ export class LaborEngine {
             }
         }
 
-        // 7. Agrupar y Persistir
         await this.saveResults(employeeOid, startOfDayDB, results);
     }
 
     private splitByNightBoundaries(start: Date, end: Date): { start: Date, end: Date }[] {
         const subs: { start: Date, end: Date }[] = [];
         let current = new Date(start);
-
         while (current < end) {
             const nextBoundary = this.getNextBoundary(current, end);
             subs.push({ start: new Date(current), end: new Date(nextBoundary) });
@@ -235,27 +257,24 @@ export class LaborEngine {
     }
 
     private getNextBoundary(current: Date, end: Date): Date {
-        // Fronteras: 06:00 y 19:00 del mismo día o siguiente (en formato UTC representativo)
         const d = new Date(current);
-        const b6 = new Date(d); b6.setUTCHours(6, 0, 0, 0);
-        const b19 = new Date(d); b19.setUTCHours(19, 0, 0, 0);
-
-        const boundaries = [b6, b19];
-        // Añadir fronteras del día siguiente
+        const bStart = new Date(d); bStart.setUTCHours(this.nightStartHour, 0, 0, 0);
+        const bEnd = new Date(d); bEnd.setUTCHours(this.nightEndHour, 0, 0, 0);
+        const boundaries = [bStart, bEnd];
         const dNext = new Date(d); dNext.setUTCDate(dNext.getUTCDate() + 1);
-        const nb6 = new Date(dNext); nb6.setUTCHours(6, 0, 0, 0);
-        const nb19 = new Date(dNext); nb19.setUTCHours(19, 0, 0, 0);
-        boundaries.push(nb6, nb19);
-
-        const validBoundaries = boundaries.filter(b => b > current && b < end).sort((a, b) => a.getTime() - b.getTime());
-
-        return validBoundaries.length > 0 ? validBoundaries[0] : end;
+        boundaries.push(new Date(dNext.setUTCHours(this.nightStartHour, 0, 0, 0)));
+        boundaries.push(new Date(dNext.setUTCHours(this.nightEndHour, 0, 0, 0)));
+        const valid = boundaries.filter(b => b > current && b < end).sort((a, b) => a.getTime() - b.getTime());
+        return valid.length > 0 ? valid[0] : end;
     }
 
     private isNightTime(date: Date): boolean {
-        // Para evaluar noche, usamos la hora UTC directamente ya que representa la Local en la DB.
         const hour = date.getUTCHours();
-        return hour >= 19 || hour < 6;
+        if (this.nightStartHour > this.nightEndHour) {
+            return hour >= this.nightStartHour || hour < this.nightEndHour;
+        } else {
+            return hour >= this.nightStartHour && hour < this.nightEndHour;
+        }
     }
 
     private getOrdinaryConcept(isSun: boolean, isNight: boolean): string {
@@ -276,17 +295,16 @@ export class LaborEngine {
         for (const res of results) {
             const type = await prisma.attendancetype.findFirst({ where: { CodeToExport: res.conceptCode } });
             if (!type) continue;
-
             await prisma.attendancedetail.create({
                 data: {
                     Oid: crypto.randomUUID(),
                     Employee: empOid,
-                    Day: day, // Esto será el startOfDayDB (T05:00:00Z)
+                    Day: day,
                     AttendanceType: type.Oid,
                     StartDate: res.startDate,
                     EndDate: res.endDate,
                     Hours: res.hours,
-                    Time: res.hours * 3600,
+                    Time: Math.round(res.hours * 3600),
                     ModificationDate: new Date(),
                     OptimisticLockField: 0
                 }

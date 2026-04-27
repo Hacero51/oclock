@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useContext } from "react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { DashboardContext } from "@/app/dashboard/layout";
 import {
   Select,
   SelectContent,
@@ -296,6 +297,7 @@ type Marcacion = {
 };
 
 export default function MarcacionesPage() {
+  const { refreshTrigger } = useContext(DashboardContext);
   const [filtros, setFiltros] = useState({
     empleado: "",
     turno: "",
@@ -403,7 +405,7 @@ export default function MarcacionesPage() {
 
   useEffect(() => {
     fetchMarcaciones();
-  }, [isMounted, currentPage, itemsPerPage, filtros.periodo, filtros.desde, filtros.hasta, filtros.estado, refreshKey]);
+  }, [isMounted, currentPage, itemsPerPage, filtros.periodo, filtros.desde, filtros.hasta, filtros.estado, refreshKey, refreshTrigger]);
 
   useEffect(() => {
     setCurrentPage(1);

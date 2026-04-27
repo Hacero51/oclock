@@ -75,7 +75,7 @@ export default function EmpleadosPage() {
     "Turno Actual",
     "Valor Hora",
   ];
-  const { estadoEmpleados } = useContext(DashboardContext);
+  const { estadoEmpleados, refreshTrigger } = useContext(DashboardContext);
   const [datos, setDatos] = useState<EmpleadoNormalizado[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -126,7 +126,7 @@ export default function EmpleadosPage() {
     }
 
     fetchData();
-  }, [isMounted, refreshKey]);
+  }, [isMounted, refreshKey, refreshTrigger]);
 
 
   const datosFiltrados = useMemo(() => {

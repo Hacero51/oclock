@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useContext } from "react";
+import { DashboardContext } from "@/app/dashboard/layout";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import {
@@ -152,6 +153,7 @@ type Registro = {
 };
 
 export default function RegistroTiempoForm() {
+  const { refreshTrigger } = useContext(DashboardContext);
   const [filtros, setFiltros] = useState({
     empleado: "",
     desde: "",
@@ -263,7 +265,7 @@ export default function RegistroTiempoForm() {
     if (!isMounted) return;
     const timer = setTimeout(fetchRegistros, 300); // Debounce simple
     return () => clearTimeout(timer);
-  }, [itemsPerPage, currentPage, filtros, isMounted, refreshKey]);
+  }, [itemsPerPage, currentPage, filtros, isMounted, refreshKey, refreshTrigger]);
 
   // Limpiar filtros
   const handleClearAllFilters = () => {

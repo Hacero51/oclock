@@ -20,6 +20,8 @@ function logToDebugFile(message: string) {
 }
 
 export async function sincronizarRelojes(devicesToSync?: string[]) {
+    const affectedDays = new Map<string, Set<string>>(); // EmployeeOid -> Set of ISO Days
+
     try {
         logToDebugFile(`[SYNC] Iniciando sincronización...`);
         
@@ -137,7 +139,7 @@ export async function sincronizarRelojes(devicesToSync?: string[]) {
                                     const status = (log as any).status ?? log.activity ?? 0;
                                     const uid = (log as any).uid || log.userSn;
 
-                                    const created = await procesarRegistroDoble({
+                                    const result = await procesarRegistroDoble({
                                         uid: uid,
                                         userSn: uid,
                                         deviceUserId: devUserId,
@@ -146,7 +148,13 @@ export async function sincronizarRelojes(devicesToSync?: string[]) {
                                         ip: detail.IP || ""
                                     }, machine.Oid, employeeCache);
 
-                                    if (created) newRecords++;
+                                    if (result.created) newRecords++;
+                                    if (result.employeeOid && result.dayISO) {
+                                        if (!affectedDays.has(result.employeeOid)) {
+                                            affectedDays.set(result.employeeOid, new Set());
+                                        }
+                                        affectedDays.get(result.employeeOid)!.add(result.dayISO);
+                                    }
                                 } catch (errLog) {
                                     console.error(`[SYNC-PY] Error procesando log individual de ${machine.Name}:`, errLog);
                                 }
@@ -165,28 +173,20 @@ export async function sincronizarRelojes(devicesToSync?: string[]) {
         }
 
         // --- FASE 2: Cálculo de Nómina (Engine) ---
-        if (totalLogs > 0) {
-            logToDebugFile(`[SYNC-ENGINE] Iniciando cálculo de horas para el día de hoy...`);
-            const today = new Date();
-            // Normalizar a medianoche UTC literal para el motor
-            const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0));
+        if (affectedDays.size > 0) {
+            logToDebugFile(`[SYNC-ENGINE] Iniciando recálculo inteligente para ${affectedDays.size} empleados...`);
             
-            const activeEmployees = await prisma.marking.findMany({
-                where: { Day: todayUTC },
-                select: { Employee: true }
-            });
-
-            const uniqueEmps = [...new Set(activeEmployees.map(e => e.Employee).filter((id): id is string => !!id))];
-            
-            logToDebugFile(`[SYNC-ENGINE] Recalculando ${uniqueEmps.length} empleados para ${today.toLocaleDateString()}`);
-            
-            for (const empOid of uniqueEmps) {
-                try {
-                    await laborEngine.processDay(empOid, today);
-                } catch (engErr) {
-                    console.error(`[SYNC-ENGINE] Error calculando horas para ${empOid}:`, engErr);
+            for (const [empOid, days] of affectedDays.entries()) {
+                for (const dayISO of days) {
+                    try {
+                        const date = new Date(dayISO);
+                        await laborEngine.processDay(empOid, date);
+                    } catch (engErr) {
+                        console.error(`[SYNC-ENGINE] Error calculando horas para ${empOid} en ${dayISO}:`, engErr);
+                    }
                 }
             }
+            logToDebugFile(`[SYNC-ENGINE] Recálculo finalizado.`);
         }
 
         logToDebugFile(`[SYNC] Finalizado. Total Logs: ${totalLogs}, Nuevos: ${newRecords}`);
@@ -224,7 +224,11 @@ async function syncWithPython(ip: string, port: number, password: number = 0) {
     }
 }
 
-export async function procesarRegistroDoble(log: BiometricLog, machineOid: string, empCache?: Map<string, any>): Promise<boolean> {
+export async function procesarRegistroDoble(log: BiometricLog, machineOid: string, employeeCache?: Map<string, any>): Promise<{ created: boolean, employeeOid: string | null, dayISO: string | null }> {
+    let createdNew = false;
+    let employeeOid: string | null = null;
+    let dayISO: string | null = null;
+
     // 1. Buscar empleado Legacy (Estrategia Manual con Cache)
     const userIdInt = parseInt(log.deviceUserId);
     const userIdStr = log.deviceUserId;
@@ -234,8 +238,8 @@ export async function procesarRegistroDoble(log: BiometricLog, machineOid: strin
     let personDoc = null; // Para logging
 
     // Revisar Cache
-    if (empCache && empCache.has(cacheKey)) {
-        const cached = empCache.get(cacheKey);
+    if (employeeCache && employeeCache.has(cacheKey)) {
+        const cached = employeeCache.get(cacheKey);
         emp = cached.emp;
         personDoc = cached.doc;
     } else {
@@ -270,8 +274,8 @@ export async function procesarRegistroDoble(log: BiometricLog, machineOid: strin
         }
 
         // Guardar en Cache
-        if (empCache) {
-            empCache.set(cacheKey, { emp, doc: personDoc });
+        if (employeeCache) {
+            employeeCache.set(cacheKey, { emp, doc: personDoc });
         }
     }
 
@@ -291,15 +295,24 @@ export async function procesarRegistroDoble(log: BiometricLog, machineOid: strin
         console.warn(`[SYNC-WARN] No se encontró empleado (Legacy/Personnel) para ID: ${log.deviceUserId} (UID: ${log.uid}). Guardando solo log crudo.`);
     }
 
-    let createdNew = false;
     const normalizedTime = log.recordTime;
 
 
 
     // --- IMPACTO 1: checkinout (Legacy) ---
     if (emp) {
+        // VALIDACIÓN: Evitar duplicados por doble marcación (gracia de 1 minuto)
+        const graceStart = new Date(normalizedTime.getTime() - 60000);
+        const graceEnd = new Date(normalizedTime.getTime() + 60000);
+
         const existeCheck = await prisma.checkinout.findFirst({
-            where: { Employee: emp.Oid, CheckTime: normalizedTime }
+            where: { 
+                Employee: emp.Oid, 
+                CheckTime: {
+                    gte: graceStart,
+                    lte: graceEnd
+                }
+            }
         });
 
 
@@ -390,7 +403,7 @@ export async function procesarRegistroDoble(log: BiometricLog, machineOid: strin
                         CheckType: finalCheckType,
                         Employee: emp.Oid,
                         Machine: machineOid,
-                        VerifyCode: 1
+                        VerifyCode: finalVerifyCode
                     }
                 });
                 createdNew = true;
@@ -405,8 +418,17 @@ export async function procesarRegistroDoble(log: BiometricLog, machineOid: strin
     }
 
     // --- IMPACTO 2: iclock_transaction (Siempre) ---
+    const tGraceStart = new Date(normalizedTime.getTime() - 60000);
+    const tGraceEnd = new Date(normalizedTime.getTime() + 60000);
+
     const existeTrans = await prisma.iclock_transaction.findFirst({
-        where: { emp_code: log.deviceUserId, punch_time: normalizedTime }
+        where: { 
+            emp_code: log.deviceUserId, 
+            punch_time: {
+                gte: tGraceStart,
+                lte: tGraceEnd
+            }
+        }
     });
 
     if (!existeTrans) {
@@ -552,6 +574,11 @@ export async function procesarRegistroDoble(log: BiometricLog, machineOid: strin
         }
     }
 
-    return createdNew;
+    if (emp) {
+        employeeOid = emp.Oid;
+        dayISO = inicioDia.toISOString();
+    }
+
+    return { created: createdNew, employeeOid, dayISO };
 }
 

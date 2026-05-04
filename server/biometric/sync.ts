@@ -112,12 +112,29 @@ export async function sincronizarRelojes(devicesToSync?: string[]) {
                     // Cache de Empleados
                     const employeeCache = new Map<string, any>();
                     const userIds = Object.keys(logsPorUsuario);
-                    const CHUNK_SIZE = 10;
 
+                    // --- NUEVA FASE: Sincronización de Usuarios ---
+                    if (pyResult.users && pyResult.users.length > 0) {
+                        logToDebugFile(`[SYNC] Sincronizando ${pyResult.users.length} usuarios de ${machine.Name}...`);
+                        for (const u of pyResult.users) {
+                            try {
+                                await ensureEmployee(u.user_id, u.name || `ID ${u.user_id}`, employeeCache);
+                            } catch (errU) {
+                                console.error(`[SYNC-USER] Error sincronizando usuario ${u.user_id}:`, errU);
+                            }
+                        }
+                    }
+
+                    const CHUNK_SIZE = 10;
                     for (let i = 0; i < userIds.length; i += CHUNK_SIZE) {
                         const chunkUsers = userIds.slice(i, i + CHUNK_SIZE);
                         await Promise.all(chunkUsers.map(async (userId) => {
                             const userLogs = logsPorUsuario[userId];
+                            
+                            // Buscar nombre en la lista de usuarios descargada si no viene en el log
+                            const deviceUser = pyResult.users?.find((u: any) => u.user_id === userId);
+                            const deviceName = deviceUser?.name || "";
+
                             for (const log of userLogs) {
                                 try {
                                     // DEBUG: Loguear raw timestamp para diagnósticar error de hora
@@ -145,7 +162,8 @@ export async function sincronizarRelojes(devicesToSync?: string[]) {
                                         deviceUserId: devUserId,
                                         recordTime: normalizedTime,
                                         activity: status,
-                                        ip: detail.IP || ""
+                                        ip: detail.IP || "",
+                                        name: (log as any).name || (log as any).user_name || (log as any).display_name || deviceName || ""
                                     }, machine.Oid, employeeCache);
 
                                     if (result.created) newRecords++;
@@ -224,7 +242,7 @@ async function syncWithPython(ip: string, port: number, password: number = 0) {
     }
 }
 
-export async function procesarRegistroDoble(log: BiometricLog, machineOid: string, employeeCache?: Map<string, any>): Promise<{ created: boolean, employeeOid: string | null, dayISO: string | null }> {
+export async function procesarRegistroDoble(log: BiometricLog & { name?: string }, machineOid: string, employeeCache?: Map<string, any>): Promise<{ created: boolean, employeeOid: string | null, dayISO: string | null }> {
     let createdNew = false;
     let employeeOid: string | null = null;
     let dayISO: string | null = null;
@@ -243,40 +261,9 @@ export async function procesarRegistroDoble(log: BiometricLog, machineOid: strin
         emp = cached.emp;
         personDoc = cached.doc;
     } else {
-        // A. Intentar por AcNumber
-        if (!isNaN(userIdInt)) {
-            emp = await prisma.employee.findFirst({
-                where: { AcNumber: userIdInt },
-                orderBy: [
-                    { CurrentShift: 'desc' }, // Los que tienen turno primero (nulls al final)
-                    { Department: 'desc' }
-                ]
-            });
-        }
-
-        // B. Si no se encontró, intentar por Documento en Person
-        if (!emp && userIdStr) {
-            const p = await prisma.eperson.findFirst({
-                where: { Document: userIdStr }
-            });
-            if (p) {
-                personDoc = p.Document; // Guardar para log
-                emp = await prisma.employee.findUnique({
-                    where: { Oid: p.Oid }
-                });
-            }
-        } else if (emp) {
-            // C. Si se encontró por AcNumber, traemos el documento manualmente para el log
-            const p = await prisma.eperson.findUnique({
-                where: { Oid: emp.Oid }
-            });
-            if (p) personDoc = p.Document;
-        }
-
-        // Guardar en Cache
-        if (employeeCache) {
-            employeeCache.set(cacheKey, { emp, doc: personDoc });
-        }
+        const found = await ensureEmployee(userIdStr, log.name || "", employeeCache);
+        emp = found.emp;
+        personDoc = found.doc;
     }
 
     // Log de Diagnóstico para ver por qué falla el match
@@ -458,7 +445,7 @@ export async function procesarRegistroDoble(log: BiometricLog, machineOid: strin
         }
     }
 
-    if (!emp) return createdNew;
+    if (!emp) return { created: createdNew, employeeOid: null, dayISO: null };
 
     // --- IMPACTO 3: marking (Consolidación - Solo Legacy) ---
     // Inicio de día literal (T00:00:00.000Z) para consistencia total en DB
@@ -581,4 +568,120 @@ export async function procesarRegistroDoble(log: BiometricLog, machineOid: strin
 
     return { created: createdNew, employeeOid, dayISO };
 }
+
+export async function ensureEmployee(userIdStr: string, name: string, employeeCache?: Map<string, any>): Promise<{ emp: any, doc: string | null }> {
+    const userIdInt = parseInt(userIdStr);
+    const cacheKey = `EMP_${userIdStr}`;
+
+    // 1. Revisar Cache
+    if (employeeCache && employeeCache.has(cacheKey)) {
+        return employeeCache.get(cacheKey);
+    }
+
+    let emp = null;
+    let personDoc = null;
+
+    // A. Intentar por AcNumber
+    if (!isNaN(userIdInt)) {
+        emp = await prisma.employee.findFirst({
+            where: { AcNumber: userIdInt },
+            orderBy: [
+                { CurrentShift: 'desc' },
+                { Department: 'desc' }
+            ]
+        });
+    }
+
+    // B. FALLBACK: Intentar por Documento en Person (si no se encontró por AcNumber)
+    if (!emp && userIdStr) {
+        const p = await prisma.eperson.findFirst({
+            where: { Document: userIdStr }
+        });
+        if (p) {
+            personDoc = p.Document;
+            emp = await prisma.employee.findUnique({
+                where: { Oid: p.Oid }
+            });
+        }
+    } else if (emp) {
+        // C. Si se encontró por AcNumber, traemos el documento para el log
+        const p = await prisma.eperson.findUnique({
+            where: { Oid: emp.Oid }
+        });
+        if (p) personDoc = p.Document;
+    }
+
+    // D. AUTO-CREACIÓN: Si después de todo no se encontró, crear empleado nuevo
+    if (!emp && userIdStr) {
+        const rawName = name || `ID ${userIdStr}`;
+        logToDebugFile(`[SYNC-AUTO] Creando empleado nuevo: ${rawName} (ID: ${userIdStr})`);
+        const newOid = crypto.randomUUID().toUpperCase();
+        try {
+            // 1. Crear eparty (Raíz de la entidad)
+            await prisma.eparty.create({
+                data: {
+                    Oid: newOid,
+                    DisplayName: rawName.toUpperCase(),
+                    CreatedDate: new Date(),
+                    ObjectType: 1,
+                    OptimisticLockField: 0
+                }
+            });
+
+            // 2. Crear eperson (Datos personales)
+            await prisma.eperson.create({
+                data: {
+                    Oid: newOid,
+                    FirstName: rawName.split(' ')[0] || 'NUEVO',
+                    LastName: rawName.split(' ').slice(1).join(' ') || `ID ${userIdStr}`,
+                    FullName: rawName.toUpperCase(),
+                    Document: userIdStr
+                }
+            });
+
+            // 3. Crear employee (Tabla Legacy)
+            emp = await prisma.employee.create({
+                data: {
+                    Oid: newOid,
+                    AcNumber: userIdInt || 0,
+                    Status: 0
+                }
+            });
+
+            // 4. Crear personnel_employee (Tabla Personnel)
+            try {
+                await (prisma as any).personnel_employee.create({
+                    data: {
+                        first_name: rawName.split(' ')[0] || 'NUEVO',
+                        last_name: rawName.split(' ').slice(1).join(' ') || `ID ${userIdStr}`,
+                        emp_code: userIdStr,
+                        status: 1,
+                        is_admin: false,
+                        enable_att: true,
+                        enable_overtime: true,
+                        enable_holiday: true,
+                        deleted: false,
+                        is_active: true,
+                        enable_payroll: true,
+                        company_id: 1,
+                        cost_centers_id: 1
+                    }
+                });
+            } catch (pErr) {
+                logToDebugFile(`[SYNC-AUTO-WARN] No se pudo crear personnel_employee: ${pErr}`);
+            }
+
+            personDoc = userIdStr;
+        } catch (autoErr) {
+            logToDebugFile(`[SYNC-AUTO-ERROR] Error creando empleado ${userIdStr}: ${autoErr}`);
+        }
+    }
+
+    const result = { emp, doc: personDoc };
+    if (employeeCache) {
+        employeeCache.set(cacheKey, result);
+    }
+    return result;
+}
+
 

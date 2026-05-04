@@ -40,6 +40,10 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
       cargo: e?.Position || "",
       tiempoExtra: e?.GeneratesOverTime || false,
       valorHora: e?.ValorHora || 0,
+      acNumber: e?.AcNumber || "",
+      privilege: e?.Privilege || 0,
+      cardNumber: e?.CardNumber || "",
+      acPassword: e?.AcPassword || "",
     });
 
   } catch (err) {
@@ -101,6 +105,10 @@ export async function PUT(request: Request, context: { params: Promise<{ Oid: st
         ValorHora: data.ValorHora ? Number(data.ValorHora) : 0,
         Status: data.Estado === "activo" ? 0 : 1,
         GeneratesOverTime: data.TiempoExtra === true,
+        AcNumber: data.AcNumber ? Number(data.AcNumber) : null,
+        Privilege: data.Privilege ? Number(data.Privilege) : 0,
+        CardNumber: data.CardNumber || null,
+        AcPassword: data.AcPassword || null,
       },
     });
 

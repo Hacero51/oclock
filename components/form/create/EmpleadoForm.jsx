@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Switch } from "@/components/ui/Switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { Loader2, Save, X, User, Clock, Phone, Camera, Upload, Briefcase } from "lucide-react";
+import { Loader2, Save, X, User, Clock, Phone, Camera, Upload, Briefcase, Cpu, Fingerprint, ShieldCheck } from "lucide-react";
 
 export default function EmpleadoForm({ onClose }) {
   const [form, setForm] = useState({
@@ -36,6 +36,10 @@ export default function EmpleadoForm({ onClose }) {
     TiempoExtra: false,
     ValorHora: "",
     PhotoUrl: "",
+    AcNumber: "",
+    Privilege: "0",
+    CardNumber: "",
+    AcPassword: "",
   });
 
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -144,7 +148,11 @@ export default function EmpleadoForm({ onClose }) {
       valorHora: form.ValorHora,
       cargo: form.Cargo,
       jefe: form.Jefe,
-      photoUrl: form.PhotoUrl
+      photoUrl: form.PhotoUrl,
+      AcNumber: form.AcNumber,
+      Privilege: form.Privilege,
+      CardNumber: form.CardNumber,
+      AcPassword: form.AcPassword
     };
 
     try {
@@ -376,190 +384,273 @@ export default function EmpleadoForm({ onClose }) {
                     </CardContent>
                   </Card>
 
-                  {/* INFORMACIÓN LABORAL */}
-                  <Card className="border border-blue-100 md:border-2 shadow-sm md:shadow-lg">
-                    <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 md:border-b-2 py-2 md:py-4">
-                      <div className="flex items-center space-x-2 md:space-x-3">
-                        <div className="p-1.5 md:p-2 bg-blue-600 rounded-lg">
-                          <Briefcase className="h-3 w-3 md:h-5 md:w-5 text-white" />
-                        </div>
-                        <h3 className="text-base md:text-lg font-bold text-gray-800">Información Laboral</h3>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-3 md:p-6 bg-white">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-x-8 md:gap-y-5">
-                        <div className="space-y-1.5 md:space-y-2">
-                          <Label className="text-xs md:text-sm font-bold text-gray-700">Sucursal:</Label>
-                          <Select value={form.Sucursal} onValueChange={(v) => handleSelect("Sucursal", v)}>
-                            <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
-                              <SelectValue placeholder="Seleccionar..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {catalogos.sucursales.map((s) => (
-                                <SelectItem key={s.Oid} value={s.Oid}>{s.Description}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                  {/* INFORMACIÓN LABORAL Y LECTOR (TABS) */}
+                  <Card className="border border-blue-100 md:border-2 shadow-sm md:shadow-lg overflow-hidden">
+                      <Tabs defaultValue="laboral" className="w-full">
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 md:border-b-2 px-2 md:px-6">
+                          <TabsList className="bg-transparent h-10 md:h-14 gap-1 md:gap-4 flex justify-start">
+                            <TabsTrigger
+                              value="laboral"
+                              className="data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm px-3 md:px-6 py-1 md:py-2 rounded-t-lg font-bold transition-all text-xs md:text-sm border-b-2 border-transparent data-[state=active]:border-blue-600"
+                            >
+                              <Briefcase className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                              Laboral
+                            </TabsTrigger>
+                            <TabsTrigger
+                              value="lector"
+                              className="data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm px-3 md:px-6 py-1 md:py-2 rounded-t-lg font-bold transition-all text-xs md:text-sm border-b-2 border-transparent data-[state=active]:border-blue-600"
+                            >
+                              <Cpu className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                              Lector
+                            </TabsTrigger>
+                          </TabsList>
                         </div>
 
-                        <div className="space-y-1.5 md:space-y-2">
-                          <Label className="text-xs md:text-sm font-bold text-gray-700">Turno Actual:</Label>
-                          <Select value={form.TurnoActual} onValueChange={(v) => handleSelect("TurnoActual", v)}>
-                            <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
-                              <SelectValue placeholder="Seleccionar..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {catalogos.turnos.map((t) => (
-                                <SelectItem key={t.Oid} value={t.Oid}>{t.Name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <TabsContent value="laboral" className="m-0 p-3 md:p-6 bg-white">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-x-8 md:gap-y-5">
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label className="text-xs md:text-sm font-bold text-gray-700">Sucursal:</Label>
+                              <Select value={form.Sucursal} onValueChange={(v) => handleSelect("Sucursal", v)}>
+                                <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
+                                  <SelectValue placeholder="Seleccionar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {catalogos.sucursales.map((s) => (
+                                    <SelectItem key={s.Oid} value={s.Oid}>{s.Description}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                        <div className="space-y-1.5 md:space-y-2">
-                          <Label className="text-xs md:text-sm font-bold text-gray-700">Departamento:</Label>
-                          <Select value={form.Departamento} onValueChange={(v) => handleSelect("Departamento", v)}>
-                            <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
-                              <SelectValue placeholder="Seleccionar..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {catalogos.departamentos.map((d) => (
-                                <SelectItem key={d.Oid} value={d.Oid}>{d.Name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label className="text-xs md:text-sm font-bold text-gray-700">Turno Actual:</Label>
+                              <Select value={form.TurnoActual} onValueChange={(v) => handleSelect("TurnoActual", v)}>
+                                <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
+                                  <SelectValue placeholder="Seleccionar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {catalogos.turnos.map((t) => (
+                                    <SelectItem key={t.Oid} value={t.Oid}>{t.Name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                        <div className="space-y-1.5 md:space-y-2">
-                          <Label className="text-xs md:text-sm font-bold text-gray-700">Rotación Actual:</Label>
-                          <Input
-                            name="RotacionActual"
-                            type="number"
-                            value={form.RotacionActual}
-                            onChange={handleChange}
-                            className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-blue-500 bg-gray-50 focus:bg-white text-sm"
-                          />
-                        </div>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label className="text-xs md:text-sm font-bold text-gray-700">Departamento:</Label>
+                              <Select value={form.Departamento} onValueChange={(v) => handleSelect("Departamento", v)}>
+                                <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
+                                  <SelectValue placeholder="Seleccionar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {catalogos.departamentos.map((d) => (
+                                    <SelectItem key={d.Oid} value={d.Oid}>{d.FullName || d.Name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                        <div className="space-y-1.5 md:space-y-2">
-                          <Label className="text-xs md:text-sm font-bold text-gray-700">Centro de Costo:</Label>
-                          <Select value={form.CentroCosto} onValueChange={(v) => handleSelect("CentroCosto", v)}>
-                            <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
-                              <SelectValue placeholder="Seleccionar..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {catalogos.centrosCosto.map((c) => (
-                                <SelectItem key={c.Oid} value={c.Oid}>{c.Name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label className="text-xs md:text-sm font-bold text-gray-700">Rotación Actual:</Label>
+                              <Input
+                                name="RotacionActual"
+                                type="number"
+                                value={form.RotacionActual}
+                                onChange={handleChange}
+                                className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-blue-500 bg-gray-50 focus:bg-white text-sm"
+                              />
+                            </div>
 
-                        <div className="space-y-1.5 md:space-y-2">
-                          <Label className="text-xs md:text-sm font-bold text-gray-700">Contrato Actual:</Label>
-                          <Select value={form.ContratoActual} onValueChange={(v) => handleSelect("ContratoActual", v)}>
-                            <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
-                              <SelectValue placeholder="Seleccionar..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="indefinido">Indefinido</SelectItem>
-                              <SelectItem value="fijo">Término Fijo</SelectItem>
-                              <SelectItem value="obra">Obra o Labor</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label className="text-xs md:text-sm font-bold text-gray-700">Centro de Costo:</Label>
+                              <Select value={form.CentroCosto} onValueChange={(v) => handleSelect("CentroCosto", v)}>
+                                <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
+                                  <SelectValue placeholder="Seleccionar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {catalogos.centrosCosto.map((c) => (
+                                    <SelectItem key={c.Oid} value={c.Oid}>{c.Name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                        <div className="space-y-1.5 md:space-y-2">
-                          <Label className="text-xs md:text-sm font-bold text-gray-700">Cargo:</Label>
-                          <Select value={form.Cargo} onValueChange={(v) => handleSelect("Cargo", v)}>
-                            <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
-                              <SelectValue placeholder="Seleccionar..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {catalogos.cargos.map((c) => (
-                                <SelectItem key={c.Oid} value={c.Oid}>{c.Name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label className="text-xs md:text-sm font-bold text-gray-700">Contrato Actual:</Label>
+                              <Select value={form.ContratoActual} onValueChange={(v) => handleSelect("ContratoActual", v)}>
+                                <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
+                                  <SelectValue placeholder="Seleccionar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="indefinido">Indefinido</SelectItem>
+                                  <SelectItem value="fijo">Término Fijo</SelectItem>
+                                  <SelectItem value="obra">Obra o Labor</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                        <div className="space-y-1.5 md:space-y-2">
-                          <Label className="text-xs md:text-sm font-bold text-gray-700">Salario Base:</Label>
-                          <Input
-                            name="Salario"
-                            type="number"
-                            value={form.Salario}
-                            onChange={handleChange}
-                            className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-blue-500 bg-gray-50 focus:bg-white text-sm"
-                            placeholder="0.00"
-                          />
-                        </div>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label className="text-xs md:text-sm font-bold text-gray-700">Cargo:</Label>
+                              <Input
+                                name="Cargo"
+                                value={form.Cargo}
+                                onChange={handleChange}
+                                className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-blue-500 bg-gray-50 focus:bg-white text-sm"
+                                placeholder="Ej. Vendedor"
+                              />
+                            </div>
 
-                        <div className="space-y-1.5 md:space-y-2">
-                          <Label className="text-xs md:text-sm font-bold text-gray-700">Jefe:</Label>
-                          <Select value={form.Jefe} onValueChange={(v) => handleSelect("Jefe", v)}>
-                            <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
-                              <SelectValue placeholder="Seleccionar..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Ninguno</SelectItem>
-                              {catalogos.empleados.map((e) => (
-                                <SelectItem key={e.Oid} value={e.Oid}>{e.Name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label className="text-xs md:text-sm font-bold text-gray-700">Salario Base:</Label>
+                              <Input
+                                name="Salario"
+                                type="number"
+                                value={form.Salario}
+                                onChange={handleChange}
+                                className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-blue-500 bg-gray-50 focus:bg-white text-sm"
+                                placeholder="0.00"
+                              />
+                            </div>
 
-                        <div className="space-y-1.5 md:space-y-2">
-                          <Label className="text-xs md:text-sm font-bold text-gray-700">Estado:</Label>
-                          <Select value={form.Estado} onValueChange={(v) => handleSelect("Estado", v)}>
-                            <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
-                              <SelectValue placeholder="Seleccionar..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="activo">
-                                <div className="flex items-center gap-1 md:gap-2">
-                                  <span className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-blue-500" />
-                                  <span className="text-xs md:text-sm">Activo</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="inactivo">
-                                <div className="flex items-center gap-1 md:gap-2">
-                                  <span className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-rose-500" />
-                                  <span className="text-xs md:text-sm">Inactivo</span>
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label className="text-xs md:text-sm font-bold text-gray-700">Jefe:</Label>
+                              <Select value={form.Jefe} onValueChange={(v) => handleSelect("Jefe", v)}>
+                                <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
+                                  <SelectValue placeholder="Seleccionar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">Ninguno</SelectItem>
+                                  {catalogos.empleados.map((e) => (
+                                    <SelectItem key={e.Oid} value={e.Oid}>{e.Name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                        <div className="space-y-1.5 md:space-y-2">
-                          <Label className="text-xs md:text-sm font-bold text-gray-700">Valor Hora:</Label>
-                          <Input
-                            name="ValorHora"
-                            type="number"
-                            value={form.ValorHora}
-                            onChange={handleChange}
-                            className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-blue-500 bg-gray-50 focus:bg-white text-sm"
-                            placeholder="0.00"
-                          />
-                        </div>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label className="text-xs md:text-sm font-bold text-gray-700">Estado:</Label>
+                              <Select value={form.Estado} onValueChange={(v) => handleSelect("Estado", v)}>
+                                <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
+                                  <SelectValue placeholder="Seleccionar..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="activo">
+                                    <div className="flex items-center gap-1 md:gap-2">
+                                      <span className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-blue-500" />
+                                      <span className="text-xs md:text-sm">Activo</span>
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="inactivo">
+                                    <div className="flex items-center gap-1 md:gap-2">
+                                      <span className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-rose-500" />
+                                      <span className="text-xs md:text-sm">Inactivo</span>
+                                    </div>
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                        <div className="space-y-1.5 md:space-y-2 sm:col-span-2">
-                          <div className="flex items-center space-x-2 md:space-x-3 h-9 md:h-11 px-2 md:px-4 bg-blue-50 rounded-lg border border-blue-200 md:border-2">
-                            <Switch
-                              checked={form.TiempoExtra}
-                              onCheckedChange={(checked) => setForm(prev => ({ ...prev, TiempoExtra: checked }))}
-                              className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500 h-4 w-7 md:h-6 md:w-11"
-                            />
-                            <Label className="text-xs md:text-sm font-bold text-gray-700 cursor-pointer">
-                              Tiempo Extra
-                            </Label>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label className="text-xs md:text-sm font-bold text-gray-700">Valor Hora:</Label>
+                              <Input
+                                name="ValorHora"
+                                type="number"
+                                value={form.ValorHora}
+                                onChange={handleChange}
+                                className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-blue-500 bg-gray-50 focus:bg-white text-sm"
+                                placeholder="0.00"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5 md:space-y-2 sm:col-span-2">
+                              <div className="flex items-center space-x-2 md:space-x-3 h-9 md:h-11 px-2 md:px-4 bg-blue-50 rounded-lg border border-blue-200 md:border-2">
+                                <Switch
+                                  checked={form.TiempoExtra}
+                                  onCheckedChange={(checked) => setForm(prev => ({ ...prev, TiempoExtra: checked }))}
+                                  className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500 h-4 w-7 md:h-6 md:w-11"
+                                />
+                                <Label className="text-xs md:text-sm font-bold text-gray-700 cursor-pointer">
+                                  Tiempo Extra
+                                </Label>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        </TabsContent>
+
+                        <TabsContent value="lector" className="m-0 p-3 md:p-6 bg-white">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8">
+                            <div className="space-y-4">
+                              <div className="space-y-1.5 md:space-y-2">
+                                <Label className="text-xs md:text-sm font-bold text-gray-700 flex items-center gap-2">
+                                  <Fingerprint className="h-3 w-3 md:h-4 md:w-4 text-blue-600" />
+                                  Número Lector (ID Biométrico):
+                                </Label>
+                                <Input
+                                  name="AcNumber"
+                                  type="number"
+                                  value={form.AcNumber}
+                                  onChange={handleChange}
+                                  className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-blue-500 bg-gray-50 focus:bg-white text-sm"
+                                  placeholder="Ej. 1224"
+                                />
+                              </div>
+
+                              <div className="space-y-1.5 md:space-y-2">
+                                <Label className="text-xs md:text-sm font-bold text-gray-700 flex items-center gap-2">
+                                  <ShieldCheck className="h-3 w-3 md:h-4 md:w-4 text-blue-600" />
+                                  Privilegio en el Dispositivo:
+                                </Label>
+                                <Select value={form.Privilege} onValueChange={(v) => handleSelect("Privilege", v)}>
+                                  <SelectTrigger className="h-9 md:h-11 border border-gray-300 md:border-2 bg-gray-50 text-sm">
+                                    <SelectValue placeholder="Seleccionar..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="0">Usuario</SelectItem>
+                                    <SelectItem value="1">Enrolar</SelectItem>
+                                    <SelectItem value="2">Supervisor</SelectItem>
+                                    <SelectItem value="3">Administrador</SelectItem>
+                                    <SelectItem value="4">Invalido</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            <div className="space-y-4">
+                              <div className="space-y-1.5 md:space-y-2">
+                                <Label className="text-xs md:text-sm font-bold text-gray-700">Número de Tarjeta (RFID):</Label>
+                                <Input
+                                  name="CardNumber"
+                                  value={form.CardNumber}
+                                  onChange={handleChange}
+                                  className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-blue-500 bg-gray-50 focus:bg-white text-sm"
+                                  placeholder="Opcional"
+                                />
+                              </div>
+
+                              <div className="space-y-1.5 md:space-y-2">
+                                <Label className="text-xs md:text-sm font-bold text-gray-700">Contraseña Biométrica:</Label>
+                                <Input
+                                  name="AcPassword"
+                                  type="password"
+                                  value={form.AcPassword}
+                                  onChange={handleChange}
+                                  className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-blue-500 bg-gray-50 focus:bg-white text-sm"
+                                  placeholder="Max. 8 caracteres"
+                                  maxLength={8}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-6 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-2">
+                            <Clock className="h-4 w-4 text-blue-600 mt-0.5" />
+                            <p className="text-[10px] md:text-xs text-blue-700 italic">
+                              Los datos del lector se sincronizarán con los dispositivos físicos en el próximo ciclo automático.
+                            </p>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </Card>
                 </div>
 
                 {/* COLUMNA DERECHA - FOTO */}

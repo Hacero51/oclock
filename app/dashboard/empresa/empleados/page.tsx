@@ -103,9 +103,9 @@ export default function EmpleadosPage() {
 
         // Normaliza los nombres que tu frontend usa (ajusta si tu API tiene otros keys)
         const normalizados = data.map((e) => ({
-          "Número Lector": e.ReaderNumber ?? e["Número Lector"] ?? e.AcNumber ?? "",
+          "Número Lector": String(e.ReaderNumber ?? e["Número Lector"] ?? e.AcNumber ?? ""),
           Oid: e.Oid,
-          Documento: e.Document ?? e.DocumentNumber ?? e["Documento"] ?? "",
+          Documento: String(e.Document ?? e.DocumentNumber ?? e["Documento"] ?? ""),
           "Nombre a mostrar": e.DisplayName ?? e.FullName ?? e["Nombre a mostrar"] ?? "",
           Departamento: e.DepartmentName ?? e.Department ?? e["Departamento"] ?? "",
           "Turno Actual": e.CurrentShiftName ?? e.CurrentShift ?? e["Turno Actual"] ?? "",
@@ -116,8 +116,7 @@ export default function EmpleadosPage() {
         const filtrados = normalizados.filter(
           (r) =>
             r["Nombre a mostrar"]?.toString().trim() !== "" &&
-            r["Documento"]?.toString().trim() !== "" &&
-            r["Departamento"]?.toString().trim() !== ""
+            r["Documento"]?.toString().trim() !== ""
         );
         setDatos(filtrados);
       } catch (err) {
@@ -143,12 +142,17 @@ export default function EmpleadosPage() {
       filtered = filtered.filter(
         (item) =>
           item["Nombre a mostrar"]?.toLowerCase().includes(texto) ||
-          item["Documento"]?.includes(busqueda)
+          String(item["Documento"] ?? "").includes(busqueda) ||
+          String(item["Número Lector"] ?? "").includes(busqueda)
       );
     }
 
     if (departamento && departamento !== "all") {
-      filtered = filtered.filter((i) => i["Departamento"] === departamento);
+      if (departamento === "none") {
+        filtered = filtered.filter((i) => i["Departamento"] === "");
+      } else {
+        filtered = filtered.filter((i) => i["Departamento"] === departamento);
+      }
     }
 
     return filtered;
@@ -166,7 +170,12 @@ export default function EmpleadosPage() {
   }, [busqueda, departamento]);
 
   const departamentos = useMemo(
-    () => Array.from(new Set(datos.map((d) => d["Departamento"]))),
+    () => Array.from(new Set(datos.map((d) => d["Departamento"]))).filter((d) => d.trim() !== ""),
+    [datos]
+  );
+
+  const hasSinAsignar = useMemo(
+    () => datos.some((d) => d["Departamento"].trim() === ""),
     [datos]
   );
 
@@ -211,13 +220,13 @@ export default function EmpleadosPage() {
       <div className="bg-blue-500 rounded-2xl shadow-sm border border-gray-100 p-6 transition-all duration-300 hover:shadow-md">
         <div className="flex flex-col lg:flex-row gap-6 items-end">
           <div className="flex-1 w-full">
-            <label className="text-xs font-semibold text-white-500 uppercase tracking-wider mb-2 block">
+            <label className="text-xs font-semibold text-blue-100 uppercase tracking-wider mb-2 block">
               Búsqueda rápida
             </label>
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 transition-colors group-hover:text-indigo-500" />
               <Input
-                placeholder="Buscar por nombre, documento o ID..."
+                placeholder="Buscar por nombre, documento, número lector o ID..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl transition-all"
@@ -226,7 +235,7 @@ export default function EmpleadosPage() {
           </div>
 
           <div className="w-full lg:w-72">
-            <label className="text-xs font-semibold text-white-500 uppercase tracking-wider mb-2 block">
+            <label className="text-xs font-semibold text-blue-100 uppercase tracking-wider mb-2 block">
               Departamento
             </label>
             <Select value={departamento} onValueChange={setDepartamento}>
@@ -235,6 +244,11 @@ export default function EmpleadosPage() {
               </SelectTrigger>
               <SelectContent className="rounded-xl border-gray-100 shadow-lg">
                 <SelectItem value="all" className="font-medium text-gray-600">Todos</SelectItem>
+                {hasSinAsignar && (
+                  <SelectItem value="none" className="font-medium text-amber-600 italic">
+                    Sin asignar
+                  </SelectItem>
+                )}
                 {departamentos.map((d) => (
                   <SelectItem key={d} value={d}>
                     <div className="flex items-center gap-2">
@@ -251,7 +265,7 @@ export default function EmpleadosPage() {
       </div>
 
       {/* TABLA */}
-      <div className="bg-white-900 rounded-2xl shadow-sm border border-blue-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-blue-100 overflow-hidden">
         <div className="overflow-x-auto">
           <Tabla
             columnas={columnas}

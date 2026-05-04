@@ -18,8 +18,8 @@ export async function GET() {
       }),
       // Departamentos
       prisma.department.findMany({
-        select: { Oid: true, Name: true },
-        where: { GCRecord: null } // Good practice for legacy soft deletes if applicable, but optional
+        select: { Oid: true, Name: true, FullName: true },
+        where: { GCRecord: null }
       }),
       // Centros de Costo
       prisma.costcenter.findMany({
@@ -87,9 +87,17 @@ export async function GET() {
     }));
 
 
+    // 4. Transform departments (strip branch prefixes)
+    const cleanedDepartamentos = departamentos.map(d => {
+      let fullName = d.FullName || d.Name || "";
+      // Remove "7 DE AGOSTO/" or "CALLE 4/" or "CALLE 4TA/" if at the start
+      fullName = fullName.replace(/^(7 DE AGOSTO|CALLE 4|CALLE 4TA)\//i, "");
+      return { ...d, FullName: fullName };
+    });
+
     return NextResponse.json({
       sucursales,
-      departamentos,
+      departamentos: cleanedDepartamentos,
       centrosCosto: centros,
       turnos,
       cargos,

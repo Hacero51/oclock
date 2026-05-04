@@ -21,11 +21,13 @@ export async function GET(request: Request) {
       ];
     }
 
+    /*
     if (status === "activo") {
       whereClause.Status = 0;
     } else if (status === "inactivo") {
       whereClause.Status = 1;
     }
+    */
 
     const empleados = await prisma.employee.findMany({
       where: whereClause,
@@ -33,19 +35,19 @@ export async function GET(request: Request) {
 
     // 2. Extraer IDs únicos para consultas en lote
     const departmentIds = [
-      ...new Set(empleados.map((e) => e.Department).filter((id): id is string => !!id)),
+      ...new Set(empleados.map((e) => e.Department?.trim()).filter((id): id is string => !!id)),
     ];
     const shiftIds = [
-      ...new Set(empleados.map((e) => e.CurrentShift).filter((id): id is string => !!id)),
+      ...new Set(empleados.map((e) => e.CurrentShift?.trim()).filter((id): id is string => !!id)),
     ];
     const positionIds = [
-      ...new Set(empleados.map((e) => e.Position).filter((id): id is string => !!id)),
+      ...new Set(empleados.map((e) => e.Position?.trim()).filter((id): id is string => !!id)),
     ];
     const agreementTypeIds = [
-      ...new Set(empleados.map((e) => e.CurrentAgreementType).filter((id): id is string => !!id)),
+      ...new Set(empleados.map((e) => e.CurrentAgreementType?.trim()).filter((id): id is string => !!id)),
     ];
     const bossIds = [
-      ...new Set(empleados.map((e) => e.Boss).filter((id): id is string => !!id)),
+      ...new Set(empleados.map((e) => e.Boss?.trim()).filter((id): id is string => !!id)),
     ];
 
     // 2a. Recolectar IDs de empleados para buscar sus datos personales (eperson)
@@ -61,23 +63,24 @@ export async function GET(request: Request) {
       prisma.eperson.findMany({ where: { Oid: { in: employeeIds } } }),
     ]);
 
-    // 4. Crear mapas para acceso rápido
-    const deptMap = new Map(departamentos.map((d) => [d.Oid, d]));
-    const shiftMap = new Map(turnos.map((s) => [s.Oid, s]));
-    const positionMap = new Map(cargos.map((p) => [p.Oid, p]));
-    const agreementMap = new Map(contratos.map((a) => [a.Oid, a]));
-    const bossMap = new Map(jefes.map((b) => [b.Oid, b]));
-    const personMap = new Map(personas.map((p) => [p.Oid, p]));
+    // 4. Crear mapas para acceso rápido (con trim y lowercase para evitar problemas de padding y casing)
+    const deptMap = new Map(departamentos.map((d) => [d.Oid.trim().toLowerCase(), d]));
+    const shiftMap = new Map(turnos.map((s) => [s.Oid.trim().toLowerCase(), s]));
+    const positionMap = new Map(cargos.map((p) => [p.Oid.trim().toLowerCase(), p]));
+    const agreementMap = new Map(contratos.map((a) => [a.Oid.trim().toLowerCase(), a]));
+    const bossMap = new Map(jefes.map((b) => [b.Oid.trim().toLowerCase(), b]));
+    const personMap = new Map(personas.map((p) => [p.Oid.trim().toLowerCase(), p]));
 
     // 5. Construir respuesta
     const resultado = empleados.map((emp) => {
+      const empOidTrimmed = emp.Oid.trim().toLowerCase();
       // Obtenemos la persona del mapa en lugar del include fallido
-      const persona = personMap.get(emp.Oid);
-      const departamento = emp.Department ? deptMap.get(emp.Department) : null;
-      const turno = emp.CurrentShift ? shiftMap.get(emp.CurrentShift) : null;
-      const cargo = emp.Position ? positionMap.get(emp.Position) : null;
-      const contrato = emp.CurrentAgreementType ? agreementMap.get(emp.CurrentAgreementType) : null;
-      const jefe = emp.Boss ? bossMap.get(emp.Boss) : null;
+      const persona = personMap.get(empOidTrimmed);
+      const departamento = emp.Department ? deptMap.get(emp.Department.trim().toLowerCase()) : null;
+      const turno = emp.CurrentShift ? shiftMap.get(emp.CurrentShift.trim().toLowerCase()) : null;
+      const cargo = emp.Position ? positionMap.get(emp.Position.trim().toLowerCase()) : null;
+      const contrato = emp.CurrentAgreementType ? agreementMap.get(emp.CurrentAgreementType.trim().toLowerCase()) : null;
+      const jefe = emp.Boss ? bossMap.get(emp.Boss.trim().toLowerCase()) : null;
 
       // Filtro manual de búsqueda si se pasó 'query'
       if (query) {
@@ -91,12 +94,15 @@ export async function GET(request: Request) {
         if (!matches) return null;
       }
 
+      let deptName = departamento?.FullName || departamento?.Name || "";
+      deptName = deptName.replace(/^(7 DE AGOSTO|CALLE 4|CALLE 4TA)\//i, "");
+
       const item = {
         "Número Lector": emp.AcNumber ?? "",
         Oid: emp.Oid,
         Documento: persona?.Document ?? "",
         "Nombre a mostrar": persona?.FullName ?? "",
-        Departamento: departamento?.Name ?? "",
+        Departamento: deptName,
         "Turno Actual": turno?.Name ?? "",
         "Valor Hora": emp.ValorHora ?? "",
         Cargo: cargo?.Name ?? "",
@@ -105,12 +111,9 @@ export async function GET(request: Request) {
         Status: emp.Status ?? null,
       };
 
-      const tieneDatosReales =
-        item["Nombre a mostrar"] !== "" ||
-        item.Departamento !== "" ||
-        item["Turno Actual"] !== "";
+      console.log(`[DEBUG-API] Procesando Emp ${emp.AcNumber}: Nombre="${item["Nombre a mostrar"]}", Status=${item.Status}`);
 
-      return tieneDatosReales ? item : null;
+      return item;
     });
 
     const filtrados = resultado.filter((x) => x !== null);
@@ -202,6 +205,10 @@ export async function POST(req: Request) {
         BaseSalary: data.salario ? Number(data.salario) : null,
         ValorHora: data.valorHora ? Number(data.valorHora) : null,
         GeneratesOverTime: data.tiempoExtra ? true : false,
+        AcNumber: data.AcNumber ? Number(data.AcNumber) : null,
+        Privilege: data.Privilege ? Number(data.Privilege) : 0,
+        CardNumber: data.CardNumber || null,
+        AcPassword: data.AcPassword || null,
       },
     });
 

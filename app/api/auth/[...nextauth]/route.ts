@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import crypto from "crypto";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const authOptions = {
   providers: [
@@ -16,8 +17,13 @@ export const authOptions = {
         //console.log("🔵 Recibiendo login:", credentials);
 
         if (!credentials?.username || !credentials?.password) {
-          //console.log("❌ Faltan credenciales");
           return null;
+        }
+
+        // 🛑 Rate Limit por Usuario (5 intentos en 1 minuto)
+        const limit = checkRateLimit(`login_${credentials.username}`, 5, 60000, 900000);
+        if (limit.isBlocked) {
+          throw new Error("Demasiados intentos. Por seguridad, el acceso a este usuario se ha bloqueado temporalmente (15 min).");
         }
 
         // 🔐 Hash MD5 con uppercase

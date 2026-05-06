@@ -150,11 +150,23 @@ export async function POST(req: Request) {
     // DIVIDIR EL FULLNAME EN CAMPOS
     // -----------------------------
     const partes = (data.fullName || "").trim().split(/\s+/);
+    let FirstName = "", MiddleName = "", LastName = "", MiddleLast = "";
 
-    const FirstName = partes[0] ?? "";
-    const MiddleName = partes.length > 2 ? partes.slice(1, partes.length - 2).join(" ") : "";
-    const LastName = partes.length >= 2 ? partes[partes.length - 2] : "";
-    const MiddleLast = partes.length >= 3 ? partes[partes.length - 1] : "";
+    if (partes.length === 1) {
+      FirstName = partes[0];
+    } else if (partes.length === 2) {
+      FirstName = partes[0];
+      LastName = partes[1];
+    } else if (partes.length === 3) {
+      FirstName = partes[0];
+      LastName = partes[1];
+      MiddleLast = partes[2];
+    } else if (partes.length >= 4) {
+      FirstName = partes[0];
+      MiddleName = partes.slice(1, partes.length - 2).join(" ");
+      LastName = partes[partes.length - 2];
+      MiddleLast = partes[partes.length - 1];
+    }
 
     // -----------------------------
     // 1. CREAR EPARTY (Entidad Base)
@@ -209,8 +221,35 @@ export async function POST(req: Request) {
         Privilege: data.Privilege ? Number(data.Privilege) : 0,
         CardNumber: data.CardNumber || null,
         AcPassword: data.AcPassword || null,
+        Boss: data.jefe === "none" ? null : (data.jefe || null),
       },
     });
+    
+    // -----------------------------
+    // 4. CREAR PERSONNEL_EMPLOYEE (Tabla Django/Personnel)
+    // -----------------------------
+    try {
+      await (prisma as any).personnel_employee.create({
+        data: {
+          first_name: FirstName || "NUEVO",
+          last_name: (LastName + " " + MiddleLast).trim() || "EMPLEADO",
+          emp_code: data.documento || String(data.AcNumber || newOid.substring(0, 8)),
+          status: 1,
+          is_admin: false,
+          enable_att: true,
+          enable_overtime: true,
+          enable_holiday: true,
+          deleted: false,
+          is_active: true,
+          enable_payroll: true,
+          company_id: 1,
+          cost_centers_id: 1,
+          department_id: 1, // Default or map if possible
+        }
+      });
+    } catch (pErr) {
+      console.error("⚠️ Error creando personnel_employee (no crítico):", pErr);
+    }
 
     return NextResponse.json(
       {

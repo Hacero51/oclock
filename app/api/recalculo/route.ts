@@ -18,10 +18,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Rango de fechas inválido" }, { status: 400 });
         }
 
-        // Limitar a máximo 7 días por llamada para evitar timeout
+        // Limitar a máximo 40 días por llamada para permitir procesar un mes completo
         const diffDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (diffDays > 7) {
-            return NextResponse.json({ error: "Máximo 7 días por solicitud. Llama múltiples veces para rangos mayores." }, { status: 400 });
+        if (diffDays > 40) {
+            return NextResponse.json({ error: "Máximo 40 días por solicitud." }, { status: 400 });
         }
 
         // Obtener todos los empleados activos (con turno asignado)

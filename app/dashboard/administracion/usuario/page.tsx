@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Users, UserPlus, Save, Edit, Trash2, Search, Eye, EyeOff, RefreshCw, Shield, Key, UserCheck } from "lucide-react";
+import Tabla from "@/components/Table";
 
 interface UsuarioForm {
   Oid?: string;
@@ -538,65 +539,36 @@ export default function CrearUsuario() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="p-4 text-left text-sm font-semibold text-gray-700">
-                      Usuario
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-gray-700">
-                      Estado
-                    </th>
-                    <th className="p-4 text-left text-sm font-semibold text-gray-700">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usuariosFiltrados.map((usuario) => (
-                    <tr
-                      key={usuario.Oid}
-                      className="hover:bg-gray-50 transition-colors border-b border-gray-200 last:border-b-0"
+            <Tabla 
+              columnas={["Usuario", "Nombre Real", "Estado", "Acciones"]}
+              datos={usuariosFiltrados.map(usuario => ({
+                "Usuario": <span className="font-bold text-gray-900">@{usuario.UserName}</span>,
+                "Nombre Real": <span className="text-gray-600">{usuario.HiddenUserName}</span>,
+                "Estado": getEstadoBadge(usuario.IsActive),
+                "Acciones": (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleEditarUsuario(usuario)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1 h-8 px-3"
                     >
-                      <td className="p-4">
-                        <div>
-                          <div className="font-semibold text-gray-900">
-                            {usuario.HiddenUserName}
-                          </div>
-                          <div className="text-sm text-gray-500">@{usuario.UserName}</div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        {getEstadoBadge(usuario.IsActive)}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => handleEditarUsuario(usuario)}
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1"
-                          >
-                            <Edit className="h-3 w-3" />
-                            Editar
-                          </Button>
-                          <Button
-                            onClick={() => handleEliminarUsuario(usuario.Oid)}
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            Eliminar
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      <Edit className="h-3 w-3" />
+                      Editar
+                    </Button>
+                    <Button
+                      onClick={() => handleEliminarUsuario(usuario.Oid)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50 h-8 px-3"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Eliminar
+                    </Button>
+                  </div>
+                )
+              }))}
+            />
           )}
         </CardContent>
       </Card>

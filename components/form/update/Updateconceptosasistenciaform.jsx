@@ -33,11 +33,26 @@ export default function ConceptoAsistenciaForm({ data, onClose, onUpdate }) {
   const onFormSubmit = async (formData) => {
     setLoading(true);
     try {
-      await onUpdate({
-        ...data,
-        ...formData
-      });
-      onClose();
+      const payload = { ...data, ...formData };
+      
+      if (typeof onUpdate === 'function') {
+        await onUpdate(payload);
+        onClose();
+      } else {
+        // Fallback si no se pasa onUpdate (ej: desde UpdateModal)
+        const response = await fetch('/api/conceptos-asistencia', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        if (response.ok) {
+          onClose();
+          window.location.reload();
+        } else {
+          console.error('Error al actualizar concepto');
+        }
+      }
     } catch (error) {
       console.error('Error actualizando concepto:', error);
     } finally {
@@ -65,8 +80,8 @@ export default function ConceptoAsistenciaForm({ data, onClose, onUpdate }) {
                 {...register("codigo", { 
                   required: "Este campo es requerido",
                   pattern: {
-                    value: /^[0-9.]+$/,
-                    message: "Solo se permiten números y puntos"
+                    value: /^[a-zA-Z0-9.-]+$/,
+                    message: "Solo se permiten letras, números, puntos y guiones"
                   }
                 })}
                 placeholder="Ej: 01, 02.1, 03"

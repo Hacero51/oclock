@@ -109,8 +109,28 @@ export async function PUT(request: Request, context: { params: Promise<{ Oid: st
         Privilege: data.Privilege ? Number(data.Privilege) : 0,
         CardNumber: data.CardNumber || null,
         AcPassword: data.AcPassword || null,
+        Boss: data.Jefe === "none" ? null : (data.Jefe || null),
       },
     });
+    
+    // -----------------------------
+    // ACTUALIZAR PERSONNEL_EMPLOYEE (Opcional/Best Effort)
+    // -----------------------------
+    try {
+      const documentToSync = data.documento || data.Document;
+      if (documentToSync) {
+        await (prisma as any).personnel_employee.updateMany({
+          where: { emp_code: String(documentToSync) },
+          data: {
+            first_name: data.FirstName || undefined,
+            last_name: (data.LastName || "") + (data.MiddleLast ? " " + data.MiddleLast : ""),
+            status: data.Status === "activo" ? 1 : 0,
+          }
+        });
+      }
+    } catch (pErr) {
+      console.error("⚠️ Error actualizando personnel_employee (no crítico):", pErr);
+    }
 
     return NextResponse.json({ message: "Empleado actualizado correctamente" });
 

@@ -1,5 +1,6 @@
-import prisma from '../../lib/prisma';
-import crypto from 'crypto';
+
+import crypto from "crypto";
+import prisma from "@/lib/prisma";
 
 export interface CalculationResult {
     conceptCode: string;
@@ -9,83 +10,15 @@ export interface CalculationResult {
 }
 
 export class LaborEngine {
-    private nightStartHour = 19; 
-    private nightEndHour = 6;    
-    private implicitLunchSeconds = 1800; 
+    private nightStartHour = 19; // 7 PM
+    private nightEndHour = 6;    // 6 AM
     private weeklyOrdinaryLimit = 44;
-    private weeklyExtraLimit = 12; // Cupo semanal de extras A02
-
-    private async loadGlobalConfig() {
-        try {
-            const configs = await prisma.configuration.findMany({
-                where: { Group: { in: ['Attendance', 'Pre-payroll'] } }
-            });
-            const oids = configs.map(c => c.Oid);
-            const timeSpans = await prisma.configurationtimespan.findMany({ 
-                where: { Oid: { in: oids } } 
-            });
-            
-            const timeSpanMap = new Map(timeSpans.map(t => [t.Oid, t.Value]));
-            
-            const getVal = (id: string) => {
-                const config = configs.find(c => c.Identifier === id);
-                return config ? timeSpanMap.get(config.Oid) : null;
-            };
-
-            const nightStart = getVal('BeginningOfNight');
-            const nightEnd = getVal('EndingOfNight');
-            const lunchAdj = getVal('AdjustTheTimeByConcept');
-
-            if (nightStart !== null) this.nightStartHour = Math.floor(nightStart / 3600);
-            if (nightEnd !== null) this.nightEndHour = Math.floor(nightEnd / 3600);
-            if (lunchAdj !== null) this.implicitLunchSeconds = lunchAdj;
-
-        } catch (error) {
-            console.error("[ENGINE] Error cargando config global:", error);
-        }
-    }
-
-    private async getWeeklyAccumulated(employeeOid: string, currentDate: Date) {
-        const startOfWeek = new Date(currentDate);
-        const day = startOfWeek.getUTCDay();
-        const diff = startOfWeek.getUTCDate() - (day === 0 ? 6 : day - 1);
-        startOfWeek.setUTCDate(diff);
-        startOfWeek.setUTCHours(0, 0, 0, 0);
-
-        const types = await prisma.attendancetype.findMany();
-        const typeMap = new Map(types.map(t => [t.Oid, t.CodeToExport]));
-
-        const details = await prisma.attendancedetail.findMany({
-            where: {
-                Employee: employeeOid,
-                Day: { gte: startOfWeek, lt: currentDate },
-            }
-        });
-
-        let ordinary = 0;
-        let extras = 0;
-
-        for (const d of details) {
-            const code = typeMap.get(d.AttendanceType || '');
-            if (code === 'A01' || code === 'A05' || code === 'A49' || code === 'A50') {
-                ordinary += d.Hours || 0;
-            } else if (code === 'A02' || code === 'A04' || code === 'A06' || code === 'A08') {
-                extras += d.Hours || 0;
-            }
-        }
-
-        return { ordinary, extras };
-    }
+    private weeklyExtraLimit = 12;
+    private implicitLunchSeconds = 1800; // 30 min
 
     async processDay(employeeOid: string, date: Date) {
-        await this.loadGlobalConfig();
-        
         const startOfDayDB = new Date(date);
         startOfDayDB.setUTCHours(0, 0, 0, 0);
-
-        await prisma.attendancedetail.deleteMany({
-            where: { Employee: employeeOid, Day: startOfDayDB }
-        });
 
         const employee = await prisma.employee.findUnique({ where: { Oid: employeeOid } });
         if (!employee) return;
@@ -149,13 +82,26 @@ export class LaborEngine {
         let targetA01Secs = 0;
 
         if (timetable) {
-            expectedIn = createTimeFromSeconds(calcReference, timetable.MarkingIn || 0);
-            targetA01Secs = baseTimetable?.TotalTime || ((timetable.MarkingOut || 0) - (timetable.MarkingIn || 0));
+            const shiftInSecs = timetable.MarkingIn || 0;
+            if (shiftInSecs > 0) {
+                expectedIn = createTimeFromSeconds(calcReference, shiftInSecs);
+            } else {
+                expectedIn = actualIn;
+            }
+            
+            targetA01Secs = baseTimetable?.TotalTime || ((timetable.MarkingOut || 0) - (shiftInSecs));
             
             const remainingA01 = Math.max(0, this.weeklyOrdinaryLimit - weekA01);
             const effectiveA01Secs = Math.min(targetA01Secs, remainingA01 * 3600);
             
-            expectedOut = new Date(expectedIn.getTime() + effectiveA01Secs * 1000);
+            let lunchDurationSecs = 0;
+            if (timetable.Lunch && timetable.LunchOut !== null && timetable.LunchIn !== null) {
+                lunchDurationSecs = timetable.LunchIn - timetable.LunchOut;
+            } else if (targetA01Secs >= 6 * 3600) { 
+                lunchDurationSecs = this.implicitLunchSeconds;
+            }
+
+            expectedOut = new Date(expectedIn.getTime() + (effectiveA01Secs + lunchDurationSecs) * 1000);
             canHaveOrdinary = effectiveA01Secs > 0;
 
             if (expectedIn.getTime() - actualIn.getTime() > 0 && expectedIn.getTime() - actualIn.getTime() <= 3600000) {
@@ -174,27 +120,26 @@ export class LaborEngine {
                 const afternoonStart = actualIn > lunchIn ? actualIn : lunchIn;
                 if (afternoonStart < actualOut) segments.push({ start: afternoonStart, end: actualOut });
             } else if (shouldSubtractLunch) {
-                const implicitLunchOut = expectedOut;
-                const implicitLunchIn = new Date(expectedOut.getTime() + this.implicitLunchSeconds * 1000);
-                const morningEnd = actualOut < implicitLunchOut ? actualOut : implicitLunchOut;
+                const theoreticalA01End = new Date(expectedIn.getTime() + (targetA01Secs + lunchDurationSecs) * 1000);
+                const implicitLunchIn = new Date(theoreticalA01End.getTime() + this.implicitLunchSeconds * 1000);
+                const morningEnd = actualOut < theoreticalA01End ? actualOut : theoreticalA01End;
                 if (actualIn < morningEnd) segments.push({ start: actualIn, end: morningEnd });
-                const afternoonStart = actualIn > implicitLunchIn ? actualIn : implicitLunchIn;
-                if (afternoonStart < actualOut) segments.push({ start: afternoonStart, end: actualOut });
+                if (implicitLunchIn < actualOut) segments.push({ start: implicitLunchIn, end: actualOut });
             } else {
                 segments.push({ start: actualIn, end: actualOut });
             }
         } else {
-            expectedIn = actualIn;
-            expectedOut = actualIn;
             segments.push({ start: actualIn, end: actualOut });
         }
 
         const results: CalculationResult[] = [];
         let dailyExtrasCount = 0;
         let weeklyA02Tracker = weekA02;
+        let accumulatedDayA01Secs = 0;
+        const maxDayA01Secs = targetA01Secs;
 
         for (const seg of segments) {
-            const subSegments = this.splitByNightBoundaries(seg.start, seg.end);
+            const subSegments = this.splitByBoundaries(seg.start, seg.end, expectedIn, expectedOut);
             for (const sub of subSegments) {
                 const totalHours = (sub.end.getTime() - sub.start.getTime()) / 3600000;
                 const isNight = this.isNightTime(sub.start);
@@ -203,20 +148,27 @@ export class LaborEngine {
 
                 let ordinaryHours = 0;
                 if (canHaveOrdinary && overlapStart < overlapEnd) {
-                    ordinaryHours = (overlapEnd.getTime() - overlapStart.getTime()) / 3600000;
+                    const potentialA01Secs = (overlapEnd.getTime() - overlapStart.getTime()) / 1000;
+                    const remainingDayA01 = Math.max(0, maxDayA01Secs - accumulatedDayA01Secs);
+                    const allowedA01Secs = Math.min(potentialA01Secs, remainingDayA01);
+
+                    if (allowedA01Secs > 0) {
+                        ordinaryHours = allowedA01Secs / 3600;
+                        accumulatedDayA01Secs += allowedA01Secs;
+                        const concept = this.getOrdinaryConcept(isSundayOrHoliday, isNight);
+                        results.push({ 
+                            conceptCode: concept, 
+                            hours: ordinaryHours, 
+                            startDate: overlapStart, 
+                            endDate: new Date(overlapStart.getTime() + allowedA01Secs * 1000) 
+                        });
+                    }
                 }
 
                 const extraHours = Math.max(0, totalHours - ordinaryHours);
 
-                if (ordinaryHours > 0) {
-                    const concept = this.getOrdinaryConcept(isSundayOrHoliday, isNight);
-                    results.push({ conceptCode: concept, hours: ordinaryHours, startDate: overlapStart, endDate: overlapEnd });
-                }
-
                 if (extraHours > 0) {
-                    let extraStart = sub.start > expectedOut ? sub.start : (sub.end < expectedIn ? sub.start : expectedOut);
-                    if (extraStart < sub.start) extraStart = sub.start;
-                    
+                    let extraStart = new Date(sub.start.getTime() + ordinaryHours * 3600000);
                     let remainingExtra = extraHours;
                     while (remainingExtra > 0) {
                         const remainingWeeklyA02 = Math.max(0, this.weeklyExtraLimit - weeklyA02Tracker);
@@ -245,36 +197,40 @@ export class LaborEngine {
         await this.saveResults(employeeOid, startOfDayDB, results);
     }
 
-    private splitByNightBoundaries(start: Date, end: Date): { start: Date, end: Date }[] {
-        const subs: { start: Date, end: Date }[] = [];
-        let current = new Date(start);
-        while (current < end) {
-            const nextBoundary = this.getNextBoundary(current, end);
-            subs.push({ start: new Date(current), end: new Date(nextBoundary) });
-            current = nextBoundary;
-        }
-        return subs;
-    }
+    private async getWeeklyAccumulated(empOid: string, currentDate: Date): Promise<{ ordinary: number, extras: number }> {
+        const startOfWeek = new Date(currentDate);
+        const day = startOfWeek.getUTCDay();
+        const diff = startOfWeek.getUTCDate() - day + (day === 0 ? -6 : 1);
+        startOfWeek.setUTCDate(diff);
+        startOfWeek.setUTCHours(0, 0, 0, 0);
 
-    private getNextBoundary(current: Date, end: Date): Date {
-        const d = new Date(current);
-        const bStart = new Date(d); bStart.setUTCHours(this.nightStartHour, 0, 0, 0);
-        const bEnd = new Date(d); bEnd.setUTCHours(this.nightEndHour, 0, 0, 0);
-        const boundaries = [bStart, bEnd];
-        const dNext = new Date(d); dNext.setUTCDate(dNext.getUTCDate() + 1);
-        boundaries.push(new Date(dNext.setUTCHours(this.nightStartHour, 0, 0, 0)));
-        boundaries.push(new Date(dNext.setUTCHours(this.nightEndHour, 0, 0, 0)));
-        const valid = boundaries.filter(b => b > current && b < end).sort((a, b) => a.getTime() - b.getTime());
-        return valid.length > 0 ? valid[0] : end;
+        const details = await prisma.attendancedetail.findMany({
+            where: {
+                Employee: empOid,
+                Day: { gte: startOfWeek, lt: currentDate }
+            }
+        });
+
+        const ordinaryCodes = ['A01', 'A49', 'A05', 'A50'];
+        const extraCodes = ['A02', 'A04', 'A06', 'A08'];
+
+        let ordinary = 0;
+        let extras = 0;
+
+        for (const d of details) {
+            const type = await prisma.attendancetype.findUnique({ where: { Oid: d.AttendanceType || '' } });
+            if (!type || !type.CodeToExport) continue;
+            const code = type.CodeToExport;
+            if (ordinaryCodes.includes(code)) ordinary += d.Hours || 0;
+            if (extraCodes.includes(code)) extras += d.Hours || 0;
+        }
+
+        return { ordinary, extras };
     }
 
     private isNightTime(date: Date): boolean {
         const hour = date.getUTCHours();
-        if (this.nightStartHour > this.nightEndHour) {
-            return hour >= this.nightStartHour || hour < this.nightEndHour;
-        } else {
-            return hour >= this.nightStartHour && hour < this.nightEndHour;
-        }
+        return hour >= this.nightStartHour || hour < this.nightEndHour;
     }
 
     private getOrdinaryConcept(isSun: boolean, isNight: boolean): string {
@@ -288,10 +244,14 @@ export class LaborEngine {
     }
 
     private getBonificacionConcept(isSun: boolean, isNight: boolean): string {
-        return isNight ? 'A35' : 'A36';
+        return 'A36';
     }
 
     private async saveResults(empOid: string, day: Date, results: CalculationResult[]) {
+        await prisma.attendancedetail.deleteMany({
+            where: { Employee: empOid, Day: day }
+        });
+
         for (const res of results) {
             const type = await prisma.attendancetype.findFirst({ where: { CodeToExport: res.conceptCode } });
             if (!type) continue;
@@ -310,6 +270,29 @@ export class LaborEngine {
                 }
             });
         }
+    }
+
+    private splitByBoundaries(start: Date, end: Date, expectedIn: Date, expectedOut: Date): { start: Date, end: Date }[] {
+        const subs: { start: Date, end: Date }[] = [];
+        let current = new Date(start);
+        while (current < end) {
+            const nextBoundary = this.getNextBoundaryWithExpected(current, end, expectedIn, expectedOut);
+            subs.push({ start: new Date(current), end: new Date(nextBoundary) });
+            current = nextBoundary;
+        }
+        return subs;
+    }
+
+    private getNextBoundaryWithExpected(current: Date, end: Date, expectedIn: Date, expectedOut: Date): Date {
+        const d = new Date(current);
+        const bStart = new Date(d); bStart.setUTCHours(this.nightStartHour, 0, 0, 0);
+        const bEnd = new Date(d); bEnd.setUTCHours(this.nightEndHour, 0, 0, 0);
+        const boundaries = [bStart, bEnd, expectedIn, expectedOut];
+        const dNext = new Date(d); dNext.setUTCDate(dNext.getUTCDate() + 1);
+        boundaries.push(new Date(dNext.setUTCHours(this.nightStartHour, 0, 0, 0)));
+        boundaries.push(new Date(dNext.setUTCHours(this.nightEndHour, 0, 0, 0)));
+        const valid = boundaries.filter(b => b > current && b < end).sort((a, b) => a.getTime() - b.getTime());
+        return valid.length > 0 ? valid[0] : end;
     }
 }
 

@@ -68,17 +68,17 @@ export default function Tabla({ columnas, datos, onRowClick, selectedRowId, rend
 
     return (
         <div className="w-full">
-            {/* Tabla Desktop - CON MEJOR RESPONSIVE */}
-            <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-200 shadow-sm bg-white ring-1 ring-gray-100">
-                <div className="min-w-full">
-                    <table className="w-full text-[11px] text-left">
-                        <thead className="bg-blue-500 border-b border-white-900">
+            {/* Tabla Desktop - DISEÑO PREMIUM UNIFICADO */}
+            <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200 shadow-sm bg-white">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-gray-50/80 border-b border-gray-200">
                             <tr>
                                 {columnas.map((col) => (
                                     <th
                                         key={col}
                                         onClick={() => handleSort(col)}
-                                        className="px-2 py-1.5 text-[10px] font-semibold text-white uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-blue-600 transition-colors group select-none"
+                                        className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group select-none"
                                     >
                                         <div className="flex items-center gap-2">
                                             <span>{col}</span>
@@ -86,29 +86,29 @@ export default function Tabla({ columnas, datos, onRowClick, selectedRowId, rend
                                         </div>
                                     </th>
                                 ))}
-                                {onRowClick && <th className="px-3 py-2 w-10"></th>}
+                                {onRowClick && <th className="px-4 py-3 w-10"></th>}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white-900">
+                        <tbody className="divide-y divide-gray-100">
                             {sortedData.length > 0 ? (
                                 sortedData.map((fila, i) => {
                                     const rowContent = (
                                         <tr
                                             key={i}
-                                            className={`group cursor-pointer transition-all duration-200 ${selectedRowId && selectedRowId === fila.id ? "bg-blue-100 border-l-4 border-blue-600 shadow-inner" : "hover:bg-indigo-50/40"}`}
+                                            className={`group cursor-pointer transition-all duration-150 ${selectedRowId && selectedRowId === fila.id ? "bg-indigo-50/50 border-l-4 border-indigo-600" : "hover:bg-gray-50"}`}
                                             onClick={() => onRowClick && onRowClick(fila)}
                                         >
                                             {columnas.map((col) => (
                                                 <td
                                                     key={col}
-                                                    className="px-2 py-1.5 text-white-600 font-medium group-hover:text-gray-900 transition-colors whitespace-nowrap"
+                                                    className="px-4 py-2.5 text-[11px] text-gray-600 font-medium whitespace-nowrap"
                                                 >
                                                     {fila[col] || "-"}
                                                 </td>
                                             ))}
                                             {onRowClick && (
-                                                <td className="px-3 py-2.5 text-gray-400 group-hover:text-indigo-500 transition-colors text-right">
-                                                    <ChevronRight className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
+                                                <td className="px-4 py-2.5 text-gray-300 group-hover:text-indigo-500 transition-colors text-right">
+                                                    <ChevronRight className="h-4 w-4 ml-auto transition-transform group-hover:translate-x-1" />
                                                 </td>
                                             )}
                                         </tr>
@@ -120,7 +120,7 @@ export default function Tabla({ columnas, datos, onRowClick, selectedRowId, rend
                                                 <ContextMenuTrigger asChild>
                                                     {rowContent}
                                                 </ContextMenuTrigger>
-                                                <ContextMenuContent className="w-64">
+                                                <ContextMenuContent className="w-64 shadow-xl border-gray-200">
                                                     {renderContextMenu(fila)}
                                                 </ContextMenuContent>
                                             </ContextMenu>
@@ -133,9 +133,9 @@ export default function Tabla({ columnas, datos, onRowClick, selectedRowId, rend
                                 <tr>
                                     <td
                                         colSpan={columnas.length + (onRowClick ? 1 : 0)}
-                                        className="px-6 py-12 text-center text-white-400 italic"
+                                        className="px-6 py-16 text-center text-gray-400 italic text-xs"
                                     >
-                                        No hay datos para mostrar
+                                        No hay datos disponibles en esta vista
                                     </td>
                                 </tr>
                             )}

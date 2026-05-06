@@ -68,3 +68,31 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "Error obteniendo conceptos" }, { status: 500 });
     }
 }
+
+export async function PUT(request: Request) {
+    try {
+        const body = await request.json();
+        const { id, codigo, codigoExportar, nombre, estado, factor } = body;
+        
+        if (!id || id.startsWith('builtin-')) {
+             return NextResponse.json({ error: "No se puede editar conceptos internos" }, { status: 400 });
+        }
+
+        const numericFactor = parseFloat(factor?.toString().replace(',', '.') || '0');
+        const statusVal = estado === 'Activo' ? 0 : 1;
+
+        const updated = await prisma.attendancetype.update({
+             where: { Oid: id },
+             data: {
+                  CodeToExport: codigoExportar || codigo,
+                  Status: statusVal,
+                  Factor: numericFactor
+             }
+        });
+
+        return NextResponse.json({ success: true, updated });
+    } catch (error) {
+        console.error("Error actualizando concepto:", error);
+        return NextResponse.json({ error: "Error actualizando concepto" }, { status: 500 });
+    }
+}

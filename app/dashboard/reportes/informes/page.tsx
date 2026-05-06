@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, Calendar, BarChart3, Building } from "lucide-react";
+import Tabla from "@/components/Table";
 
 type TipoInforme = 'nominaofima' | 'asistencia';
 
@@ -222,40 +223,19 @@ export default function ExportacionInformes() {
           </CardHeader>
           <CardContent className="space-y-4">
 
-            <div className="overflow-x-auto border rounded-lg max-h-[500px]">
-              <table className="w-full text-xs text-left text-gray-500">
-                <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="px-3 py-2">CODCC</th>
-                    <th className="px-3 py-2">CODIGO</th>
-                    <th className="px-3 py-2">CONCEP</th>
-                    <th className="px-3 py-2">FECHA</th>
-                    <th className="px-3 py-2">GRUPO</th>
-                    <th className="px-3 py-2">NOTA</th>
-                    <th className="px-3 py-2">NROHORAS</th>
-                    <th className="px-3 py-2">VALOR</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {datosOfima.length > 0 ? (
-                    datosOfima.map((row, i) => (
-                      <tr key={i} className="bg-white border-b hover:bg-gray-50 whitespace-nowrap">
-                        <td className="px-3 py-1">{row.CODCC}</td>
-                        <td className="px-3 py-1">{row.CODIGO}</td>
-                        <td className="px-3 py-1">{row.CONCEP}</td>
-                        <td className="px-3 py-1">{row.FECHA}</td>
-                        <td className="px-3 py-1">{row.GRUPO}</td>
-                        <td className="px-3 py-1">{row.NOTA}</td>
-                        <td className="px-3 py-1">{row.NROHORAS.toFixed(2)}</td>
-                        <td className="px-3 py-1">{row.VALOR}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr><td colSpan={9} className="p-4 text-center">Sin datos generados. Haga clic en generar.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <Tabla 
+              columnas={["CODCC", "CODIGO", "CONCEP", "FECHA", "GRUPO", "NOTA", "NROHORAS", "VALOR"]}
+              datos={datosOfima.map(row => ({
+                "CODCC": row.CODCC,
+                "CODIGO": row.CODIGO,
+                "CONCEP": row.CONCEP,
+                "FECHA": row.FECHA,
+                "GRUPO": row.GRUPO,
+                "NOTA": row.NOTA,
+                "NROHORAS": <span className="font-bold">{row.NROHORAS.toFixed(2)}</span>,
+                "VALOR": row.VALOR
+              }))}
+            />
 
           </CardContent>
         </Card>

@@ -37,7 +37,7 @@ export async function GET(request: Request) {
         const filteredTypes = types.filter(t => t.CodeToExport && t.CodeToExport.trim() !== '');
 
         const list = filteredTypes.map((t) => {
-            const name = nameMap[t.CodeToExport!] || `Concepto ${t.CodeToExport}`;
+            const name = admsNameMap[t.CodeToExport!] || nameMap[t.CodeToExport!] || `Concepto ${t.CodeToExport}`;
             return {
                 id: t.Oid,
                 codigo: t.CodeToExport || '',
@@ -89,6 +89,22 @@ export async function PUT(request: Request) {
                   Factor: numericFactor
              }
         });
+
+        // Actualizar el nombre en la tabla de conceptos ADMS
+        const code = codigoExportar || codigo;
+        if (code) {
+             await prisma.personnel_payrollconcept.upsert({
+                 where: { pc_code: code },
+                 update: { pc_name: nombre },
+                 create: {
+                     pc_code: code,
+                     pc_name: nombre,
+                     pc_type: 1,
+                     type_value: "1",
+                     judgment_type: false,
+                 }
+             });
+        }
 
         return NextResponse.json({ success: true, updated });
     } catch (error) {

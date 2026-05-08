@@ -67,40 +67,42 @@ export async function GET(request: Request) {
             whereClause.Machine = dispositivo;
         }
 
-        // Para filtrar por empleado (nombre), es más complejo porque el nombre está en otra tabla
-        // y no hay relación directa en Prisma.
-        // Estrategia: Si hay filtro de empleado, buscar primero los IDs en eperson y luego filtrar checkinout.
-        let employeeIds: string[] = [];
+        // Filtro por empleado
         if (empleado && empleado !== "all") {
-            const terms = empleado.trim().split(/\s+/).filter(Boolean);
+            // Si es un UUID (Oid), lo usamos directamente
+            if (/^[0-9a-fA-F-]{32,38}$/.test(empleado.trim())) {
+                whereClause.Employee = empleado.trim();
+            } else {
+                const terms = empleado.trim().split(/\s+/).filter(Boolean);
 
-            // Construir condición AND para cada término
-            // Cada término debe estar en (FirstName OR LastName OR Document)
-            const searchConditions = terms.map(term => ({
-                OR: [
-                    { FirstName: { contains: term } },
-                    { LastName: { contains: term } },
-                    { Document: { contains: term } }
-                ]
-            }));
+                // Construir condición AND para cada término
+                // Cada término debe estar en (FirstName OR LastName OR Document)
+                const searchConditions = terms.map(term => ({
+                    OR: [
+                        { FirstName: { contains: term } },
+                        { LastName: { contains: term } },
+                        { Document: { contains: term } }
+                    ]
+                }));
 
-            const persons = await prisma.eperson.findMany({
-                where: {
-                    AND: searchConditions
-                },
-                select: { Oid: true }
-            });
-            employeeIds = persons.map(p => p.Oid);
-
-            // Si no encontramos empleados con ese nombre, devolvemos vacío directamente
-            if (employeeIds.length === 0) {
-                return NextResponse.json({
-                    data: [],
-                    pagination: { total: 0, page, limit, totalPages: 0 }
+                const persons = await prisma.eperson.findMany({
+                    where: {
+                        AND: searchConditions
+                    },
+                    select: { Oid: true }
                 });
-            }
+                const employeeIds = persons.map(p => p.Oid);
 
-            whereClause.Employee = { in: employeeIds };
+                // Si no encontramos empleados con ese nombre, devolvemos vacío directamente
+                if (employeeIds.length === 0) {
+                    return NextResponse.json({
+                        data: [],
+                        pagination: { total: 0, page, limit, totalPages: 0 }
+                    });
+                }
+
+                whereClause.Employee = { in: employeeIds };
+            }
         }
 
         const [total, logs] = await Promise.all([
@@ -134,39 +136,35 @@ export async function GET(request: Request) {
         const personMap = new Map(persons.map(p => [p.Oid, p]));
         const machineMap = new Map(machines.map(m => [m.Oid, m]));
 
+        // --- OPTIMIZACIÓN DE MAPEO ---
         const data = logs.map(log => {
-            const date = log.CheckTime ? new Date(log.CheckTime) : new Date();
             const person = log.Employee ? personMap.get(log.Employee) : null;
-            const machine = log.Machine ? machineMap.get(log.Machine) : null;
+            if (!person) return null; // Filtro rápido
 
-            // Mapeo robusto de VerifyType
+            const machine = log.Machine ? machineMap.get(log.Machine) : null;
             const verifyTypeStr = MAP_VERIFY_TYPE[log.VerifyCode ?? -1] || 'Desconocido';
 
-            // Mapeo robusto de CheckType
-            // I/O status: 0=CheckIn, 1=CheckOut, 2=BreakOut, 3=BreakIn, 4=OT-In, 5=OT-Out
+            // Mapeo robusto de CheckType (Evitamos recrear strings)
             let tipoStr = 'Desconocido';
-            if (log.CheckType === 0) tipoStr = 'Entrada';
-            else if (log.CheckType === 1) tipoStr = 'Salida';
-            else if (log.CheckType === 2) tipoStr = 'Inicio Descanso'; // BreakOut
-            else if (log.CheckType === 3) tipoStr = 'Fin Descanso';   // BreakIn
-            else if (log.CheckType === 4) tipoStr = 'Entrada HE';
-            else if (log.CheckType === 5) tipoStr = 'Salida HE';
-            else if (log.CheckType === 15) tipoStr = 'Entrada'; // Por defecto para ZK Face/General
-            else if (log.CheckType === 16) tipoStr = 'Entrada'; // Otro código de entrada observado
-            else tipoStr = String(log.CheckType);
+            const ct = log.CheckType;
+            if (ct === 0 || ct === 15 || ct === 16) tipoStr = 'Entrada';
+            else if (ct === 1) tipoStr = 'Salida';
+            else if (ct === 2) tipoStr = 'Inicio Descanso';
+            else if (ct === 3) tipoStr = 'Fin Descanso';
+            else if (ct === 4) tipoStr = 'Entrada HE';
+            else if (ct === 5) tipoStr = 'Salida HE';
+            else tipoStr = String(ct);
 
-            const nombreStr = person ? (person.FullName || `${person.FirstName || ''} ${person.LastName || ''}`).trim() : 'Desconocido';
-
-            if (!nombreStr || nombreStr === 'Desconocido') return null;
+            const nombreStr = (person.FullName || `${person.FirstName || ''} ${person.LastName || ''}`).trim();
+            if (!nombreStr) return null;
 
             return {
                 id: log.Oid,
                 empleado: nombreStr,
                 tiempo: log.CheckTime,
                 tipo: tipoStr,
-                año: date.getUTCFullYear(),
-                mes: date.getUTCMonth() + 1,
-                // Si VerifyCode está vacío, intentar inferir o dejar vacío
+                año: log.CheckTime ? new Date(log.CheckTime).getUTCFullYear() : null,
+                mes: log.CheckTime ? new Date(log.CheckTime).getUTCMonth() + 1 : null,
                 metodoverificacion: verifyTypeStr,
                 lector: machine?.Name || 'Desconocido'
             };

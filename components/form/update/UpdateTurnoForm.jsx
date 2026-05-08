@@ -10,8 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, X, Calendar, CalendarSync, Users, Fingerprint } from "lucide-react";
+import { Search, X, Calendar, CalendarSync, Users, Fingerprint, ChevronLeft, ChevronRight } from "lucide-react";
 import { DashboardContext } from "@/app/dashboard/layout";
+import { Pagination } from "@/components/ui/Pagination";
 
 export default function UpdateTurnoForm({ data, onClose }) {
   const { estadoEmpleados } = useContext(DashboardContext);
@@ -38,6 +39,15 @@ export default function UpdateTurnoForm({ data, onClose }) {
   const [selectedEmployees, setSelectedEmployees] = useState(new Set());
   const [selectedMarcaciones, setSelectedMarcaciones] = useState(new Set());
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const [marcaciones, setMarcaciones] = useState([]);
+  const [marcacionesLoading, setMarcacionesLoading] = useState(false);
+  const [periodo, setPeriodo] = useState("30");
+  const [marcacionesPage, setMarcacionesPage] = useState(1);
+  const [marcacionesTotalPages, setMarcacionesTotalPages] = useState(1);
+  const [marcacionesTotalItems, setMarcacionesTotalItems] = useState(0);
+
+  const [employeesPage, setEmployeesPage] = useState(1);
+  const itemsPerPageEmployees = 15;
 
 
   // Resources
@@ -132,6 +142,45 @@ export default function UpdateTurnoForm({ data, onClose }) {
     }
   }, [data]);
 
+  // Load Marcaciones
+  useEffect(() => {
+    if (activeTab === "marcaciones" && data?.Oid) {
+      const fetchMarcaciones = async () => {
+        setMarcacionesLoading(true);
+        try {
+          // Calcular fecha desde según el periodo
+          const desdeDate = new Date();
+          if (periodo !== "all") {
+            desdeDate.setDate(desdeDate.getDate() - parseInt(periodo));
+          } else {
+            desdeDate.setFullYear(desdeDate.getFullYear() - 2); // 2 años para "total"
+          }
+          const desde = desdeDate.toISOString().split('T')[0];
+
+          const res = await fetch(`/api/marcaciones?turno=${data.Oid}&desde=${desde}&limit=50&page=${marcacionesPage}`);
+          const json = await res.json();
+          setMarcaciones(json.data || []);
+          setMarcacionesTotalPages(json.pagination?.totalPages || 1);
+          setMarcacionesTotalItems(json.pagination?.total || 0);
+        } catch (err) {
+          console.error("Error loading marcaciones:", err);
+        } finally {
+          setMarcacionesLoading(false);
+        }
+      };
+      fetchMarcaciones();
+    }
+  }, [activeTab, data?.Oid, periodo, marcacionesPage]);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setMarcacionesPage(1);
+  }, [periodo]);
+
+  useEffect(() => {
+    setEmployeesPage(1);
+  }, [employeeSearch]);
+
   // Sync Grid with Cycles
   useEffect(() => {
     const cycles = parseInt(formData.numeroCiclos) || 0;
@@ -217,6 +266,11 @@ export default function UpdateTurnoForm({ data, onClose }) {
 
     return matchesSearch && matchesStatus;
   });
+
+  const paginatedEmployees = filteredEmp.slice(
+    (employeesPage - 1) * itemsPerPageEmployees,
+    employeesPage * itemsPerPageEmployees
+  );
 
   return (
     <div className="w-full h-full flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
@@ -488,7 +542,7 @@ export default function UpdateTurnoForm({ data, onClose }) {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {filteredEmp.map(emp => {
+                        {paginatedEmployees.map(emp => {
                           const isSel = selectedEmployees.has(emp.Oid);
                           return (
                             <tr
@@ -518,14 +572,103 @@ export default function UpdateTurnoForm({ data, onClose }) {
                       </tbody>
                     </table>
                   </div>
+                  {filteredEmp.length > itemsPerPageEmployees && (
+                    <Pagination
+                      currentPage={employeesPage}
+                      totalPages={Math.ceil(filteredEmp.length / itemsPerPageEmployees)}
+                      totalItems={filteredEmp.length}
+                      itemsPerPage={itemsPerPageEmployees}
+                      onPageChange={setEmployeesPage}
+                      label="empleados"
+                    />
+                  )}
                 </div>
               )}
-              {/* TAB: MARCACIONES (SKELETON) */}
+              {/* TAB: MARCACIONES */}
               {activeTab === 'marcaciones' && (
-                <div className="flex flex-col items-center justify-center h-[500px] text-gray-400 text-center p-8">
-                  <Fingerprint className="w-16 h-16 mb-4 text-gray-200" />
-                  <p className="text-lg font-medium text-gray-500">Configuración de Marcaciones</p>
-                  <p className="text-sm max-w-sm mt-2">Esta funcionalidad está en desarrollo. Pronto podrá configurar terminales y reglas de marcación específicas para este turno.</p>
+                <div className="flex flex-col h-[500px]">
+                  <div className="px-6 py-4 border-b border-gray-100 bg-white flex items-center justify-between sticky top-0 z-10">
+                    <div className="flex items-center gap-2">
+                      <Fingerprint className="h-5 w-5 text-indigo-600" />
+                      <h3 className="font-bold text-gray-700">Registros de Marcación del Turno</h3>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label className="text-xs text-gray-400 font-medium uppercase tracking-wider">Periodo:</label>
+                      <Select value={periodo} onValueChange={setPeriodo}>
+                        <SelectTrigger className="h-8 text-[11px] w-[140px] bg-gray-50 border-gray-200">
+                          <SelectValue placeholder="Seleccionar periodo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="15">Últimos 15 días</SelectItem>
+                          <SelectItem value="30">Últimos 30 días</SelectItem>
+                          <SelectItem value="60">Últimos 60 días</SelectItem>
+                          <SelectItem value="all">Todo el historial</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-auto">
+                    {marcacionesLoading ? (
+                      <div className="flex flex-col items-center justify-center h-full gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        <p className="text-sm text-gray-500">Cargando marcaciones...</p>
+                      </div>
+                    ) : marcaciones.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-gray-400 text-center p-8">
+                        <Fingerprint className="w-16 h-16 mb-4 text-gray-200" />
+                        <p className="text-lg font-medium text-gray-500">No hay marcaciones registradas</p>
+                        <p className="text-sm max-w-sm mt-2">No se han encontrado registros de entrada o salida para este turno en el periodo actual.</p>
+                      </div>
+                    ) : (
+                      <table className="w-full text-sm min-w-max">
+                        <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-semibold tracking-wider sticky top-0 z-10 shadow-sm">
+                          <tr>
+                            <th className="px-6 py-3.5 text-left">Empleado</th>
+                            <th className="px-6 py-3.5 text-left">Fecha</th>
+                            <th className="px-6 py-3.5 text-left">Entrada</th>
+                            <th className="px-6 py-3.5 text-left">Salida</th>
+                            <th className="px-6 py-3.5 text-center">Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {marcaciones.map((m) => (
+                            <tr key={m.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-3.5">
+                                <div className="font-medium text-gray-900">{m.empleado}</div>
+                                <div className="text-xs text-gray-500">{m.cedula}</div>
+                              </td>
+                              <td className="px-6 py-3.5 text-gray-600">{m.fecha}</td>
+                              <td className="px-6 py-3.5">
+                                <span className="px-2 py-1 rounded bg-green-50 text-green-700 text-xs font-medium border border-green-100">
+                                  {m.entrada || "-"}
+                                </span>
+                              </td>
+                              <td className="px-6 py-3.5">
+                                <span className={`px-2 py-1 rounded text-xs font-medium border ${m.salida && !m.salida.includes("SIN SALIDA") ? "bg-red-50 text-red-700 border-red-100" : "bg-yellow-50 text-yellow-700 border-yellow-100"}`}>
+                                  {m.salida || "SIN SALIDA"}
+                                </span>
+                              </td>
+                              <td className="px-6 py-3.5 text-center">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${m.estado === "OK" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                  {m.estado}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                  {marcacionesTotalItems > 50 && (
+                    <Pagination
+                      currentPage={marcacionesPage}
+                      totalPages={marcacionesTotalPages}
+                      totalItems={marcacionesTotalItems}
+                      itemsPerPage={50}
+                      onPageChange={setMarcacionesPage}
+                      label="marcaciones"
+                    />
+                  )}
                 </div>
               )}
             </div>

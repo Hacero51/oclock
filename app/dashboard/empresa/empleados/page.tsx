@@ -96,12 +96,26 @@ export default function EmpleadosPage() {
 
     async function fetchData() {
       try {
-        const res = await fetch("/api/empleados");
+        const queryParams = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: itemsPerPage.toString(),
+          status: estadoEmpleados || "todos"
+        });
+
+        if (busqueda) queryParams.set("query", busqueda);
+        if (departamento && departamento !== "all" && departamento !== "none") {
+            // Nota: El filtro de departamento sigue siendo un reto si no se hace en DB.
+            // Por ahora, el query del backend busca en eperson (Nombre/Doc).
+        }
+
+        const res = await fetch(`/api/empleados?${queryParams.toString()}`);
         if (!res.ok) throw new Error("Error al obtener empleados");
 
-        const data: EmpleadoAPI[] = await res.json();
+        const json = await res.json();
+        const data: EmpleadoAPI[] = json.data || [];
+        const pagination = json.pagination || { total: 0, totalPages: 1 };
 
-        // Normaliza los nombres que tu frontend usa (ajusta si tu API tiene otros keys)
+        // Normaliza los nombres
         const normalizados = data.map((e) => ({
           "Número Lector": String(e.ReaderNumber ?? e["Número Lector"] ?? e.AcNumber ?? ""),
           Oid: e.Oid,
@@ -110,80 +124,45 @@ export default function EmpleadosPage() {
           Departamento: e.DepartmentName ?? e.Department ?? e["Departamento"] ?? "",
           "Turno Actual": e.CurrentShiftName ?? e.CurrentShift ?? e["Turno Actual"] ?? "",
           "Valor Hora": e.ValorHora ?? e["Valor Hora"] ?? "",
-          Status: typeof e.Status !== "undefined" ? e.Status : (e.StatusId ?? null), // asegúrate que venga el campo
+          Status: typeof e.Status !== "undefined" ? e.Status : (e.StatusId ?? null),
         }));
 
-        const filtrados = normalizados.filter(
-          (r) =>
-            r["Nombre a mostrar"]?.toString().trim() !== "" &&
-            r["Documento"]?.toString().trim() !== ""
-        );
-        setDatos(filtrados);
+        setDatos(normalizados);
+        setTotalItems(pagination.total);
+        setTotalPages(pagination.totalPages);
       } catch (err) {
         console.error("Error cargando empleados:", err);
       }
     }
 
     fetchData();
-  }, [isMounted, refreshKey, refreshTrigger]);
+  }, [isMounted, refreshKey, refreshTrigger, currentPage, itemsPerPage, busqueda, estadoEmpleados]);
 
+  // Departamentos (Para el filtro, idealmente vendrían de otra API)
+  const [departamentos, setDepartamentos] = useState<string[]>([]);
+  useEffect(() => {
+    fetch('/api/departamentos')
+      .then(res => res.json())
+      .then(data => {
+        const uniqueDepts = Array.from(new Set(data.map((d: any) => d.name).filter(Boolean))) as string[];
+        setDepartamentos(uniqueDepts.sort());
+      })
+      .catch(err => console.error("Error loading depts:", err));
+  }, []);
 
-  const datosFiltrados = useMemo(() => {
-    let filtered = datos;
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
-    if (estadoEmpleados === "activos") {
-      filtered = filtered.filter((e) => e.Status === 0);
-    } else if (estadoEmpleados === "inactivos") {
-      filtered = filtered.filter((e) => e.Status === 1);
-    }
-
-    if (busqueda) {
-      const texto = busqueda.toLowerCase();
-      filtered = filtered.filter(
-        (item) =>
-          item["Nombre a mostrar"]?.toLowerCase().includes(texto) ||
-          String(item["Documento"] ?? "").includes(busqueda) ||
-          String(item["Número Lector"] ?? "").includes(busqueda)
-      );
-    }
-
-    if (departamento && departamento !== "all") {
-      if (departamento === "none") {
-        filtered = filtered.filter((i) => i["Departamento"] === "");
-      } else {
-        filtered = filtered.filter((i) => i["Departamento"] === departamento);
-      }
-    }
-
-    return filtered;
-  }, [datos, estadoEmpleados, busqueda, departamento]);
-
-
-
-  const datosPaginados = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return datosFiltrados.slice(startIndex, startIndex + itemsPerPage);
-  }, [datosFiltrados, currentPage, itemsPerPage]);
+  // El renderizado usa directamente 'datos' ya que vienen filtrados del server
+  const datosPaginados = datos;
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [busqueda, departamento]);
+  }, [busqueda, departamento, estadoEmpleados]);
 
-  const departamentos = useMemo(
-    () => Array.from(new Set(datos.map((d) => d["Departamento"]))).filter((d) => d.trim() !== ""),
-    [datos]
-  );
-
-  const hasSinAsignar = useMemo(
-    () => datos.some((d) => d["Departamento"].trim() === ""),
-    [datos]
-  );
-
-  const totalPages = Math.ceil(datosFiltrados.length / itemsPerPage);
+  const totalPags = totalPages;
 
   if (!isMounted) return <div className="p-8 text-center">Cargando...</div>;
-
-
 
   return (
     <div className="space-y-8 p-6 sm:p-8 bg-gray-50/30 min-h-screen font-sans max-w-[1600px] mx-auto">
@@ -203,7 +182,7 @@ export default function EmpleadosPage() {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </span>
               <span className="text-gray-600">
-                {datosFiltrados.length} empleados activos
+                {totalItems} empleados
               </span>
               <span className="text-gray-300">|</span>
               <span className="text-gray-400 font-normal">
@@ -244,11 +223,9 @@ export default function EmpleadosPage() {
               </SelectTrigger>
               <SelectContent className="rounded-xl border-gray-100 shadow-lg">
                 <SelectItem value="all" className="font-medium text-gray-600">Todos</SelectItem>
-                {hasSinAsignar && (
-                  <SelectItem value="none" className="font-medium text-amber-600 italic">
+                <SelectItem value="none" className="font-medium text-amber-600 italic">
                     Sin asignar
-                  </SelectItem>
-                )}
+                </SelectItem>
                 {departamentos.map((d) => (
                   <SelectItem key={d} value={d}>
                     <div className="flex items-center gap-2">
@@ -293,7 +270,7 @@ export default function EmpleadosPage() {
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={datosFiltrados.length}
+          totalItems={totalItems}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
           onItemsPerPageChange={setItemsPerPage}

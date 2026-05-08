@@ -7,53 +7,85 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get("query");
-    const status = searchParams.get("status"); // 'activo', 'inactivo', 'todos'
+    const status = searchParams.get("status");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "1000"); // Aumentamos default para compatibilidad
+    const skip = (page - 1) * limit;
 
     const whereClause: any = {};
-    const personWhere: any = {};
 
+    // Filtro por estado
+    if (status === "activo" || status === "activos") {
+      whereClause.Status = 0;
+    } else if (status === "inactivo" || status === "inactivos") {
+      whereClause.Status = 1;
+    }
+
+    // Filtro para excluir registros "fantasmas" (sin nombre o documento)
+    // Buscamos primero los OIDs de personas reales
+    const realPersons = await prisma.eperson.findMany({
+      where: {
+        AND: [
+          { FullName: { not: "" } },
+          { Document: { not: "" } },
+          { FullName: { not: null } },
+          { Document: { not: null } },
+        ]
+      },
+      select: { Oid: true }
+    });
+    const realOids = realPersons.map(p => p.Oid);
+    whereClause.Oid = { in: realOids };
+
+    // Filtro por nombre/documento (Database level)
     if (query) {
-      personWhere.OR = [
-        { FirstName: { contains: query } },
-        { LastName: { contains: query } },
-        { FullName: { contains: query } },
-        { Document: { contains: query } },
+      const q = query.trim();
+      // Refinar la búsqueda dentro de los ya filtrados como reales
+      const matchedPersons = await prisma.eperson.findMany({
+        where: {
+          AND: [
+            { Oid: { in: realOids } },
+            {
+              OR: [
+                { FirstName: { contains: q } },
+                { LastName: { contains: q } },
+                { FullName: { contains: q } },
+                { Document: { contains: q } },
+              ]
+            }
+          ]
+        },
+        select: { Oid: true }
+      });
+      const matchedOids = matchedPersons.map(p => p.Oid);
+      
+      // Combinar con búsqueda por AcNumber (lector)
+      const acNum = parseInt(q);
+      whereClause.OR = [
+        { Oid: { in: matchedOids } },
+        ...(isNaN(acNum) ? [] : [{ AcNumber: acNum }])
       ];
     }
 
-    /*
-    if (status === "activo") {
-      whereClause.Status = 0;
-    } else if (status === "inactivo") {
-      whereClause.Status = 1;
-    }
-    */
-
-    const empleados = await prisma.employee.findMany({
-      where: whereClause,
-    });
+    const [total, empleados] = await Promise.all([
+      prisma.employee.count({ where: whereClause }),
+      prisma.employee.findMany({
+        where: whereClause,
+        skip,
+        take: limit,
+        orderBy: { Oid: 'asc' }
+      })
+    ]);
 
     // 2. Extraer IDs únicos para consultas en lote
-    const departmentIds = [
-      ...new Set(empleados.map((e) => e.Department?.trim()).filter((id): id is string => !!id)),
-    ];
-    const shiftIds = [
-      ...new Set(empleados.map((e) => e.CurrentShift?.trim()).filter((id): id is string => !!id)),
-    ];
-    const positionIds = [
-      ...new Set(empleados.map((e) => e.Position?.trim()).filter((id): id is string => !!id)),
-    ];
-    const agreementTypeIds = [
-      ...new Set(empleados.map((e) => e.CurrentAgreementType?.trim()).filter((id): id is string => !!id)),
-    ];
-    const bossIds = [
-      ...new Set(empleados.map((e) => e.Boss?.trim()).filter((id): id is string => !!id)),
-    ];
-
-    // 2a. Recolectar IDs de empleados para buscar sus datos personales (eperson)
+    const departmentIds = Array.from(new Set(empleados.map((e) => e.Department?.trim()).filter((id): id is string => !!id)));
+    const shiftIds = Array.from(new Set(empleados.map((e) => e.CurrentShift?.trim()).filter((id): id is string => !!id)));
+    const positionIds = Array.from(new Set(empleados.map((e) => e.Position?.trim()).filter((id): id is string => !!id)));
+    const agreementTypeIds = Array.from(new Set(empleados.map((e) => e.CurrentAgreementType?.trim()).filter((id): id is string => !!id)));
+    const bossIds = Array.from(new Set(empleados.map((e) => e.Boss?.trim()).filter((id): id is string => !!id)));
     const employeeIds = empleados.map((e) => e.Oid);
 
-    // 3. Consultar departamentos y turnos en paralelo
+    // 3. Consultar datos relacionados en paralelo
     const [departamentos, turnos, cargos, contratos, jefes, personas] = await Promise.all([
       prisma.department.findMany({ where: { Oid: { in: departmentIds } } }),
       prisma.shift.findMany({ where: { Oid: { in: shiftIds } } }),
@@ -63,7 +95,7 @@ export async function GET(request: Request) {
       prisma.eperson.findMany({ where: { Oid: { in: employeeIds } } }),
     ]);
 
-    // 4. Crear mapas para acceso rápido (con trim y lowercase para evitar problemas de padding y casing)
+    // 4. Crear mapas (Normalizados)
     const deptMap = new Map(departamentos.map((d) => [d.Oid.trim().toLowerCase(), d]));
     const shiftMap = new Map(turnos.map((s) => [s.Oid.trim().toLowerCase(), s]));
     const positionMap = new Map(cargos.map((p) => [p.Oid.trim().toLowerCase(), p]));
@@ -74,7 +106,6 @@ export async function GET(request: Request) {
     // 5. Construir respuesta
     const resultado = empleados.map((emp) => {
       const empOidTrimmed = emp.Oid.trim().toLowerCase();
-      // Obtenemos la persona del mapa en lugar del include fallido
       const persona = personMap.get(empOidTrimmed);
       const departamento = emp.Department ? deptMap.get(emp.Department.trim().toLowerCase()) : null;
       const turno = emp.CurrentShift ? shiftMap.get(emp.CurrentShift.trim().toLowerCase()) : null;
@@ -82,22 +113,10 @@ export async function GET(request: Request) {
       const contrato = emp.CurrentAgreementType ? agreementMap.get(emp.CurrentAgreementType.trim().toLowerCase()) : null;
       const jefe = emp.Boss ? bossMap.get(emp.Boss.trim().toLowerCase()) : null;
 
-      // Filtro manual de búsqueda si se pasó 'query'
-      if (query) {
-        const q = query.toLowerCase();
-        const matches =
-          (persona?.FirstName?.toLowerCase().includes(q)) ||
-          (persona?.LastName?.toLowerCase().includes(q)) ||
-          (persona?.FullName?.toLowerCase().includes(q)) ||
-          (persona?.Document?.toLowerCase().includes(q));
-
-        if (!matches) return null;
-      }
-
       let deptName = departamento?.FullName || departamento?.Name || "";
       deptName = deptName.replace(/^(7 DE AGOSTO|CALLE 4|CALLE 4TA)\//i, "");
 
-      const item = {
+      return {
         "Número Lector": emp.AcNumber ?? "",
         Oid: emp.Oid,
         Documento: persona?.Document ?? "",
@@ -110,15 +129,17 @@ export async function GET(request: Request) {
         Jefe: jefe?.FullName ?? "",
         Status: emp.Status ?? null,
       };
-
-      console.log(`[DEBUG-API] Procesando Emp ${emp.AcNumber}: Nombre="${item["Nombre a mostrar"]}", Status=${item.Status}`);
-
-      return item;
     });
 
-    const filtrados = resultado.filter((x) => x !== null);
-
-    return NextResponse.json(filtrados);
+    return NextResponse.json({
+        data: resultado,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        }
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

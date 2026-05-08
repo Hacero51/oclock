@@ -229,13 +229,7 @@ export default function EmpleadoForm({ onClose }) {
                 <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 <span className="truncate">Asistencia</span>
               </TabsTrigger>
-              <TabsTrigger
-                value="contact"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md md:data-[state=active]:shadow-lg px-2 md:px-6 py-1.5 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex-1 min-w-0"
-              >
-                <Phone className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                <span className="truncate">Contacto</span>
-              </TabsTrigger>
+
             </TabsList>
           </div>
 
@@ -721,85 +715,7 @@ export default function EmpleadoForm({ onClose }) {
               </Card>
             </TabsContent>
 
-            {/* TAB: CONTACTO */}
-            <TabsContent value="contact" className="mt-0">
-              <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                  <Card className="border border-indigo-100 shadow-sm md:shadow-md hover:shadow-lg transition-shadow">
-                    <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 border-b border-indigo-100 py-3 md:py-4">
-                      <div className="flex items-center space-x-2">
-                        <div className="p-2 bg-indigo-600 rounded-lg">
-                          <Phone className="h-4 w-4 text-white" />
-                        </div>
-                        <h3 className="text-sm md:text-base font-bold text-gray-800">Información de Contacto</h3>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4 md:p-6 space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Correo Electrónico</Label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <User className="h-4 w-4 text-gray-400" />
-                          </div>
-                          <Input 
-                            name="Email"
-                            value={form.Email} 
-                            onChange={handleChange}
-                            className="pl-10 h-10 border-gray-200 focus:border-indigo-500 bg-gray-50/50"
-                            placeholder="ejemplo@empresa.com"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Teléfono / Celular</Label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Phone className="h-4 w-4 text-gray-400" />
-                          </div>
-                          <Input 
-                            className="pl-10 h-10 border-gray-200 focus:border-indigo-500 bg-gray-50/50"
-                            placeholder="Ej. 300 123 4567"
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
 
-                  <Card className="border border-blue-100 shadow-sm md:shadow-md hover:shadow-lg transition-shadow">
-                    <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b border-blue-100 py-3 md:py-4">
-                      <div className="flex items-center space-x-2">
-                        <div className="p-2 bg-blue-600 rounded-lg">
-                          <User className="h-4 w-4 text-white" />
-                        </div>
-                        <h3 className="text-sm md:text-base font-bold text-gray-800">Ubicación y Domicilio</h3>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4 md:p-6 space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Dirección de Residencia</Label>
-                        <Input 
-                          name="Direccion"
-                          value={form.Direccion} 
-                          onChange={handleChange}
-                          className="h-10 border-gray-200 focus:border-blue-500 bg-gray-50/50"
-                          placeholder="Calle 123 #45-67"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold text-gray-600 uppercase tracking-wider">Ciudad</Label>
-                          <Input defaultValue="Bogotá" className="h-10 border-gray-200 focus:border-blue-500 bg-gray-50/50" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold text-gray-600 uppercase tracking-wider">País</Label>
-                          <Input defaultValue="Colombia" className="h-10 border-gray-200 focus:border-blue-500 bg-gray-50/50" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
           </div>
         </Tabs>
 

@@ -11,11 +11,17 @@ export async function GET(request: Request) {
         const skip = (page - 1) * limit;
 
         const empleado = searchParams.get("empleado");
+        const turno = searchParams.get("turno");
         const desde = searchParams.get("desde");
         const hasta = searchParams.get("hasta");
         const estado = searchParams.get("estado");
 
         const whereClause: any = {};
+
+        // Filtro por turno
+        if (turno && turno !== "all") {
+            whereClause.Shift = turno;
+        }
 
         // Filtro por estado
         if (estado === "OK") {
@@ -43,30 +49,34 @@ export async function GET(request: Request) {
             }
         }
 
-        // PRE-FILTRO: Búsqueda de empleado por nombre (Legacy)
-        // Si el usuario busca "Juan", primero buscamos en eperson y obtenemos los Oids
+        // PRE-FILTRO: Búsqueda de empleado
         if (empleado && empleado !== "all") {
-            const terms = empleado.trim().split(/\s+/).filter(Boolean);
-            const searchConditions = terms.map(term => ({
-                OR: [
-                    { FirstName: { contains: term } },
-                    { LastName: { contains: term } },
-                    { Document: { contains: term } }
-                ]
-            }));
+            // Si es un UUID (Oid), lo usamos directamente
+            if (/^[0-9a-fA-F-]{32,38}$/.test(empleado.trim())) {
+                whereClause.Employee = empleado.trim();
+            } else {
+                const terms = empleado.trim().split(/\s+/).filter(Boolean);
+                const searchConditions = terms.map(term => ({
+                    OR: [
+                        { FirstName: { contains: term } },
+                        { LastName: { contains: term } },
+                        { Document: { contains: term } }
+                    ]
+                }));
 
-            const persons = await prisma.eperson.findMany({
-                where: {
-                    AND: searchConditions
-                },
-                select: { Oid: true }
-            });
-            const employeeIds = persons.map(p => p.Oid);
-            // Si no hay matches, retornamos vacío
-            if (employeeIds.length === 0) {
-                return NextResponse.json({ data: [], pagination: { total: 0, page, limit, totalPages: 0 } });
+                const persons = await prisma.eperson.findMany({
+                    where: {
+                        AND: searchConditions
+                    },
+                    select: { Oid: true }
+                });
+                const employeeIds = persons.map(p => p.Oid);
+                // Si no hay matches, retornamos vacío
+                if (employeeIds.length === 0) {
+                    return NextResponse.json({ data: [], pagination: { total: 0, page, limit, totalPages: 0 } });
+                }
+                whereClause.Employee = { in: employeeIds };
             }
-            whereClause.Employee = { in: employeeIds };
         }
 
         const [total, marcaciones] = await Promise.all([
@@ -81,11 +91,22 @@ export async function GET(request: Request) {
             })
         ]);
 
-        // --- RESOLUCIÓN DE IDENTIDAD (STRATEGY LEGACY) ---
-        // 1. Obtener todos los IDs únicos de empleados en esta página (Trimmed)
-        const relevantEmpOids = [...new Set(marcaciones.map(m => m.Employee?.trim()).filter(Boolean) as string[])];
+        // --- RESOLUCIÓN DE IDENTIDAD OPTIMIZADA ---
+        // 1. Recopilar todos los OIDs únicos necesarios en una sola pasada
+        const empOidsSet = new Set<string>();
+        const shiftOidsSet = new Set<string>();
 
-        // 2. Buscar en 'employee'
+        marcaciones.forEach(m => {
+            const eOid = m.Employee?.trim();
+            if (eOid) empOidsSet.add(eOid);
+            
+            const sOid = m.Shift?.trim();
+            if (sOid && sOid.length > 10) shiftOidsSet.add(sOid);
+        });
+
+        const relevantEmpOids = Array.from(empOidsSet);
+
+        // 2. Fetch de datos base en paralelo
         const [employeesLegacy, personsLegacy] = await Promise.all([
             prisma.employee.findMany({
                 where: { Oid: { in: relevantEmpOids } },
@@ -97,28 +118,40 @@ export async function GET(request: Request) {
             })
         ]);
 
-        // 3. Obtener info de Turnos
-        //    Recopilar todos los Shift IDs encontrados en 'CurrentShift' de los empleados
-        const relevantShiftIds = [...new Set(employeesLegacy.map(e => e.CurrentShift?.trim()).filter(Boolean) as string[])];
-        //    También agregar los Shift IDs que vengan explícitos en la marcación
-        marcaciones.forEach(m => {
-            const shiftId = m.Shift?.trim();
-            if (shiftId && shiftId.length > 10) relevantShiftIds.push(shiftId);
+        // 3. Agregar los CurrentShift de los empleados a la lista de turnos a buscar
+        employeesLegacy.forEach(e => {
+            const csOid = e.CurrentShift?.trim();
+            if (csOid && csOid.length > 10) shiftOidsSet.add(csOid);
         });
 
+        // 4. Fetch de turnos y construcción de mapas finales
         const shiftsLegacy = await prisma.shift.findMany({
-            where: { Oid: { in: relevantShiftIds } },
+            where: { Oid: { in: Array.from(shiftOidsSet) } },
             select: { Oid: true, Name: true }
         });
 
-        // 4. Construir Mapas para acceso rápido (Trim Keys)
-        // Map: Oid -> Employee Data
         const empMap = new Map(employeesLegacy.map(e => [e.Oid.trim(), e]));
-        // Map: Oid -> Person Data
         const personMap = new Map(personsLegacy.map(p => [p.Oid.trim(), p]));
-        // Map: ShiftOid -> ShiftName
         const shiftMap = new Map(shiftsLegacy.map(s => [s.Oid.trim(), s.Name || 'Turno Sin Nombre']));
 
+        // --- FUNCIONES HELPER FUERA DEL LOOP PARA VELOCIDAD ---
+        const formatLocale = (d: Date | null) => {
+            if (!d) return "";
+            let hours = d.getUTCHours();
+            const minutes = d.getUTCMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'P. M.' : 'A. M.';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            const day = d.getUTCDate().toString().padStart(2, '0');
+            const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
+            const year = d.getUTCFullYear();
+            return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+        };
+
+        const formatDateOnly = (d: Date | null) => {
+            if (!d) return "N/A";
+            return d.toLocaleDateString('es-ES', { timeZone: 'UTC' });
+        };
 
         const data = marcaciones.map(m => {
             const empOid = m.Employee?.trim() || '';
@@ -155,28 +188,6 @@ export async function GET(request: Request) {
                 turnoNombre = shiftMap.get(empShiftId)!;
             }
 
-            // UTC-5 (Colombia) handled at storage time
-            const formatLocale = (d: Date | null) => {
-                if (!d) return "";
-                // No restamos 5h porque ya se almacenó con la hora correcta en UTC
-                const colombiaTime = d;
-                let hours = colombiaTime.getUTCHours();
-                const minutes = colombiaTime.getUTCMinutes().toString().padStart(2, '0');
-                const ampm = hours >= 12 ? 'P. M.' : 'A. M.';
-                hours = hours % 12;
-                hours = hours ? hours : 12;
-
-                const day = colombiaTime.getUTCDate().toString().padStart(2, '0');
-                const month = (colombiaTime.getUTCMonth() + 1).toString().padStart(2, '0');
-                const year = colombiaTime.getUTCFullYear();
-                return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
-            };
-
-            const formatDateOnly = (d: Date | null) => {
-                if (!d) return "N/A";
-                return d.toLocaleDateString('es-ES', { timeZone: 'UTC' });
-            };
-
             // Validar que el nombre sea un nombre real y no un ID o fallback
             const cleanName = nombreEmpleado ? nombreEmpleado.trim() : '';
             const cleanOid = empOid ? empOid.trim() : '';
@@ -186,9 +197,9 @@ export async function GET(request: Request) {
                 cleanName !== 'Desconocido' &&
                 cleanName !== 'N/A' &&
                 !cleanName.startsWith('ID:') &&
-                cleanName.toLowerCase() !== cleanOid.toLowerCase() && // Comparacion insensible a mayusculas
-                !/^[0-9a-fA-F-]{30,}$/.test(cleanName) && // Validar que no sea un UUID o hash largo
-                !(cleanName === documento && cleanName.length > 20); // Validar si es igual al documento y el documento es sospechosamente largo
+                cleanName.toLowerCase() !== cleanOid.toLowerCase() &&
+                !/^[0-9a-fA-F-]{30,}$/.test(cleanName) &&
+                !(cleanName === documento && cleanName.length > 20);
 
             if (!esNombreValido) return null;
 

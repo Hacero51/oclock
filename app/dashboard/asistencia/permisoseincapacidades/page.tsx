@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { DashboardContext } from "@/app/dashboard/layout";
 import Tabla from "@/components/Table";
 import UpdateModal from "@/components/UpdateModal";
+import CreateModal from "@/components/CreateModal";
 import { Button } from "@/components/ui/Button";
 import { FileText, Plus, Download } from "lucide-react";
 
 export default function PermisosIncapacidadesPage() {
+  const { estadoEmpleados, refreshTrigger } = useContext(DashboardContext);
+
   const columnas = ["Empleado", "Tipo", "Inicio", "Fin", "Pago"];
 
   type PermisoIncapacidad = {
@@ -20,6 +24,7 @@ export default function PermisosIncapacidadesPage() {
 
   const [selectedPermiso, setSelectedPermiso] = useState<PermisoIncapacidad | null>(null);
   const [openUpdate, setOpenUpdate] = useState(false);
+  const [openCreate, setOpenCreate] = useState(false);
   const [datos, setDatos] = useState<PermisoIncapacidad[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -33,48 +38,16 @@ export default function PermisosIncapacidadesPage() {
     if (!isMounted) return;
     async function fetchPermisos() {
       try {
-        const res = await fetch("/api/permisos-incapacidades");
+        const res = await fetch(`/api/permisos-incapacidades?estado=${estadoEmpleados}`);
         if (!res.ok) throw new Error("Error al obtener permisos e incapacidades");
         const data = await res.json();
         setDatos(data);
       } catch (err) {
         console.error("Error:", err);
-        // Datos de ejemplo como fallback
-        const datosEjemplo: PermisoIncapacidad[] = [
-          {
-            "Empleado": "WILMAR TAPIAS REINOSO",
-            "Tipo": "CITA MEDICA GENERAL",
-            "Inicio": "MARTES, 14 DE OCTUBRE DE 2025 12:00 A. M.",
-            "Fin": "MARTES, 14 DE OCTUBRE DE 2025 11:59 P. M.",
-            "Pago": true,
-          },
-          {
-            "Empleado": "MAICOL STIVEN GUZMAN MEJIA",
-            "Tipo": "VACACIONES",
-            "Inicio": "JUEVES, 16 DE OCTUBRE DE 2025 12:00 A. M.",
-            "Fin": "MIÉRCOLES, 22 DE OCTUBRE DE 2025 11:59 P. M.",
-            "Pago": true,
-          },
-          {
-            "Empleado": "ANDRY DANIELA PARRA URRIAGO",
-            "Tipo": "INCAPACIDAD ENFERMEDAD GENERAL <=3 (66.67%)",
-            "Inicio": "JUEVES, 30 DE OCTUBRE DE 2025 12:00 A. M.",
-            "Fin": "SÁBADO, 1 DE NOVIEMBRE DE 2025 11:59 P. M.",
-            "Pago": true,
-          },
-          {
-            "Empleado": "OMIARA EDITH RAMIREZ GONZALEZ",
-            "Tipo": "INCAPACIDAD ENFERMEDAD GENERAL >3 (66.67%)",
-            "Inicio": "SÁBADO, 8 DE NOVIEMBRE DE 2025 12:00 A. M.",
-            "Fin": "SÁBADO, 22 DE NOVIEMBRE DE 2025 11:59 P. M.",
-            "Pago": true,
-          },
-        ];
-        setDatos(datosEjemplo);
       }
     }
     fetchPermisos();
-  }, [isMounted]);
+  }, [isMounted, estadoEmpleados, refreshTrigger]);
 
   const handleRowClick = (permiso: PermisoIncapacidad) => {
     setSelectedPermiso(permiso);
@@ -110,6 +83,10 @@ export default function PermisosIncapacidadesPage() {
             </p>
           </div>
         </div>
+        <Button onClick={() => setOpenCreate(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Plus className="w-4 h-4 mr-2" />
+          Nuevo Registro
+        </Button>
       </div>
 
       {/* Tabla */}
@@ -127,6 +104,14 @@ export default function PermisosIncapacidadesPage() {
           type="permisoseinca"
           data={selectedPermiso}
           onClose={() => setOpenUpdate(false)}
+        />
+      )}
+
+      {/* Create Modal */}
+      {openCreate && (
+        <CreateModal
+          type="Permisos E Incapacidades"
+          onClose={() => setOpenCreate(false)}
         />
       )}
     </div>

@@ -691,15 +691,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
           />
         );
 
-      case "contact":
-        return (
-          <Card className="border border-gray-200 md:border-2">
-            <CardContent className="p-8 md:p-12 text-center">
-              <Phone className="h-10 w-10 md:h-16 md:w-16 text-gray-300 mx-auto mb-3 md:mb-4" />
-              <p className="text-sm md:text-base text-gray-500 font-medium">Información de contacto disponible próximamente</p>
-            </CardContent>
-          </Card>
-        );
+
 
       default:
         return null;
@@ -749,14 +741,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
             <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
             <span className="truncate">Asistencia</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("contact")}
-            className={`px-2 md:px-6 py-1.5 md:py-2.5 rounded-t-lg font-semibold transition-all text-xs md:text-sm flex items-center whitespace-nowrap min-w-[80px] md:min-w-0 ${activeTab === "contact" ? "bg-indigo-600 text-white shadow-md md:shadow-lg" : "text-gray-600 hover:bg-gray-100"}`}
-          >
-            <Phone className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-            <span className="truncate">Contacto</span>
-          </button>
+
         </div>
       </div>
 

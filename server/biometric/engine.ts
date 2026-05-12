@@ -86,16 +86,17 @@ export class LaborEngine {
         let actualIn = marking.MarkingIn;
         let actualOut = marking.MarkingOut;
 
-        // 9. Si el empleado no marcó salida, tratar de "cerrar" el turno automáticamente
+        // 9. Si el empleado no marcó salida, tratar de "asumir" la salida para el cálculo
         if (!actualOut) {
             // Asumir salida esperada (o 14:00 por defecto)
             const expectedOutSecs = (timetable?.MarkingOut || 14 * 3600);
             const expectedOut = createTimeFromSeconds(calcReference, expectedOutSecs);
-            // Solo auto-cerrar si ya pasaron 6 horas desde la salida esperada
+            // Solo asumir si ya pasaron 6 horas desde la salida esperada
             if (new Date() > new Date(expectedOut.getTime() + 6 * 3600000)) {
                 actualOut = expectedOut;
+                // NOTA: No actualizamos la tabla 'marking' para que RRHH vea que falta la marcación real
             } else {
-                return; // Si no, esperar a que marque salida real
+                return; // Si no, esperar a que marque salida real o pase el tiempo de gracia
             }
         }
 
@@ -149,26 +150,30 @@ export class LaborEngine {
         }
 
         // =========================================================================
-        // REGLA DE TIEMPO EXTRA: Mínimo dinámico según el turno configurado
+        // REGLA DE TIEMPO EXTRA (ANTES Y DESPUÉS): Mínimo 30 min (0.5h)
         // =========================================================================
+        
+        // A. EXTRAS ANTES DE LA ENTRADA
+        if (actualIn < expectedIn) {
+            let rawExtraBeforeMs = expectedIn.getTime() - actualIn.getTime();
+            const minBeforeMin = currentShiftObj?.MinimumOverTime || 30;
+
+            if (rawExtraBeforeMs < minBeforeMin * 60 * 1000) {
+                actualIn = expectedIn; // Ignorar si es inferior al mínimo (ej. 15 min)
+            }
+            // Se toma el tiempo exacto sin redondeo
+        }
+
+        // B. EXTRAS DESPUÉS DE LA SALIDA
         let rawExtraMs = actualOut.getTime() - expectedOut.getTime();
         if (rawExtraMs > 0) {
-            const minExtraMinutes = currentShiftObj?.MinimumOverTime || 0;
-            const stepExtraMinutes = currentShiftObj?.AddOverTime || 0;
-
+            const minExtraMinutes = currentShiftObj?.MinimumOverTime || 30;
             const minExtraMs = minExtraMinutes * 60 * 1000;
             
             if (rawExtraMs < minExtraMs) {
-                rawExtraMs = 0; // Si es menor al mínimo configurado en el turno, no cuenta nada
-            } else {
-                if (stepExtraMinutes > 0) {
-                    const stepExtraMs = stepExtraMinutes * 60 * 1000;
-                    // Redondear hacia abajo (ej. 45 min -> 30 min, según AddOverTime)
-                    rawExtraMs = Math.floor(rawExtraMs / stepExtraMs) * stepExtraMs;
-                }
+                rawExtraMs = 0; // Si es menor al mínimo (30 min), no cuenta nada
             }
-            
-            // Ajustamos la salida real para descartar los minutos extra que no cumplen la regla
+            // Se toma el tiempo exacto sin redondeo
             actualOut = new Date(expectedOut.getTime() + rawExtraMs);
         }
 
@@ -279,8 +284,22 @@ export class LaborEngine {
             }
         }
 
-        // 16. Guardar los resultados en la tabla AttendanceDetail
-        await this.saveResults(employeeOid, startOfDayDB, results);
+        // 16. Filtro "Quita-Ruido" agresivo
+        const filteredResults = results.filter(res => {
+            // Conceptos que SIEMPRE queremos mantener si tienen algo (aunque sea poco)
+            const isMandatory = ['A01', 'A49', 'A50', 'A05'].includes(res.conceptCode);
+            if (isMandatory && res.hours >= 0.05) return true; // Mínimo 3 min para ordinario
+            
+            // Para todo lo demás (Extras, Bonos), mínimo 30 minutos (0.5h)
+            return res.hours >= 0.5;
+        });
+
+        // 17. Guardar los resultados (Limpieza total del día antes de insertar)
+        const startOfDay = new Date(startOfDayDB);
+        const endOfDay = new Date(startOfDayDB);
+        endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
+
+        await this.saveResultsRange(employeeOid, startOfDay, endOfDay, filteredResults);
     }
 
     private async getWeeklyAccumulated(empOid: string, currentDate: Date): Promise<{ ordinary: number, extras: number }> {
@@ -375,9 +394,12 @@ export class LaborEngine {
         return isNight ? 'A35' : 'A36';
     }
 
-    private async saveResults(empOid: string, day: Date, results: CalculationResult[]) {
+    private async saveResultsRange(empOid: string, start: Date, end: Date, results: CalculationResult[]) {
         await prisma.attendancedetail.deleteMany({
-            where: { Employee: empOid, Day: day }
+            where: { 
+                Employee: empOid, 
+                Day: { gte: start, lt: end }
+            }
         });
 
         for (const res of results) {
@@ -387,7 +409,7 @@ export class LaborEngine {
                 data: {
                     Oid: crypto.randomUUID(),
                     Employee: empOid,
-                    Day: day,
+                    Day: start,
                     AttendanceType: type.Oid,
                     StartDate: res.startDate,
                     EndDate: res.endDate,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { recordActivity } from "@/lib/activity-log";
 
 export const dynamic = 'force-dynamic';
 
@@ -161,6 +162,15 @@ export async function GET(request: NextRequest) {
             if (dateA !== dateB) return dateA - dateB;
             if (String(a.CODIGO) !== String(b.CODIGO)) return String(a.CODIGO).localeCompare(String(b.CODIGO));
             return a.CONCEP.localeCompare(b.CONCEP);
+        });
+
+        // REGISTRO DE ACTIVIDAD (Auditoría de quién genera el informe)
+        await recordActivity({
+            action: "REPORT",
+            targetModel: "nomina-ofima",
+            targetName: "Reporte Ofima",
+            description: `Rango: ${startDateStr} - ${endDateStr}`,
+            req: request
         });
 
         return NextResponse.json(reportData);

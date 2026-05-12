@@ -1,6 +1,6 @@
-
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { recordActivity } from "@/lib/activity-log";
 
 // Rebuild trigger
 
@@ -267,6 +267,16 @@ export async function PUT(
             }
 
             return updatedShift;
+        });
+
+        // REGISTRO DE ACTIVIDAD
+        await recordActivity({
+            action: "UPDATE",
+            targetModel: "shift",
+            targetId: Oid,
+            targetName: nombre,
+            description: `Actualización de turno. Empleados asignados: ${empleados?.length || 0}`,
+            req: request
         });
 
         return NextResponse.json(result);

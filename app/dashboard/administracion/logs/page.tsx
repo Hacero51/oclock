@@ -11,6 +11,8 @@ interface LogEntry {
     action: string;
     target: string;
     user: string;
+    description: string;
+    time: string;
 }
 
 export default function LogsPage() {
@@ -43,17 +45,19 @@ export default function LogsPage() {
     };
 
     // Mapeamos a columnas de Tabla
-    const columnas = ["ID", "Usuario", "Acción", "Objetivo"];
+    const columnas = ["ID", "Usuario", "Acción", "Objetivo", "Detalle", "Fecha"];
     const datosTabla = logs.map(l => ({
         "ID": l.id,
         "Usuario": l.user,
         "Acción": l.action,
-        "Objetivo": l.target // targets_repr
+        "Objetivo": l.target,
+        "Detalle": l.description || "-",
+        "Fecha": l.time ? new Date(l.time).toLocaleString() : "-"
     }));
 
     return (
-        <div className="p-6 bg-gray-50/50 min-h-screen">
-            <div className="max-w-7xl mx-auto space-y-6">
+        <div className="p-4 bg-gray-50/50 min-h-screen">
+            <div className="max-w-[98%] mx-auto space-y-4">
 
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -63,12 +67,11 @@ export default function LogsPage() {
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">Logs de Auditoría</h1>
-                            <p className="text-sm text-gray-500">Historial de acciones administrativas (Legacy)</p>
+                            <p className="text-sm text-gray-500">Historial de acciones administrativas (OClock Audit)</p>
                         </div>
                     </div>
 
                     <div className="relative w-full md:w-64">
-                        {/* Buscador placeholder (no implementado en API aun) */}
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
                             placeholder="Buscar log..."

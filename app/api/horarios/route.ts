@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
+import { recordActivity } from "@/lib/activity-log";
 
 export async function GET() {
   try {
@@ -250,6 +251,16 @@ export async function POST(req: NextRequest) {
         data: newLinks
       });
     }
+
+    // REGISTRO DE ACTIVIDAD
+    await recordActivity({
+        action: "CREATE",
+        targetModel: "timetable",
+        targetId: newOid,
+        targetName: finalName,
+        description: `Creación de nuevo horario`,
+        req: req
+    });
 
     return NextResponse.json({ message: "Horario creado correctamente", horario: horario }, { status: 201 });
 

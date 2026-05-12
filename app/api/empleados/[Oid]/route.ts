@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { isValidName, isAdult } from "@/lib/utils";
+import { recordActivity } from "@/lib/activity-log";
 
 // ----------------------------
 // GET: Obtener empleado por OID
@@ -9,7 +10,6 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
   try {
     const { Oid } = await context.params;
 
-    // Fetches paralelos de persona y empleado (ya que no hay relación directa en schema)
     const [persona, e] = await Promise.all([
       prisma.eperson.findUnique({ where: { Oid } }),
       prisma.employee.findUnique({ where: { Oid } }),
@@ -18,8 +18,6 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
     if (!persona) {
       return NextResponse.json({ error: "Empleado no encontrado" }, { status: 404 });
     }
-
-
 
     return NextResponse.json({
       Oid,
@@ -55,7 +53,6 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
 // ----------------------------
 // PUT: Actualizar empleado
 // ----------------------------
-
 export async function PUT(request: Request, context: { params: Promise<{ Oid: string }> }) {
   try {
     const { Oid } = await context.params;
@@ -73,9 +70,28 @@ export async function PUT(request: Request, context: { params: Promise<{ Oid: st
       return NextResponse.json({ error: "El empleado debe ser mayor de 18 años" }, { status: 400 });
     }
 
-    // -----------------------------
-    // ACTUALIZAR EPERSON
-    // -----------------------------
+    // 1. Obtener datos actuales para comparar cambios en el log
+    const oldEmp = await prisma.employee.findUnique({ where: { Oid } });
+    const oldStatus = oldEmp?.Status === 0 ? "activo" : "inactivo";
+    const newStatus = data.Estado || (data.Status === 0 ? "activo" : "inactivo");
+
+    // 2. Resolver nombre del turno si cambió
+    let shiftName = "N/A";
+    if (data.TurnoActual) {
+        const s = await prisma.shift.findUnique({ where: { Oid: data.TurnoActual }, select: { Name: true } });
+        shiftName = s?.Name || "Turno desconocido";
+    }
+
+    let detailMsg = "Actualización de datos generales";
+    if (oldStatus !== newStatus) {
+        detailMsg = `Cambio de estado: de ${oldStatus} a ${newStatus}`;
+    } else if (data.TurnoActual && oldEmp?.CurrentShift !== data.TurnoActual) {
+        detailMsg = `Cambio de turno a: ${shiftName}`;
+    } else {
+        detailMsg = `Actualización de perfil (Turno: ${shiftName})`;
+    }
+
+    // 3. ACTUALIZAR EPERSON
     await prisma.eperson.update({
       where: { Oid },
       data: {
@@ -90,9 +106,7 @@ export async function PUT(request: Request, context: { params: Promise<{ Oid: st
       },
     });
 
-    // -----------------------------
-    // ACTUALIZAR EMPLOYEE
-    // -----------------------------
+    // 4. ACTUALIZAR EMPLOYEE
     await prisma.employee.update({
       where: { Oid },
       data: {
@@ -113,9 +127,7 @@ export async function PUT(request: Request, context: { params: Promise<{ Oid: st
       },
     });
     
-    // -----------------------------
-    // ACTUALIZAR PERSONNEL_EMPLOYEE (Opcional/Best Effort)
-    // -----------------------------
+    // 5. ACTUALIZAR PERSONNEL_EMPLOYEE (Best Effort)
     try {
       const documentToSync = data.documento || data.Document;
       if (documentToSync) {
@@ -124,13 +136,23 @@ export async function PUT(request: Request, context: { params: Promise<{ Oid: st
           data: {
             first_name: data.FirstName || undefined,
             last_name: (data.LastName || "") + (data.MiddleLast ? " " + data.MiddleLast : ""),
-            status: data.Status === "activo" ? 1 : 0,
+            status: data.Estado === "activo" ? 1 : 0,
           }
         });
       }
     } catch (pErr) {
-      console.error("⚠️ Error actualizando personnel_employee (no crítico):", pErr);
+      console.error("⚠️ Error actualizando personnel_employee:", pErr);
     }
+
+    // 6. REGISTRO DE ACTIVIDAD
+    await recordActivity({
+        action: "UPDATE",
+        targetModel: "employee",
+        targetId: Oid,
+        targetName: data.FullName || data.fullName || Oid,
+        description: detailMsg,
+        req: request
+    });
 
     return NextResponse.json({ message: "Empleado actualizado correctamente" });
 

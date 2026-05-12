@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { v4 as uuidv4 } from "uuid";
 import { isValidName, isAdult } from "@/lib/utils";
+import { recordActivity } from "@/lib/activity-log";
 
 export async function GET(request: Request) {
   try {
@@ -271,6 +272,16 @@ export async function POST(req: Request) {
     } catch (pErr) {
       console.error("⚠️ Error creando personnel_employee (no crítico):", pErr);
     }
+
+    // REGISTRO DE ACTIVIDAD
+    await recordActivity({
+        action: "CREATE",
+        targetModel: "employee",
+        targetId: newOid,
+        targetName: data.fullName || newOid,
+        description: `Creación de nuevo empleado`,
+        req: req
+    });
 
     return NextResponse.json(
       {

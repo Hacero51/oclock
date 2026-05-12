@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { recordActivity } from "@/lib/activity-log";
 
 export async function GET() {
+// ... (rest of the file remains same until POST)
   try {
     const turnos = await prisma.shift.findMany({
       select: {
@@ -121,6 +123,16 @@ export async function POST(req: Request) {
       }
 
       return newShift;
+    });
+
+    // REGISTRO DE ACTIVIDAD
+    await recordActivity({
+        action: "CREATE",
+        targetModel: "shift",
+        targetId: newShiftOid,
+        targetName: nombre,
+        description: `Creación de nuevo turno`,
+        req: req
     });
 
     return NextResponse.json(result, { status: 201 });

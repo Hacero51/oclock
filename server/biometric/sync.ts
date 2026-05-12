@@ -14,9 +14,11 @@ import { laborEngine } from "./engine";
 import fs from 'fs';
 
 function logToDebugFile(message: string) {
-    const timestamp = new Date().toISOString();
-    fs.promises.appendFile('c:/proyectos/oclock/sync_debug_log.txt', `${timestamp} - ${message}\n`)
-        .catch(() => {}); // fire and forget error handling
+    // Registro desactivado para evitar archivos gigantes. 
+    // Los logs importantes se ven en la consola del servidor.
+    if (process.env.NODE_ENV === 'development') {
+        console.log(`[DEBUG] ${message}`);
+    }
 }
 
 export async function sincronizarRelojes(devicesToSync?: string[]) {
@@ -362,15 +364,15 @@ export async function procesarRegistroDoble(log: BiometricLog & { name?: string 
 
                         // Si tenemos una Entrada previa abierta (CheckType 0)
                         if (ultimoRegistro.CheckType === 0) {
-                            // Y han pasado más de 3 horas (180 min)
-                            if (diffMinutos > 180) {
+                            // Y han pasado más de 1 hora (60 min)
+                            if (diffMinutos > 60) {
                                 // Debería ser una SALIDA para cerrar el turno.
                                 if (finalCheckType !== 1) {
                                     console.log(`[SYNC-FIX] Forzando Salida (1) para ${emp.Oid}. (Original: ${log.activity}, Diff: ${diffMinutos.toFixed(0)}m desde entrada).`);
                                     finalCheckType = 1;
                                 }
                             } else {
-                                // Si es < 3 horas, podría ser un duplicado o un re-intento de entrada.
+                                // Si es < 1 hora, podría ser un duplicado o un re-intento de entrada.
                             }
                         } else {
                             // El último fue Salida (1). Estamos abriendo un NUEVO turno en el mismo día.
@@ -541,21 +543,21 @@ export async function procesarRegistroDoble(log: BiometricLog & { name?: string 
             // "si ya tiene una marcacion de entrada y la segunda marcacion es de entrada esta sea verificada y aparezca como salida"
 
             // Verificamos si podemos usar esta "Entrada Tardía" para cerrar el turno.
-            // VERIFICAR MINIMO 3 HORAS (180 minutos)
+            // VERIFICAR MINIMO 1 HORA (60 minutos)
             const diffMinutos = marking.MarkingIn ? (normalizedTime.getTime() - marking.MarkingIn.getTime()) / 60000 : 0;
 
             // Debug Log
             logToDebugFile(`[SYNC-CHECK] Empleado ${emp.AcNumber}: Revisando cierre. Diff: ${diffMinutos.toFixed(1)} min. Existente Out: ${marking.MarkingOut || 'NULL'}`);
 
             if (!marking.MarkingOut || normalizedTime > marking.MarkingOut) {
-                if (diffMinutos > 180) {
-                    logToDebugFile(`[SYNC-UPDATE] Cerrando turno para ${emp.AcNumber}. Diff > 180 min.`);
+                if (diffMinutos > 60) {
+                    logToDebugFile(`[SYNC-UPDATE] Cerrando turno para ${emp.AcNumber}. Diff > 60 min.`);
                     await prisma.marking.update({
                         where: { Oid: marking.Oid },
                         data: { MarkingOut: normalizedTime }
                     });
                 } else {
-                    logToDebugFile(`[SYNC-IGNORE] Entrada cercana (${diffMinutos.toFixed(1)} min) ignorada para evitar cierre prematuro (Req: 180 min).`);
+                    logToDebugFile(`[SYNC-IGNORE] Entrada cercana (${diffMinutos.toFixed(1)} min) ignorada para evitar cierre prematuro (Req: 60 min).`);
                 }
             }
         }

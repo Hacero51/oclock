@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, X, Calendar, CalendarSync, Users, Fingerprint, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, X, Calendar, CalendarSync, Users, Fingerprint } from "lucide-react";
 import { DashboardContext } from "@/app/dashboard/layout";
 import { Pagination } from "@/components/ui/Pagination";
 
@@ -246,7 +246,10 @@ export default function UpdateTurnoForm({ data, onClose }) {
       if (!res.ok) throw new Error("Error");
       if (onClose) onClose();
       window.location.reload();
-    } catch (e) { alert("Error actualizando"); }
+    } catch (err) { 
+      console.error(err);
+      alert("Error actualizando"); 
+    }
   };
 
   const filteredEmp = employees.filter(e => {

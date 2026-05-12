@@ -8,34 +8,112 @@ export async function GET(request: Request) {
         const limit = parseInt(searchParams.get("limit") || "10");
         const skip = (page - 1) * limit;
 
-        // Consultamos la tabla base_adminlog
-        // Intentamos obtener el usuario relacionado si es posible
         const logs = await prisma.base_adminlog.findMany({
             skip,
             take: limit,
-            orderBy: {
-                id: "desc" // Asumimos ID autoincremental como proxy de tiempo
-            },
+            orderBy: { op_time: "desc" },
             include: {
                 auth_user: {
-                    select: {
-                        username: true,
-                        id: true
-                    }
+                    select: { username: true }
                 }
             }
         });
 
         const total = await prisma.base_adminlog.count();
 
-        // Normalizamos los datos para el frontend
-        const data = logs.map(log => ({
-            id: log.id,
-            action: log.action,
-            target: log.targets_repr || log.targets || "N/A",
-            user: log.auth_user?.username || `User ID: ${log.user_id}`,
-            // Como no vimos action_time en el snippet, no lo inventamos, pero si existe en schema real lo incluiría
-            // Si no hay fecha, el ID nos dice el orden relativo
+        const actionMap: Record<string, string> = {
+            'CREATE': 'CREACIÓN',
+            'UPDATE': 'ACTUALIZACIÓN',
+            'DELETE': 'ELIMINACIÓN',
+            'REPORT': 'REPORTE',
+            'LOGIN': 'INICIO SESIÓN'
+        };
+
+        const targetMap: Record<string, string> = {
+            'employee': 'Empleado',
+            'user': 'Usuario',
+            'marking': 'Marcación',
+            'shift': 'Turno',
+            'timetable': 'Horario',
+            'nomina-ofima': 'Reporte Nómina'
+        };
+
+        // Resolución de OIDs a nombres (Procesamiento en paralelo)
+        const data = await Promise.all(logs.map(async (log) => {
+            let actionStr = log.action || "OTRO";
+            actionStr = actionMap[actionStr] || actionStr;
+
+            let targetStr = log.targets_repr || "";
+            let descriptionStr = log.description || "";
+
+            // Función interna para resolver un OID a un nombre amigable
+            const resolveOID = async (text: string): Promise<string> => {
+                if (!text) return text;
+                // Regex para detectar UUIDs (OIDs)
+                const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+                const matches = text.match(uuidRegex);
+                
+                if (!matches) return text;
+
+                let resolvedText = text;
+                for (const oid of matches) {
+                    // 1. Intentar buscar en empleados
+                    const emp = await prisma.eperson.findUnique({ 
+                        where: { Oid: oid }, 
+                        select: { FullName: true } 
+                    });
+                    if (emp) {
+                        resolvedText = resolvedText.replace(oid, emp.FullName || oid);
+                        continue;
+                    }
+                    
+                    // 2. Intentar buscar en turnos
+                    const shift = await prisma.shift.findUnique({ 
+                        where: { Oid: oid }, 
+                        select: { Name: true } 
+                    });
+                    if (shift) {
+                        resolvedText = resolvedText.replace(oid, shift.Name || oid);
+                        continue;
+                    }
+                    
+                    // 3. Intentar buscar en horarios
+                    const tt = await prisma.timetable.findUnique({ 
+                        where: { Oid: oid }, 
+                        select: { Name: true } 
+                    });
+                    if (tt) {
+                        resolvedText = resolvedText.replace(oid, tt.Name || oid);
+                        continue;
+                    }
+                }
+                return resolvedText;
+            };
+
+            // Resolver OIDs tanto en el objetivo como en la descripción
+            const [resolvedTarget, resolvedDescription] = await Promise.all([
+                resolveOID(targetStr),
+                resolveOID(descriptionStr)
+            ]);
+
+            // Formateo final del Objetivo (Traducción de prefijos)
+            let finalTarget = resolvedTarget || "Sin nombre";
+            if (finalTarget.includes(':')) {
+                const [prefix, ...rest] = finalTarget.split(':');
+                const model = prefix.trim().toLowerCase();
+                const translatedPrefix = targetMap[model] || prefix;
+                finalTarget = `${translatedPrefix}: ${rest.join(':').trim()}`;
+            }
+
+            return {
+                id: log.id,
+                action: actionStr,
+                target: finalTarget,
+                user: log.auth_user?.username || `ID: ${log.user_id}`,
+                time: log.op_time,
+                description: resolvedDescription,
+                ip: log.ip_address
+            };
         }));
 
         return NextResponse.json({

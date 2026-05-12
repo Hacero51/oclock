@@ -16,10 +16,12 @@ export async function GET() {
         const resultados = [];
         for (const c of checkins) {
             let nombre = "Desconocido";
-            const emp = await prisma.employee.findUnique({ where: { Oid: c.Employee } });
-            if (emp) {
-                const p = await prisma.eperson.findUnique({ where: { Oid: emp.Oid } });
-                nombre = p?.FullName || "Sin Nombre";
+            if (c.Employee) {
+                const emp = await prisma.employee.findUnique({ where: { Oid: c.Employee } });
+                if (emp) {
+                    const p = await prisma.eperson.findUnique({ where: { Oid: emp.Oid } });
+                    nombre = p?.FullName || "Sin Nombre";
+                }
             }
             resultados.push({ oid: c.Employee, hora: c.CheckTime, nombre });
         }

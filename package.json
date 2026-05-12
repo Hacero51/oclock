@@ -11,8 +11,7 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:sync-masters": "npx tsx scripts/sync_all_data.ts",
-    "db:sync-attendance": "npx tsx scripts/sync_attendance_data.ts",
-    "db:clean-logs": "powershell -Command \"'--- LOG CLEANED ---' | Out-File sync_debug_log.txt -Encoding utf8\""
+    "db:sync-attendance": "npx tsx scripts/sync_attendance_data.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

@@ -1,7 +1,7 @@
-// app/api/usuarios/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import crypto from "crypto";
+import { recordActivity } from "@/lib/activity-log";
 
 // Tipos para mejor type safety
 interface UsuarioInput {
@@ -102,8 +102,8 @@ export async function GET() {
   } catch (error) {
     console.error('Error en GET /api/usuarios:', error);
     return NextResponse.json(
-      { 
-        error: true, 
+      {
+        error: true,
         message: "Error interno del servidor al obtener usuarios",
         details: process.env.NODE_ENV === 'development' ? (error as Error).toString() : undefined
       },
@@ -121,10 +121,10 @@ export async function POST(req: Request) {
     const validation = validateUserInput(data, true);
     if (!validation.isValid) {
       return NextResponse.json(
-        { 
-          error: true, 
+        {
+          error: true,
           message: "Datos de entrada inválidos",
-          errors: validation.errors 
+          errors: validation.errors
         },
         { status: 400 }
       );
@@ -142,9 +142,9 @@ export async function POST(req: Request) {
 
     if (usuarioExistente) {
       return NextResponse.json(
-        { 
-          error: true, 
-          message: "El nombre de usuario ya existe" 
+        {
+          error: true,
+          message: "El nombre de usuario ya existe"
         },
         { status: 409 } // Conflict
       );
@@ -167,6 +167,16 @@ export async function POST(req: Request) {
       }
     });
 
+    // REGISTRO DE ACTIVIDAD
+    await recordActivity({
+      action: "CREATE",
+      targetModel: "user",
+      targetId: usuario.Oid,
+      targetName: usuario.UserName,
+      description: `Creación de nuevo usuario`,
+      req: req
+    });
+
     // Preparar respuesta (enmascarar contraseña)
     const usuarioCreado = {
       ...usuario,
@@ -178,8 +188,8 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Error en POST /api/usuarios:', error);
     return NextResponse.json(
-      { 
-        error: true, 
+      {
+        error: true,
         message: "Error interno del servidor al crear usuario",
         details: process.env.NODE_ENV === 'development' ? (error as Error).toString() : undefined
       },
@@ -195,9 +205,9 @@ export async function PUT(req: Request) {
 
     if (!data.Oid || !validateUUID(data.Oid)) {
       return NextResponse.json(
-        { 
-          error: true, 
-          message: "Se requiere un Oid válido del usuario" 
+        {
+          error: true,
+          message: "Se requiere un Oid válido del usuario"
         },
         { status: 400 }
       );
@@ -207,10 +217,10 @@ export async function PUT(req: Request) {
     const validation = validateUserInput(data);
     if (!validation.isValid) {
       return NextResponse.json(
-        { 
-          error: true, 
+        {
+          error: true,
           message: "Datos de entrada inválidos",
-          errors: validation.errors 
+          errors: validation.errors
         },
         { status: 400 }
       );
@@ -223,9 +233,9 @@ export async function PUT(req: Request) {
 
     if (!usuarioExistente) {
       return NextResponse.json(
-        { 
-          error: true, 
-          message: "Usuario no encontrado" 
+        {
+          error: true,
+          message: "Usuario no encontrado"
         },
         { status: 404 }
       );
@@ -249,9 +259,9 @@ export async function PUT(req: Request) {
 
       if (usuarioDuplicado) {
         return NextResponse.json(
-          { 
-            error: true, 
-            message: "El nombre de usuario ya está en uso" 
+          {
+            error: true,
+            message: "El nombre de usuario ya está en uso"
           },
           { status: 409 }
         );
@@ -276,6 +286,22 @@ export async function PUT(req: Request) {
       data: datosActualizacion
     });
 
+    // DETECTAR CAMBIOS PARA EL LOG
+    let logDetail = "Actualización de datos";
+    if (typeof data.IsActive === 'boolean' && usuarioExistente.IsActive !== data.IsActive) {
+        logDetail = `Cambio de estado: de ${usuarioExistente.IsActive ? 'activo' : 'inactivo'} a ${data.IsActive ? 'activo' : 'inactivo'}`;
+    }
+
+    // REGISTRO DE ACTIVIDAD
+    await recordActivity({
+        action: "UPDATE",
+        targetModel: "user",
+        targetId: data.Oid,
+        targetName: usuarioActualizado.UserName,
+        description: logDetail,
+        req: req
+    });
+
     // Preparar respuesta (enmascarar contraseña)
     const respuesta = {
       ...usuarioActualizado,
@@ -286,21 +312,21 @@ export async function PUT(req: Request) {
 
   } catch (error) {
     console.error('Error en PUT /api/usuarios:', error);
-    
+
     // Manejar errores específicos de Prisma
     if (error instanceof Error && error.message.includes('Record to update not found')) {
       return NextResponse.json(
-        { 
-          error: true, 
-          message: "Usuario no encontrado" 
+        {
+          error: true,
+          message: "Usuario no encontrado"
         },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      { 
-        error: true, 
+      {
+        error: true,
         message: "Error interno del servidor al actualizar usuario",
         details: process.env.NODE_ENV === 'development' ? (error as Error).toString() : undefined
       },
@@ -317,9 +343,9 @@ export async function DELETE(req: Request) {
 
     if (!oid || !validateUUID(oid)) {
       return NextResponse.json(
-        { 
-          error: true, 
-          message: "Se requiere un Oid válido del usuario" 
+        {
+          error: true,
+          message: "Se requiere un Oid válido del usuario"
         },
         { status: 400 }
       );
@@ -332,9 +358,9 @@ export async function DELETE(req: Request) {
 
     if (!usuarioExistente) {
       return NextResponse.json(
-        { 
-          error: true, 
-          message: "Usuario no encontrado" 
+        {
+          error: true,
+          message: "Usuario no encontrado"
         },
         { status: 404 }
       );
@@ -345,28 +371,38 @@ export async function DELETE(req: Request) {
       where: { Oid: oid }
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      message: "Usuario eliminado correctamente" 
+    // REGISTRO DE ACTIVIDAD
+    await recordActivity({
+      action: "DELETE",
+      targetModel: "user",
+      targetId: oid,
+      targetName: usuarioExistente.UserName,
+      description: `Eliminación de usuario`,
+      req: req
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Usuario eliminado correctamente"
     });
 
   } catch (error) {
     console.error('Error en DELETE /api/usuarios:', error);
-    
+
     // Manejar errores de restricciones de clave foránea
     if (error instanceof Error && error.message.includes('Foreign key constraint')) {
       return NextResponse.json(
-        { 
-          error: true, 
-          message: "No se puede eliminar el usuario porque tiene relaciones existentes" 
+        {
+          error: true,
+          message: "No se puede eliminar el usuario porque tiene relaciones existentes"
         },
         { status: 409 }
       );
     }
 
     return NextResponse.json(
-      { 
-        error: true, 
+      {
+        error: true,
         message: "Error interno del servidor al eliminar usuario",
         details: process.env.NODE_ENV === 'development' ? (error as Error).toString() : undefined
       },

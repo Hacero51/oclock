@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useContext } from "react";
 import Tabla from "@/components/Table";
 import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
 import {
   Select,
   SelectContent,
@@ -14,15 +13,10 @@ import {
 import UpdateModal from "@/components/UpdateModal";
 import {
   Search,
-  Filter,
   Users,
   Building,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
 } from "lucide-react";
 import { Pagination } from "@/components/ui/Pagination";
-import { useContext } from "react";
 import { DashboardContext } from "@/app/dashboard/layout";
 
 // ---------------- INTERFACES ---------------- //
@@ -136,7 +130,7 @@ export default function EmpleadosPage() {
     }
 
     fetchData();
-  }, [isMounted, refreshKey, refreshTrigger, currentPage, itemsPerPage, busqueda, estadoEmpleados]);
+  }, [isMounted, refreshKey, refreshTrigger, currentPage, itemsPerPage, busqueda, estadoEmpleados, departamento]);
 
   // Departamentos (Para el filtro, idealmente vendrían de otra API)
   const [departamentos, setDepartamentos] = useState<string[]>([]);
@@ -159,8 +153,6 @@ export default function EmpleadosPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [busqueda, departamento, estadoEmpleados]);
-
-  const totalPags = totalPages;
 
   if (!isMounted) return <div className="p-8 text-center">Cargando...</div>;
 

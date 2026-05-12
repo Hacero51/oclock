@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { laborEngine } from "@/server/biometric/engine";
+import { recordActivity } from "@/lib/activity-log";
 
 // Forzar recompilacion - v5 (LEGACY IDENTITY RESTORATION)
 export async function GET(request: Request) {
@@ -99,7 +100,7 @@ export async function GET(request: Request) {
         marcaciones.forEach(m => {
             const eOid = m.Employee?.trim();
             if (eOid) empOidsSet.add(eOid);
-            
+
             const sOid = m.Shift?.trim();
             if (sOid && sOid.length > 10) shiftOidsSet.add(sOid);
         });
@@ -274,6 +275,23 @@ export async function PATCH(request: Request) {
             data: updateData
         });
 
+        // Obtener nombre del empleado para el log
+        let empName = "Empleado";
+        if (updated.Employee) {
+            const p = await prisma.eperson.findUnique({ where: { Oid: updated.Employee }, select: { FullName: true } });
+            empName = p?.FullName || updated.Employee;
+        }
+
+        // REGISTRO DE ACTIVIDAD
+        await recordActivity({
+            action: "UPDATE",
+            targetModel: "marking",
+            targetId: id,
+            targetName: `Marcación de ${empName}`,
+            description: `Actualización manual de marcación. Datos: ${JSON.stringify(updateData)}`,
+            req: request
+        });
+
         // RECALCULO INSTANTANEO SI HUBO ACTUALIZACION MANUAL
         if (updated.Employee && updated.Day) {
             try {
@@ -298,19 +316,21 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { empleadoId, turnoId, fecha, entrada, salida } = body;
 
-        if (!empleadoId || !fecha || !entrada) {
-            return NextResponse.json({ error: "Empleado, fecha y entrada son requeridos" }, { status: 400 });
+        // Validación flexible: Al menos entrada o salida deben estar presentes
+        if (!empleadoId || !fecha || (!entrada && !salida)) {
+            return NextResponse.json({ error: "Empleado, fecha y al menos una marcación (entrada/salida) son requeridos" }, { status: 400 });
         }
 
         // Helper para crear fecha UTC desde partes locales
-        const createUTCDate = (dateStr: string, timeStr: string) => {
+        const createUTCDate = (dateStr: string, timeStr: string | null) => {
+            if (!timeStr) return null;
             const [year, month, day] = dateStr.split('-').map(Number);
             const [hour, minute] = timeStr.split(':').map(Number);
             return new Date(Date.UTC(year, month - 1, day, hour, minute));
         };
 
         const markingInData = createUTCDate(fecha, entrada);
-        const markingOutData = salida ? createUTCDate(fecha, salida) : null;
+        const markingOutData = createUTCDate(fecha, salida);
 
         const newMarking = await prisma.marking.create({
             data: {
@@ -320,9 +340,23 @@ export async function POST(request: Request) {
                 Day: new Date(fecha),
                 MarkingIn: markingInData,
                 MarkingOut: markingOutData,
-                StartShiftMarkingIn: true, 
+                StartShiftMarkingIn: !!markingInData,
                 Approve: false
             }
+        });
+
+        // Obtener nombre del empleado para el log
+        const p = await prisma.eperson.findUnique({ where: { Oid: empleadoId }, select: { FullName: true } });
+        const empName = p?.FullName || empleadoId;
+
+        // REGISTRO DE ACTIVIDAD
+        await recordActivity({
+            action: "CREATE",
+            targetModel: "marking",
+            targetId: newMarking.Oid,
+            targetName: `Nueva marcación: ${empName}`,
+            description: `Creación manual de marcación el día ${fecha}`,
+            req: request
         });
 
         if (newMarking.Employee && newMarking.Day) {
@@ -352,8 +386,36 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: "ID de marcación requerido" }, { status: 400 });
         }
 
+        // 1. Buscar datos antes de borrar para el log
+        const oldMarking = await prisma.marking.findUnique({ 
+            where: { Oid: id }
+        });
+        
+        let empName = "Desconocido";
+        // 2. Si existe la marcación, buscamos el nombre de la persona manualmente
+        if (oldMarking?.Employee) {
+            const persona = await prisma.eperson.findUnique({
+                where: { Oid: oldMarking.Employee },
+                select: { FullName: true }
+            });
+            empName = persona?.FullName || "Desconocido";
+        }
+        
+        const dayStr = oldMarking?.Day ? new Date(oldMarking.Day).toLocaleDateString() : "";
+
+        // 3. Borrar la marcación
         await prisma.marking.delete({
             where: { Oid: id }
+        });
+
+        // REGISTRO DE ACTIVIDAD
+        await recordActivity({
+            action: "DELETE",
+            targetModel: "marking",
+            targetId: id,
+            targetName: `Marcación de ${empName} (${dayStr})`,
+            description: `Eliminación de registro de asistencia`,
+            req: request
         });
 
         return NextResponse.json({ success: true });

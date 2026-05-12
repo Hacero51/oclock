@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { recordActivity } from "@/lib/activity-log";
 
 export async function GET(
     request: Request,
@@ -237,6 +238,16 @@ export async function PUT(
                 });
             }
         }
+
+        // REGISTRO DE ACTIVIDAD
+        await recordActivity({
+            action: "UPDATE",
+            targetModel: "timetable",
+            targetId: Oid,
+            targetName: finalName,
+            description: `Actualización de horario`,
+            req: request
+        });
 
         return NextResponse.json({ success: true, name: finalName });
 

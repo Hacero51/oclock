@@ -19,8 +19,8 @@ export default function TurnosForm({ onClose }) {
   const [formData, setFormData] = useState({
     nombre: "",
     rotacion: "Semana",
-    festivos: "no_trabaja",
-    numeroCiclos: "",
+    festivos: "no_trabaja_dias_de_fiesta",
+    numeroCiclos: "1",
     estado: "activo",
     tiempoExtraMinimo: "",
     adicionarTiempoExtra: "",
@@ -45,11 +45,15 @@ export default function TurnosForm({ onClose }) {
       try {
         const [timeRes, empRes] = await Promise.all([
           fetch('/api/horarios'),
-          fetch('/api/empleados')
+          fetch('/api/empleados?limit=1000') // Pedimos suficientes para la selección
         ]);
 
         if (timeRes.ok) setAvailableTimetables(await timeRes.json());
-        if (empRes.ok) setEmployees(await empRes.json());
+        if (empRes.ok) {
+          const resData = await empRes.json();
+          // La API devuelve { data: [...], pagination: {...} }
+          setEmployees(Array.isArray(resData.data) ? resData.data : []);
+        }
       } catch (error) {
         console.error("Error loading resources:", error);
       }
@@ -127,7 +131,7 @@ export default function TurnosForm({ onClose }) {
     } catch (e) { alert("Error guardando"); }
   };
 
-  const filteredEmp = employees.filter(e => {
+  const filteredEmp = (Array.isArray(employees) ? employees : []).filter(e => {
     const matchesSearch = e["Nombre a mostrar"]?.toLowerCase().includes(employeeSearch.toLowerCase()) ||
       e["Número Lector"]?.toString().includes(employeeSearch);
 
@@ -143,26 +147,21 @@ export default function TurnosForm({ onClose }) {
       <div className="w-full h-full flex flex-col font-sans">
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 px-3 md:px-8 py-3 md:py-6 border-b-2 md:border-b-4 border-indigo-800 flex-shrink-0">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center space-x-2 md:space-x-4">
-              <div className="p-1.5 md:p-4 bg-white/20 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/30 md:border-2">
-                <CalendarSync className="h-4 w-4 md:h-7 md:w-7 text-white" />
-              </div>
-              <div>
-                <h2 className="text-base md:text-2xl font-bold text-white">Generar un Turno</h2>
-              </div>
+        <div className="bg-[#1e40af] px-6 py-5 flex items-center justify-between border-b border-blue-800/20">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-white/10 rounded-lg">
+              <CalendarSync className="h-5 w-5 text-white" />
             </div>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-white hover:bg-white/20 hover:text-white shrink-0"
-            >
-              <X className="h-6 w-6" />
-            </Button>
+            <h2 className="text-xl font-semibold text-white tracking-tight">Generar Nuevo Turno</h2>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white hover:bg-white/10 hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 space-y-6 custom-scrollbar">
@@ -171,13 +170,13 @@ export default function TurnosForm({ onClose }) {
           <div className="bg-blue-600 rounded-xl p-6 shadow-lg text-white space-y-6">
 
             {/* 1. Nombre - Full Width */}
-            <div className="">
-              <label className="text-xs font-bold uppercase text-blue-100 mb-1.5 block tracking-wider">Nombre del Turno</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase text-blue-100/80 tracking-widest block">Nombre del Turno</label>
               <Input
                 value={formData.nombre}
                 onChange={e => handleInputChange("nombre", e.target.value)}
-                className="text-black border-none h-10"
-                placeholder="Ej. Planta"
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/40 h-11 focus:bg-white focus:text-black transition-all"
+                placeholder="Ej. Planta Producción"
               />
             </div>
 
@@ -212,15 +211,15 @@ export default function TurnosForm({ onClose }) {
                   </Select>
                 </div>
 
-                {/* Row 2, Col 1: Ciclos */}
                 <div>
                   <label className="text-xs font-medium text-blue-200 mb-1.5 block">Número de Ciclos</label>
                   <Input
                     type="number"
+                    min="1"
                     value={formData.numeroCiclos}
                     onChange={e => handleInputChange("numeroCiclos", e.target.value)}
-                    className="text-black border-none h-10"
-                    placeholder="0"
+                    className="text-black border-none h-10 focus:ring-2 focus:ring-white/50"
+                    placeholder="1"
                   />
                 </div>
 
@@ -458,12 +457,19 @@ export default function TurnosForm({ onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t bg-white flex justify-end gap-3 shrink-0">
-          <Button variant="ghost" onClick={onClose} className="text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+        <div className="p-5 border-t bg-gray-50 flex justify-end gap-4 shrink-0">
+          <Button 
+            variant="outline" 
+            onClick={onClose} 
+            className="border-gray-300 text-gray-700 hover:bg-gray-100 px-8 h-11 font-medium rounded-lg"
+          >
             Cancelar
           </Button>
-          <Button onClick={handleGuardar} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 px-6">
-            Guardar Turno
+          <Button 
+            onClick={handleGuardar} 
+            className="bg-[#dc2626] hover:bg-[#b91c1c] text-white px-10 h-11 font-bold rounded-lg shadow-md transition-all active:scale-95"
+          >
+            Guardar
           </Button>
         </div>
 

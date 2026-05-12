@@ -5,6 +5,7 @@ import { DashboardContext } from "@/app/dashboard/layout";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
+import { Search, X, Calendar } from "lucide-react";
 
 export default function PermisosEIncaForm({ onClose }) {
   const { estadoEmpleados } = useContext(DashboardContext);
@@ -83,19 +84,40 @@ export default function PermisosEIncaForm({ onClose }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Crear Permiso/Incapacidad</h1>
+    <div className="w-full h-full flex flex-col bg-white overflow-hidden font-sans">
+      
+      {/* Header Premium */}
+      <div className="bg-[#1e40af] px-6 py-5 flex items-center justify-between border-b border-blue-800/20 shrink-0">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-white/10 rounded-lg">
+            <Calendar className="h-5 w-5 text-white" />
+          </div>
+          <h2 className="text-xl font-semibold text-white tracking-tight">Registrar Novedad</h2>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="text-white hover:bg-white/10 hover:text-white"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="space-y-4">
+      <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar bg-gray-50/30">
+        
+        {/* Form Card */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-6">
+          
+          {/* Empleado con Buscador Mejorado */}
+          <div className="relative">
+            <label className="text-[10px] font-bold uppercase text-gray-500 tracking-widest block mb-2">Colaborador *</label>
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Empleado *</label>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input 
                 type="text"
-                placeholder="Buscar empleado..."
+                placeholder="Buscar por nombre o apellido..."
+                className="pl-10 h-11 border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-gray-50/50"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -103,64 +125,101 @@ export default function PermisosEIncaForm({ onClose }) {
                 }}
                 onFocus={() => setShowResults(true)}
               />
-              {showResults && searchTerm.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
-                  {filteredEmpleados.length > 0 ? (
-                    filteredEmpleados.map((emp) => (
-                      <div 
-                        key={emp.Oid}
-                        className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm"
-                        onClick={() => handleSelectEmpleado(emp)}
-                      >
-                        {emp.FirstName} {emp.LastName}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="px-4 py-2 text-sm text-gray-500">No se encontraron resultados</div>
-                  )}
-                </div>
-              )}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo *</label>
-              <select 
-                value={formData.tipo} 
-                onChange={(e) => handleInputChange("tipo", e.target.value)}
-                className="w-full flex h-10 items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="">Seleccionar tipo</option>
-                {tiposPermiso.map((tipo) => (
-                  <option key={tipo.Oid} value={tipo.Oid}>
-                    {tipo.Name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Inicio *</label>
-                <Input type="datetime-local" value={formData.inicio} onChange={(e) => handleInputChange("inicio", e.target.value)} className="w-full" />
+            
+            {showResults && searchTerm.length > 0 && (
+              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto divide-y divide-gray-50">
+                {filteredEmpleados.length > 0 ? (
+                  filteredEmpleados.map((emp) => (
+                    <div 
+                      key={emp.Oid}
+                      className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm flex items-center justify-between group transition-colors"
+                      onClick={() => handleSelectEmpleado(emp)}
+                    >
+                      <span className="font-medium text-gray-700">{emp.FirstName} {emp.LastName}</span>
+                      <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors uppercase">Seleccionar</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-4 text-sm text-gray-400 italic text-center">No se encontraron colaboradores</div>
+                )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Fin *</label>
-                <Input type="datetime-local" value={formData.fin} onChange={(e) => handleInputChange("fin", e.target.value)} className="w-full" />
-              </div>
-            </div>
+            )}
+          </div>
 
+          {/* Tipo de Novedad */}
+          <div>
+            <label className="text-[10px] font-bold uppercase text-gray-500 tracking-widest block mb-2">Tipo de Novedad *</label>
+            <select 
+              value={formData.tipo} 
+              onChange={(e) => handleInputChange("tipo", e.target.value)}
+              className="w-full flex h-11 items-center justify-between rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer"
+            >
+              <option value="">Seleccionar tipo de novedad...</option>
+              {tiposPermiso.map((tipo) => (
+                <option key={tipo.Oid} value={tipo.Oid}>
+                  {tipo.Name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Fechas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Nota</label>
-              <Textarea placeholder="Observaciones..." value={formData.nota} onChange={(e) => handleInputChange("nota", e.target.value)} rows={3} className="w-full" />
+              <label className="text-[10px] font-bold uppercase text-gray-500 tracking-widest block mb-2">Fecha de Inicio *</label>
+              <Input 
+                type="datetime-local" 
+                value={formData.inicio} 
+                onChange={(e) => handleInputChange("inicio", e.target.value)} 
+                className="h-11 border-gray-200 bg-gray-50/50" 
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-gray-500 tracking-widest block mb-2">Fecha de Fin *</label>
+              <Input 
+                type="datetime-local" 
+                value={formData.fin} 
+                onChange={(e) => handleInputChange("fin", e.target.value)} 
+                className="h-11 border-gray-200 bg-gray-50/50" 
+              />
             </div>
           </div>
 
-          <div className="flex gap-3 mt-8 pt-6 border-t">
-            <Button onClick={handleGuardar} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white px-6">Guardar</Button>
-            <Button onClick={handleLimpiar} variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 px-6">Limpiar</Button>
+          {/* Justificación */}
+          <div>
+            <label className="text-[10px] font-bold uppercase text-gray-500 tracking-widest block mb-2">Justificación / Nota</label>
+            <Textarea 
+              placeholder="Describa brevemente el motivo de la novedad..." 
+              value={formData.nota} 
+              onChange={(e) => handleInputChange("nota", e.target.value)} 
+              rows={4} 
+              className="w-full border-gray-200 bg-gray-50/50 focus:ring-1 focus:ring-blue-500 transition-all resize-none" 
+            />
           </div>
+
         </div>
+
       </div>
+
+      {/* Footer Estilizado */}
+      <div className="p-6 border-t bg-gray-50 flex justify-end gap-4 shrink-0">
+        <Button 
+          variant="outline" 
+          onClick={onClose} 
+          className="border-gray-300 text-gray-700 hover:bg-gray-100 px-8 h-11 font-medium rounded-lg"
+        >
+          Cancelar
+        </Button>
+        <Button 
+          onClick={handleGuardar} 
+          disabled={loading} 
+          className="bg-[#dc2626] hover:bg-[#b91c1c] text-white px-10 h-11 font-bold rounded-lg shadow-md transition-all active:scale-95 disabled:opacity-50"
+        >
+          {loading ? "Guardando..." : "Guardar Novedad"}
+        </Button>
+      </div>
+
     </div>
   );
 }

@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
-  ChevronDown
+  ChevronDown,
+  X
 } from "lucide-react";
 
 export default function MarcacionForm({ onClose, onSaved }) {
@@ -152,22 +153,27 @@ export default function MarcacionForm({ onClose, onSaved }) {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto">
-      {/* HEADER PREMIUM */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-blue-700 to-blue-800 p-8 text-white shadow-xl shadow-blue-200">
-        <div className="relative z-10 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-black tracking-tight mb-1">Registro de Marcación</h2>
-            <p className="text-blue-100 text-sm font-medium opacity-90">Gestión manual de asistencia para personal activo</p>
+    <div className="w-full h-full flex flex-col bg-white overflow-hidden font-sans">
+      
+      {/* Header Premium */}
+      <div className="bg-[#1e40af] px-6 py-5 flex items-center justify-between border-b border-blue-800/20 shrink-0">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-white/10 rounded-lg">
+            <Clock className="h-5 w-5 text-white" />
           </div>
-          <div className="p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20">
-            <Clock className="w-8 h-8 text-white animate-pulse" />
-          </div>
+          <h2 className="text-xl font-semibold text-white tracking-tight">Registro de Marcación Manual</h2>
         </div>
-        {/* Decoración */}
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-        <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-24 h-24 bg-indigo-400/20 rounded-full blur-xl" />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="text-white hover:bg-white/10 hover:text-white"
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </div>
+
+      <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar bg-gray-50/30">
 
       <div className="px-1">
         {mensaje.texto && (
@@ -366,26 +372,27 @@ export default function MarcacionForm({ onClose, onSaved }) {
               </div>
             </div>
           </div>
-
-          <div className="flex items-center gap-4 pt-6 border-t border-gray-100">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="flex-1 h-14 border-2 border-gray-100 hover:bg-gray-50 text-gray-500 font-black rounded-2xl transition-all active:scale-95"
-              disabled={isSubmitting}
-            >
-              DESCARTAR
-            </Button>
-            <Button
-              type="submit"
-              className="flex-[2] h-14 bg-gradient-to-r from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 text-white font-black rounded-2xl shadow-xl shadow-blue-200 active:scale-95 transition-all disabled:opacity-50"
-              disabled={isSubmitting || !empleadoSeleccionado}
-            >
-              {isSubmitting ? "PROCESANDO..." : "CONFIRMAR REGISTRO"}
-            </Button>
-          </div>
         </form>
+      </div>
+    </div>
+
+      {/* Footer Estilizado */}
+      <div className="p-6 border-t bg-gray-50 flex justify-end gap-4 shrink-0">
+        <Button 
+          variant="outline" 
+          onClick={onClose} 
+          className="border-gray-300 text-gray-700 hover:bg-gray-100 px-8 h-11 font-medium rounded-lg"
+          disabled={isSubmitting}
+        >
+          Cancelar
+        </Button>
+        <Button 
+          onClick={handleSubmit} 
+          disabled={isSubmitting || !empleadoSeleccionado} 
+          className="bg-[#dc2626] hover:bg-[#b91c1c] text-white px-10 h-11 font-bold rounded-lg shadow-md transition-all active:scale-95 disabled:opacity-50"
+        >
+          {isSubmitting ? "PROCESANDO..." : "CONFIRMAR REGISTRO"}
+        </Button>
       </div>
     </div>
   );

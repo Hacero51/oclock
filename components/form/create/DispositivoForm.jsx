@@ -6,16 +6,18 @@ import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { Textarea } from "@/components/ui/Textarea";
 import { useState, useEffect } from "react";
 import { 
   Smartphone,
-  Users,
   Building,
   Download,
-  Settings,
   Database,
-  Filter
+  Filter,
+  X,
+  Settings2,
+  Globe,
+  Clock,
+  ShieldCheck
 } from "lucide-react";
 import {
   Select,
@@ -25,553 +27,327 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
-// Datos de ejemplo - sin campo fechaRegistro
-const empleadosEjemplo = [
-  {
-    id: 1,
-    nombre: "SANDRA MILENA BERNAL P...",
-    tiempo: "SÁBADO, 1 enero del 2025 08:00 AM",
-    tipo: "Entrada",
-    metodo: "Huella"
-  },
-  {
-    id: 2,
-    nombre: "MAURICIO VERA RINCON",
-    tiempo: "MIERCOLES, 5 febrero del 2025 17:00 PM", 
-    tipo: "Salida",
-    metodo: "Huella"
-  },
-  {
-    id: 3,
-    nombre: "ALBA ROCIO SOTO SUAREZ",
-    tiempo: "DOMINGO, 9 marzo del 2025  09:00 AM",
-    tipo: "Entrada",
-    metodo: "Huella"
-  },
-  {
-    id: 4,
-    nombre: "ANILSON RODRIGUEZ CAR...",
-    tiempo: "MARTES, 15 abril del 2025 18:00 PM",
-    tipo: "Salida",
-    metodo: "Huella"
-  },
-  {
-    id: 5,
-    nombre: "JUAN PÉREZ",
-    tiempo: "MIERCOLES, 5 noviembre del 2025 08:00 AM    ",
-    tipo: "Entrada",
-    metodo: "Huella Digital"
-  },
-  {
-    id: 6,
-    nombre: "MARÍA GARCÍA",
-    tiempo: "SÁBADO, 1 novimebre del 2025 05:00 PM", 
-    tipo: "Salida",
-    metodo: "Tarjeta RFID"
-  }
-];
+// Datos de ejemplo - Inicializados vacíos para producción
+const empleadosEjemplo = [];
 
 export default function DispositivoForm({ onClose }) {
   const [activeTab, setActiveTab] = useState("informacion");
-  const [dispositivoCreado, setDispositivoCreado] = useState(null);
   const [tipoConexion, setTipoConexion] = useState("red");
-  
-  // Estados para el filtro de tiempo
   const [filtroTiempo, setFiltroTiempo] = useState("todos");
-  const [empleadosFiltrados, setEmpleadosFiltrados] = useState(empleadosEjemplo);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-    reset
-  } = useForm({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
     defaultValues: {
-      nombre: "",
-      fechaDispositivo: "",
-      ubicacion: "",
-      departamento: "",
-      ip: "192.168.1.100",
-      puerto: "4370",
-      softwareVersion: "v2.1.5",
-      tipoConexion: "red",
-      baudRate: "115200",
-      contraseña: "******",
-      puertoSerial: "COM3",
-      capacidadUsuarios: "1000",
-      capacidadRegistros: "50000",
-      capacidadHuellas: "3000",
-      capacidadRostros: "1000",
-      longitudNumeroLector: "10"
+      nomeroDispositivos: "", nombre: "", fechaDispositivo: "",
+      ip: "192.168.1.100", puerto: "4370", softwareVersion: "v2.1.5",
+      tipoConexion: "red", baudRate: "115200", contraseña: "******", puertoSerial: "COM3",
+      capacidadUsuarios: "1000", capacidadRegistros: "50000", capacidadHuellas: "3000",
+      capacidadRostros: "1000", longitudNumeroLector: "10",
+      cantidadadministrador: "0", cantidadcontrasena: "0",
+      firware: "", serie: "", versionfingerprint: "",
+      cantidadMaximaUsuarios: "1000", cantidadMaximaRegistros: "50000",
+      cantidadMaximaHuellas: "3000", cantidadMaximaRostros: "1000"
     }
   });
 
-  // Función para simular filtrado por tiempo (sin usar datos de la tabla)
-  const aplicarFiltroTiempo = () => {
-    // En un caso real, aquí harías una llamada a la API con el filtro seleccionado
-    // Por ahora, simulamos que algunos filtros devuelven menos resultados
-    
-    switch (filtroTiempo) {
-      case "hoy":
-        // Simular que solo hay 3 registros para "Hoy"
-        setEmpleadosFiltrados(empleadosEjemplo.slice(0, 3));
-        break;
-      
-      case "mes-actual":
-        // Simular que hay 4 registros para "Mes Actual"
-        setEmpleadosFiltrados(empleadosEjemplo.slice(0, 4));
-        break;
-      
-      case "ultimos-7":
-        // Simular que hay 2 registros para "Últimos 7 días"
-        setEmpleadosFiltrados(empleadosEjemplo.slice(0, 2));
-        break;
-      
-      case "ultimos-30":
-        // Simular que hay 5 registros para "Últimos 30 días"
-        setEmpleadosFiltrados(empleadosEjemplo.slice(0, 5));
-        break;
-      
-      case "año-actual":
-        // Simular que hay todos los registros para "Año Actual"
-        setEmpleadosFiltrados(empleadosEjemplo);
-        break;
-      
-      case "todos":
-      default:
-        // Mostrar todos los registros
-        setEmpleadosFiltrados(empleadosEjemplo);
-        break;
-    }
-  };
-
-  // Aplicar filtro automáticamente cuando cambie
-  useEffect(() => {
-    aplicarFiltroTiempo();
-  }, [filtroTiempo]);
-
-  const onSubmit = async (data) => {
-    try {
-      console.log("Creando dispositivo:", data);
-      
-      const nuevoDispositivo = {
-        id: Date.now(),
-        ...data,
-        fechaCreacion: new Date().toISOString(),
-        estadoConexion: "Desconectado",
-        estado: "Activo"
-      };
-
-      setDispositivoCreado(nuevoDispositivo);
-      
-    } catch (error) {
-      console.error("Error creando dispositivo:", error);
-    }
-  };
-
-  // Función para manejar el cambio del select
   const handleTipoConexionChange = (value) => {
     setTipoConexion(value);
     setValue("tipoConexion", value);
   };
 
+  const onSubmit = (data) => {
+    console.log("Guardando dispositivo:", data);
+    if (onClose) onClose();
+  };
+
   return (
-    <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-4 mb-6">
-          <TabsTrigger value="informacion" className="flex items-center gap-2">
-            <Smartphone className="w-4 h-4" />
-            Información
-          </TabsTrigger>
-          <TabsTrigger value="capacidad" className="flex items-center gap-2">
-            <Building className="w-4 h-4" />
-            Capacidad
-          </TabsTrigger>
-          <TabsTrigger value="parametros" className="flex items-center gap-2">
-            <Download className="w-4 h-4" />
-            Parametros de Comunicacion
-          </TabsTrigger>
-        </TabsList>
+    <div className="w-full h-full flex flex-col bg-white overflow-hidden font-sans text-gray-900">
+      
+      {/* Header Premium */}
+      <div className="bg-[#1e40af] px-6 py-5 flex items-center justify-between border-b border-blue-800/20 shrink-0">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-white/10 rounded-lg">
+            <Smartphone className="h-5 w-5 text-white" />
+          </div>
+          <h2 className="text-xl font-semibold text-white tracking-tight italic">Reloj Biométrico - Configuración</h2>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/10">
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
 
-        {/* PESTAÑA 1: INFORMACIÓN */}
-        <TabsContent value="informacion">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Dispositivo Clock</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                {/* Número de Dispositivos */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Número de Dispositivos: </Label>
-                 <Input
-                      id="nuneroDispositivos"
-                      {...register("nomeroDispositivos")}
-                      placeholder="Numero del dispositivo"
-                    />
+      <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar bg-gray-50/30">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-3 mb-8 bg-gray-100 p-1.5 rounded-xl shadow-inner border border-gray-200">
+            <TabsTrigger value="informacion" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md transition-all font-bold text-[11px] uppercase tracking-wider py-2.5">
+              <Database className="w-3.5 h-3.5" /> Información
+            </TabsTrigger>
+            <TabsTrigger value="capacidad" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md transition-all font-bold text-[11px] uppercase tracking-wider py-2.5">
+              <ShieldCheck className="w-3.5 h-3.5" /> Capacidad
+            </TabsTrigger>
+            <TabsTrigger value="parametros" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md transition-all font-bold text-[11px] uppercase tracking-wider py-2.5">
+              <Globe className="w-3.5 h-3.5" /> Parámetros
+            </TabsTrigger>
+          </TabsList>
+
+          {/* INFORMACIÓN */}
+          <TabsContent value="informacion" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-8">
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                  <Smartphone className="w-4 h-4 text-blue-600" />
+                  <h3 className="font-bold text-gray-700 uppercase text-[10px] tracking-[0.2em]">Dispositivo Clock</h3>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Número de Dispositivo</label>
+                  <Input {...register("nomeroDispositivos")} className="h-11 bg-gray-50/50 border-gray-200" />
                 </div>
 
-                {/* Primera fila */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre" className="text-sm font-medium">
-                      Nombre
-                    </Label>
-                    <Input
-                      id="nombre"
-                      {...register("nombre")}
-                      placeholder="Ingrese nombre del dispositivo"
-                    />
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Nombre</label>
+                    <Input {...register("nombre")} className="h-11 bg-gray-50/50 border-gray-200" />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="fechaDispositivo" className="text-sm font-medium">
-                      Fecha del Dispositivo
-                    </Label>
-                    <Input
-                      id="fechaDispositivo"
-                      type="date"
-                      {...register("fechaDispositivo")}
-                    />
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Fecha del Dispositivo</label>
+                    <Input type="date" {...register("fechaDispositivo")} className="h-11 bg-gray-50/50 border-gray-200" />
                   </div>
                 </div>
 
-                {/* Segunda fila - Estados */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Estado de Conexión
-                    </Label>
-                    <div className="p-2 border rounded-md bg-gray-50">
-                      <span className="text-gray-700">Desconectado</span>
-                    </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Conexión</label>
+                    <div className="h-11 px-3 flex items-center border border-gray-200 rounded-lg bg-gray-100 text-gray-500 text-sm font-medium">Desconectado</div>
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Estado</label>
+                    <div className="h-11 px-3 flex items-center border border-gray-200 rounded-lg bg-green-50 text-green-700 text-sm font-bold uppercase">Activo</div>
+                  </div>
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Estado
-                    </Label>
-                    <div className="p-2 border rounded-md bg-gray-50">
-                      <span className="text-gray-700">Activo</span>
-                    </div>
+              <div className="space-y-4 pt-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                  <Settings2 className="w-4 h-4 text-blue-600" />
+                  <h3 className="font-bold text-gray-700 uppercase text-[10px] tracking-[0.2em]">Información Técnica</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Usuarios</label>
+                    <Input type="number" {...register("capacidadUsuarios")} className="h-10 bg-gray-50/50" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Registros</label>
+                    <Input type="number" {...register("capacidadRegistros")} className="h-10 bg-gray-50/50" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Huellas</label>
+                    <Input type="number" {...register("capacidadHuellas")} className="h-10 bg-gray-50/50" />
                   </div>
                 </div>
 
-                {/* Información - Cantidades */}
-                <div className="space-y-4">
-                  <Label className="text-sm font-medium">Información</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                        <Label htmlFor="capacidadUsuarios" className="text-sm">
-                            Cantidad de Usuarios
-                        </Label>
-                        <Input
-                            id="capacidadUsuarios"
-                            type="number"
-                            {...register("capacidadUsuarios")}
-                        />
-                        </div>
-                        <div className="space-y-2">
-                        <Label htmlFor="capacidadRegistros" className="text-sm">
-                            Cantidad de Registros
-                        </Label>
-                        <Input
-                            id="capacidadRegistros"
-                            type="number"
-                            {...register("capacidadRegistros")}
-                        />
-                        </div>
-                        <div className="space-y-2">
-                        <Label htmlFor="capacidadHuellas" className="text-sm">
-                            Cantidad de Huellas
-                        </Label>
-                        <Input
-                            id="capacidadHuellas"
-                            type="number"
-                            {...register("capacidadHuellas")}
-                        />
-                        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Rostros</label>
+                    <Input type="number" {...register("capacidadRostros")} className="h-10 bg-gray-50/50" />
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="capacidadRostros" className="text-sm">
-                        Cantidad de Rostros
-                      </Label>
-                      <Input
-                        id="capacidadRostros"
-                        type="number"
-                        {...register("capacidadRostros")}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="longitudNumeroLector" className="text-sm">
-                        Longitud Número de Lector
-                      </Label>
-                      <Input
-                        id="longitudNumeroLector"
-                        type="number"
-                        {...register("longitudNumeroLector")}
-                      />
-                    </div>
-                  </div>  
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                        <Label htmlFor="cantidadadministrador" className="text-sm">
-                            Cantidad de Accesos del Administrador
-                        </Label>
-                        <Input
-                            id="cantidadadministrador"
-                            type="number"
-                            {...register("cantidadadministrador")}
-                        />
-                        </div>
-                        <div className="space-y-2">
-                        <Label htmlFor="cantidadcontrasena" className="text-sm">
-                            Cantidad de Contraseñas
-                        </Label>
-                        <Input
-                            id="cantidadcontrasena"
-                            type="number"
-                            {...register("cantidadcontrasena")}
-                        />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                        <Label htmlFor="firware" className="text-sm">
-                            Firware
-                        </Label>
-                        <Input
-                            id="firware"
-                            {...register("firware")}
-                        />
-                        </div>
-                        <div className="space-y-2">
-                        <Label htmlFor="serie" className="text-sm">
-                            Numero de Serie
-                        </Label>
-                        <Input
-                            id="serie"
-                            {...register("serie")}
-                        />
-                        </div>
-                        <div className="space-y-2">
-                        <Label htmlFor="versionfingerprint" className="text-sm">
-                            Version Fingerprint
-                        </Label>
-                        <Input
-                            id="versionfingerprint"
-                            {...register("versionfingerprint")}
-                        />
-                        </div>
-                    </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Longitud Número Lector</label>
+                    <Input type="number" {...register("longitudNumeroLector")} className="h-10 bg-gray-50/50" />
                   </div>
-              </CardContent>
-            </Card>
+                </div>
 
-            {/* Botones */}
-            <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Guardar Dispositivo
-              </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Accesos Administrador</label>
+                    <Input type="number" {...register("cantidadadministrador")} className="h-10 bg-gray-50/50" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Contraseñas</label>
+                    <Input type="number" {...register("cantidadcontrasena")} className="h-10 bg-gray-50/50" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Firmware</label>
+                    <Input {...register("firware")} className="h-10 bg-gray-50/50 font-mono text-[11px]" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Serie</label>
+                    <Input {...register("serie")} className="h-10 bg-gray-50/50 font-mono text-[11px]" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Version Fingerprint</label>
+                    <Input {...register("versionfingerprint")} className="h-10 bg-gray-50/50 font-mono text-[11px]" />
+                  </div>
+                </div>
+              </div>
             </div>
-          </form>
-        </TabsContent>
+          </TabsContent>
 
-        {/* PESTAÑA 2: CAPACIDAD - Con filtro corregido */}
-        <TabsContent value="capacidad">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Capacidad</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                {/* Capacidades Máximas */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* CAPACIDAD (RESTAURADA) */}
+          <TabsContent value="capacidad" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-8">
+              
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                  <Building className="w-4 h-4 text-blue-600" />
+                  <h3 className="font-bold text-gray-700 uppercase text-[10px] tracking-[0.2em]">Capacidad Máxima</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm">Cantidad máxima de usuarios</Label>
-                      <Input
-                        id="cantidadMaximaUsuarios"
-                        type="number"
-                        {...register("cantidadMaximaUsuarios")}
-                      />
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Cantidad máxima de usuarios</label>
+                      <Input type="number" {...register("cantidadMaximaUsuarios")} className="h-11 bg-gray-50/50 border-gray-200" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm">Cantidad máxima de registros</Label>
-                      <Input
-                        id="cantidadMaximaRegistros"
-                        type="number"
-                        {...register("cantidadMaximaRegistros")}
-                      />
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Cantidad máxima de registros</label>
+                      <Input type="number" {...register("cantidadMaximaRegistros")} className="h-11 bg-gray-50/50 border-gray-200" />
                     </div>
                   </div>
                   <div className="space-y-4">   
-                    <div className="space-y-2">
-                      <Label className="text-sm">Cantidad máxima de huellas</Label>
-                      <Input
-                        id="cantidadMaximaHuellas"
-                        type="number"
-                        {...register("cantidadMaximaHuellas")}
-                      />
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Cantidad máxima de huellas</label>
+                      <Input type="number" {...register("cantidadMaximaHuellas")} className="h-11 bg-gray-50/50 border-gray-200" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm">Cantidad máxima de rostros</Label>
-                      <Input
-                        id="cantidadMaximaRostros"
-                        type="number"
-                        {...register("cantidadMaximaRostros")}
-                      />
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Cantidad máxima de rostros</label>
+                      <Input type="number" {...register("cantidadMaximaRostros")} className="h-11 bg-gray-50/50 border-gray-200" />
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Registro de entrada y salida */}
-                <div className="space-y-4">                             
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-lg">Registro de entrada y salida</CardTitle>
-                  </CardHeader>
+              {/* Registro de entrada y salida */}
+              <div className="space-y-4 pt-4">                             
+                <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  <h3 className="font-bold text-gray-700 uppercase text-[10px] tracking-[0.2em]">Registro de entrada y salida</h3>
+                </div>
+                
+                {/* Filtro de Tiempo */}
+                <div className="bg-gray-50/80 p-5 rounded-xl border border-gray-200 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold uppercase text-gray-500 tracking-widest flex items-center gap-2">
+                      <Filter className="w-3.5 h-3.5" /> Filtrar por Tiempo
+                    </label>
+                  </div>
                   
-                  {/* Filtro de Tiempo Simple */}
-                  <div className="bg-gray-50 p-4 rounded-lg border">
-                    <div className="flex items-center justify-between mb-3">
-                      <Label className="text-sm font-medium flex items-center gap-2">
-                        <Filter className="w-4 h-4" />
-                        Filtrar por Tiempo
-                      </Label>
-                      <div className="text-xs text-gray-600">
-                        Mostrando {empleadosFiltrados.length} de {empleadosEjemplo.length} registros
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <Select value={filtroTiempo} onValueChange={setFiltroTiempo}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar tiempo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="todos">Todos los tiempos</SelectItem>
-                            <SelectItem value="hoy">Hoy</SelectItem>
-                            <SelectItem value="mes-actual">Mes Actual</SelectItem>
-                            <SelectItem value="ultimos-7">Últimos 7 días</SelectItem>
-                            <SelectItem value="ultimos-30">Últimos 30 días</SelectItem>
-                            <SelectItem value="año-actual">Año Actual</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tabla de Empleados */}
-                  <Label className="text-sm font-medium">Empleados</Label>
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-gray-100 text-sm font-medium">
-                      <div className="col-span-4">Empleado</div>
-                      <div className="col-span-3">Tiempo</div>
-                      <div className="col-span-2">Tipo</div>
-                      <div className="col-span-3">Método verificación</div>
-                    </div>
-                    
-                    {empleadosFiltrados.map((empleado) => (
-                      <div key={empleado.id} className="grid grid-cols-12 gap-2 px-4 py-3 border-t text-sm hover:bg-gray-50">
-                        <div className="col-span-4">{empleado.nombre}</div>
-                        <div className="col-span-3">{empleado.tiempo}</div>
-                        <div className="col-span-2">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            empleado.tipo === 'Entrada' ? 'bg-green-100 text-green-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {empleado.tipo}
-                          </span>
-                        </div>
-                        <div className="col-span-3">{empleado.metodo}</div>
-                      </div>
-                    ))}
-                  </div>
+                  <Select value={filtroTiempo} onValueChange={setFiltroTiempo}>
+                    <SelectTrigger className="h-11 bg-white border-gray-200 shadow-sm">
+                      <SelectValue placeholder="Seleccionar tiempo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos los registros</SelectItem>
+                      <SelectItem value="hoy">Hoy</SelectItem>
+                      <SelectItem value="mes-actual">Mes Actual</SelectItem>
+                      <SelectItem value="ultimos-7">Últimos 7 días</SelectItem>
+                      <SelectItem value="ultimos-30">Últimos 30 días</SelectItem>
+                      <SelectItem value="año-actual">Año Actual</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
 
+                {/* Tabla de Empleados (Estilizada) */}
+                <div className="border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-100/80 border-b border-gray-100">
+                      <tr>
+                        <th className="px-4 py-3.5 text-left font-bold uppercase text-gray-400 tracking-wider">Empleado</th>
+                        <th className="px-4 py-3.5 text-left font-bold uppercase text-gray-400 tracking-wider">Tiempo</th>
+                        <th className="px-4 py-3.5 text-left font-bold uppercase text-gray-400 tracking-wider">Tipo</th>
+                        <th className="px-4 py-3.5 text-left font-bold uppercase text-gray-400 tracking-wider">Verificación</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {empleadosEjemplo.length > 0 ? (
+                        empleadosEjemplo.map((empleado) => (
+                          <tr key={empleado.id} className="hover:bg-blue-50/50 transition-colors">
+                            <td className="px-4 py-3.5 font-bold text-gray-700">{empleado.nombre}</td>
+                            <td className="px-4 py-3.5 text-gray-500">{empleado.tiempo}</td>
+                            <td className="px-4 py-3.5">
+                              <span className={`px-2.5 py-1 rounded-md font-bold uppercase text-[9px] ${
+                                empleado.tipo === 'Entrada' ? 'bg-green-100 text-green-700 border border-green-200' :
+                                'bg-red-100 text-red-700 border border-red-200'
+                              }`}>
+                                {empleado.tipo}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5 text-gray-600 font-medium">{empleado.metodo}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="4" className="px-4 py-10 text-center text-gray-400 italic bg-gray-50/50">
+                            No hay registros de marcaciones para este dispositivo.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
 
-        {/* PESTAÑA 3: PARAMETROS */}
-        <TabsContent value="parametros">
-          <div className="space-y-6">
-            <Card>
-              <CardContent className="p-6 space-y-6">
-                {/* Configuración de Red */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <Label className="text-sm font-medium">Configuración de Red</Label>
-                    <div className="space-y-2">
-                      <Label htmlFor="ip" className="text-sm">IP</Label>
-                      <Input id="ip" {...register("ip")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="puerto" className="text-sm">Puerto</Label>
-                      <Input id="puerto" {...register("puerto")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="softwareVersion" className="text-sm">Software Version</Label>
-                      <Input id="softwareVersion" {...register("softwareVersion")} />
-                    </div>
-                    <div className="space-y-2">
-                     <Label htmlFor="tipoConexion" className="text-sm">Tipo de Conexión</Label>
-                    <Select 
-                      value={tipoConexion} 
-                      onValueChange={handleTipoConexionChange}
-                    >
-                        <SelectTrigger id="tipoConexion">
-                        <SelectValue placeholder="Selecciona el tipo de conexión" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="red">Red</SelectItem>
-                        <SelectItem value="serial">Puerto Serial</SelectItem>
-                        <SelectItem value="usb">USB</SelectItem>
-                        </SelectContent>
+          {/* PARÁMETROS */}
+          <TabsContent value="parametros" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-8">
+              <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                <Globe className="w-4 h-4 text-blue-600" />
+                <h3 className="font-bold text-gray-700 uppercase text-[10px] tracking-[0.2em]">Configuración de Red & Acceso</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Dirección IP</label>
+                    <Input {...register("ip")} className="h-11 bg-gray-50/50 font-mono" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Puerto</label>
+                    <Input {...register("puerto")} className="h-11 bg-gray-50/50 font-mono" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Tipo de Conexión</label>
+                    <Select value={tipoConexion} onValueChange={handleTipoConexionChange}>
+                      <SelectTrigger className="h-11 bg-gray-50/50 border-gray-200 shadow-none"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="red">Red (Ethernet)</SelectItem>
+                        <SelectItem value="serial">Puerto Serial (RS232/485)</SelectItem>
+                        <SelectItem value="usb">USB Directo</SelectItem>
+                      </SelectContent>
                     </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label className="text-sm font-medium">Acceso</Label>
-                    <div className="space-y-2">
-                      <Label htmlFor="baudRate" className="text-sm">Baud Rate</Label>
-                      <Input id="baudRate" {...register("baudRate")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="contraseña" className="text-sm">Contraseña</Label>
-                      <Input id="contraseña" type="password" {...register("contraseña")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="puertoSerial" className="text-sm">Puerto Serial</Label>
-                      <Input id="puertoSerial" {...register("puertoSerial")} />
-                    </div>
                   </div>
                 </div>
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Baud Rate</label>
+                    <Input {...register("baudRate")} className="h-11 bg-gray-50/50 font-mono" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Contraseña de Comunicación</label>
+                    <Input type="password" {...register("contraseña")} className="h-11 bg-gray-50/50" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-widest block">Versión de Software</label>
+                    <Input {...register("softwareVersion")} className="h-11 bg-gray-100 text-gray-400 border-none italic" disabled />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
 
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+      {/* Footer Premium */}
+      <div className="p-6 border-t bg-gray-50 flex justify-end gap-4 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <Button variant="outline" onClick={onClose} className="border-gray-300 text-gray-700 hover:bg-gray-100 px-8 h-12 font-bold rounded-xl text-xs uppercase tracking-widest transition-all">Cancelar</Button>
+        <Button onClick={handleSubmit(onSubmit)} className="bg-[#dc2626] hover:bg-[#b91c1c] text-white px-10 h-12 font-bold rounded-xl text-xs uppercase tracking-widest shadow-md shadow-red-200 transition-all active:scale-95">Guardar Configuración</Button>
+      </div>
     </div>
   );
 }

@@ -1,21 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { useState } from "react";
 import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import {
   Building,
   X,
-  Save,
+  CheckCircle2,
   Loader2,
+  AlertCircle,
+  Hash,
+  Tag
 } from "lucide-react";
 
-
 export default function CentroCostoForm({ onClose }) {
-
   const [form, setForm] = useState({
     Code: "",
     Name: "",
@@ -24,225 +23,167 @@ export default function CentroCostoForm({ onClose }) {
   const [saveLoading, setSaveLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-
-  // MANEJO DEL FORMULARIO
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // VALIDACIÓN: Nombre solo letras y espacios
     if (name === "Name") {
       const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/;
-      if (!regex.test(value)) {
-        return;
-      }
+      if (!regex.test(value)) return;
     }
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Limpiar error al escribir
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
-    }
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: "" }));
   };
 
-  // VALIDACIÓN DEL FORMULARIO
   const validateForm = () => {
     const newErrors = {};
-
-    if (!form.Name.trim()) {
-      newErrors.Name = "El nombre es obligatorio";
-    }
-
-    if (form.Code && form.Code.length > 20) {
-      newErrors.Code = "El código no puede tener más de 20 caracteres";
-    }
-
+    if (!form.Name.trim()) newErrors.Name = "El nombre es obligatorio";
+    if (form.Code && form.Code.length > 20) newErrors.Code = "Máximo 20 caracteres";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ENVIAR CREATE (POST)
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setSaveLoading(true);
-    setErrors({});
-
-    // Preparar payload (NO enviar Oid desde el frontend)
-    const payload = {
-      Code: form.Code.trim() || null,
-      Name: form.Name.trim(),
-    };
-
-    console.log("Enviando datos:", payload);
-
     try {
+      const payload = {
+        Code: form.Code.trim() || null,
+        Name: form.Name.trim(),
+      };
+
       const res = await fetch("/api/centrocostos", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const responseData = await res.json();
-
-      if (!res.ok) {
-        // Error del servidor
-        throw new Error(responseData.error || "Error creando centro de costo");
-      }
-
-      console.log("✅ Respuesta del servidor:", responseData);
-
-      // DISPARAR EVENTO PARA REFRESCAR LA LISTA
-      const refreshEvent = new CustomEvent('refreshCentroCostosList');
-      window.dispatchEvent(refreshEvent);
-
-      // Mostrar toast de éxito
-      const toastEvent = new CustomEvent('showToast', {
-        detail: {
-          message: '✅ Centro de costo creado con éxito',
-          type: 'success'
-        }
-      });
-      window.dispatchEvent(toastEvent);
-
-      // Cerrar después de un segundo
-      setTimeout(() => {
-        onClose();
-        // Opcional: refrescar la lista de centros de costo
-        window.dispatchEvent(new CustomEvent('refreshCentrosCosto'));
-      }, 1000);
-
+      if (!res.ok) throw new Error("Error creando centro de costo");
+      
+      if (onClose) onClose();
+      window.dispatchEvent(new CustomEvent('refreshCentroCostosList'));
     } catch (error) {
-      console.error("❌ Error:", error);
-
-      // Mostrar toast de error
-      const event = new CustomEvent('showToast', {
-        detail: {
-          message: `❌ ${error.message}`,
-          type: 'error'
-        }
-      });
-      window.dispatchEvent(event);
-
-      // Mostrar error en el formulario si es de validación
-      if (error.message.includes("obligatorio") || error.message.includes("Ya existe")) {
-        setErrors(prev => ({
-          ...prev,
-          form: error.message
-        }));
-      }
+      setErrors({ form: error.message });
     } finally {
       setSaveLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="flex flex-col h-full">
-        <Card>
-          <CardHeader className="pb-4 bg-blue-600 text-white">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <div className="p-2 bg-white/20 rounded-lg">
-                <Building className="w-5 h-5" />
-              </div>
-              Información del Centro de Costo
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="p-6">
-            {/* Error general del formulario */}
-            {errors.form && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
-                {errors.form}
-              </div>
-            )}
-
-            <div className="space-y-6 max-w-2xl">
-              {/* Código */}
-              <div className="space-y-2">
-                <Label htmlFor="Code" className="text-sm font-medium flex items-center gap-1">
-                  Código
-                </Label>
-                <Input
-                  name="Code"
-                  value={form.Code}
-                  onChange={handleChange}
-                  placeholder="Ej: 184, 201, CC001"
-                  className="w-full py-3 px-4"
-                  disabled={saveLoading}
-                />
-                {errors.Code && (
-                  <p className="text-sm text-red-600">{errors.Code}</p>
-                )}
-              </div>
-
-              {/* Nombre */}
-              <div className="space-y-2">
-                <Label htmlFor="Name" className="text-sm font-medium">
-                  Nombre <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  name="Name"
-                  value={form.Name}
-                  onChange={handleChange}
-                  placeholder="Ej: Línea de Producción 1, Ventas Zona Norte"
-                  className="w-full text-lg py-3 px-4"
-                  disabled={saveLoading}
-                  required
-                />
-                {errors.Name && (
-                  <p className="text-sm text-red-600">{errors.Name}</p>
-                )}
-                <p className="text-sm text-gray-500">
-                  Este campo es obligatorio. Describe claramente el centro de costo.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Botones de acción */}
-        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            disabled={saveLoading}
-            className="sm:w-auto"
-          >
-            <X className="mr-2 h-4 w-4" />
-            Cancelar
-          </Button>
-
-          <Button
-            type="submit"
-            disabled={saveLoading}
-            className="bg-blue-600 hover:bg-blue-700 text-white sm:w-auto"
-          >
-            {saveLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creando...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Crear Centro de Costo
-              </>
-            )}
-          </Button>
+    <div className="w-full h-full flex flex-col bg-white overflow-hidden font-sans">
+      
+      {/* Header Premium */}
+      <div className="bg-[#1e40af] px-6 py-5 flex items-center justify-between border-b border-blue-800/20 shrink-0">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-white/10 rounded-lg">
+            <Building className="h-5 w-5 text-white" />
+          </div>
+          <h2 className="text-xl font-semibold text-white tracking-tight">Nuevo Centro de Costo</h2>
         </div>
-      </form>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="text-white hover:bg-white/10 hover:text-white"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-gray-50/30 custom-scrollbar">
+        
+        {/* Banner Informativo */}
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 flex items-start gap-4">
+          <AlertCircle className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold text-blue-900 text-sm italic">Organización Estructural</p>
+            <p className="text-blue-700/80 text-xs leading-relaxed">
+              Defina el centro de costo para agrupar empleados y facilitar el análisis de gastos y reportes operativos por departamento o línea.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 gap-8">
+            
+            {/* Campo: Código */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-[0.2em] block ml-1 flex items-center gap-2">
+                <Hash className="w-3 h-3" /> Código de Identificación
+              </label>
+              <Input
+                name="Code"
+                value={form.Code}
+                onChange={handleChange}
+                placeholder="Ej: CC-001, PRODUCCION-1"
+                className={`h-12 border-gray-200 bg-white shadow-sm focus:ring-blue-500 transition-all font-mono text-sm ${errors.Code ? 'border-red-500' : ''}`}
+                disabled={saveLoading}
+              />
+              {errors.Code && (
+                <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-1.5 flex items-center gap-1 ml-1 animate-in slide-in-from-left-1">
+                  <X className="w-3 h-3" /> {errors.Code}
+                </p>
+              )}
+            </div>
+
+            {/* Campo: Nombre */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase text-gray-400 tracking-[0.2em] block ml-1 flex items-center gap-2">
+                <Tag className="w-3 h-3" /> Nombre del Centro de Costo <span className="text-red-500">*</span>
+              </label>
+              <Input
+                name="Name"
+                value={form.Name}
+                onChange={handleChange}
+                placeholder="Ej: Departamento de Ventas, Planta Norte"
+                className={`h-12 border-gray-200 bg-white shadow-sm focus:ring-blue-500 transition-all font-medium text-sm ${errors.Name ? 'border-red-500' : ''}`}
+                disabled={saveLoading}
+              />
+              {errors.Name && (
+                <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-1.5 flex items-center gap-1 ml-1 animate-in slide-in-from-left-1">
+                  <X className="w-3 h-3" /> {errors.Name}
+                </p>
+              )}
+            </div>
+
+          </div>
+
+          {errors.form && (
+            <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-700 text-xs font-bold uppercase animate-in shake-1">
+              <AlertCircle className="w-4 h-4" /> {errors.form}
+            </div>
+          )}
+        </form>
+      </div>
+
+      {/* Footer Estilizado */}
+      <div className="p-6 border-t bg-gray-50 flex justify-end gap-4 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <Button 
+          variant="outline" 
+          onClick={onClose} 
+          disabled={saveLoading}
+          className="border-gray-300 text-gray-700 hover:bg-gray-100 px-8 h-12 font-bold rounded-xl text-[10px] uppercase tracking-widest transition-all"
+        >
+          Cancelar
+        </Button>
+        <Button 
+          onClick={handleSubmit} 
+          disabled={saveLoading}
+          className="bg-[#dc2626] hover:bg-[#b91c1c] text-white px-8 h-12 font-bold rounded-xl text-[10px] uppercase tracking-widest shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center gap-3"
+        >
+          {saveLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Procesando...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="w-4 h-4" />
+              Confirmar Registro
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

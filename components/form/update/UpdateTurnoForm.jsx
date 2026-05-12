@@ -280,39 +280,35 @@ export default function UpdateTurnoForm({ data, onClose }) {
       <div className="bg-indigo rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col font-sans overflow-hidden">
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 px-3 md:px-8 py-3 md:py-6 border-b-2 md:border-b-4 border-indigo-800 flex-shrink-0">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center space-x-2 md:space-x-4">
-              <div className="p-1.5 md:p-4 bg-white/20 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/30 md:border-2">
-                <CalendarSync className="h-4 w-4 md:h-7 md:w-7 text-white" />
-              </div>
-              <div>
-                <h2 className="text-base md:text-2xl font-bold text-white">Actualizar Turno</h2>
-              </div>
+        <div className="bg-[#1e40af] px-6 py-5 flex items-center justify-between border-b border-blue-800/20">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-white/10 rounded-lg">
+              <CalendarSync className="h-5 w-5 text-white" />
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-white hover:bg-white/20 hover:text-white shrink-0"
-            >
-              <X className="h-6 w-6" />
-            </Button>
+            <h2 className="text-xl font-semibold text-white tracking-tight">Actualizar Turno</h2>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white hover:bg-white/10 hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 space-y-6 custom-scrollbar">
 
           {/* TOP SECTION: Blue Banner */}
-          <div className="bg-white-600 border-2 border-blue-200 rounded-xl p-6 shadow-lg text-black-500 space-y-6">
+          <div className="bg-blue-600 rounded-xl p-6 shadow-lg text-white space-y-6">
 
             {/* 1. Nombre - Full Width */}
-            <div className="">
-              <label className="text-xs font-bold uppercase text-black-100 mb-1.5 block tracking-wider">Nombre del Turno</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase text-blue-100/80 tracking-widest block">Nombre del Turno</label>
               <Input
                 value={formData.nombre}
                 onChange={e => handleInputChange("nombre", e.target.value)}
-                className="text-black border-blue-200 border h-10"
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/40 h-11 focus:bg-white focus:text-black transition-all"
               />
             </div>
 
@@ -325,7 +321,7 @@ export default function UpdateTurnoForm({ data, onClose }) {
                 <div>
                   <label className="text-xs font-medium text-black-100 mb-1.5 block">Rotación</label>
                   <Select value={formData.rotacion} onValueChange={v => handleInputChange("rotacion", v)}>
-                    <SelectTrigger className="text-black border-blue-200 border h-10"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="text-black border-none h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Dia">Dia</SelectItem>
                       <SelectItem value="Semana">Semana</SelectItem>
@@ -338,7 +334,7 @@ export default function UpdateTurnoForm({ data, onClose }) {
                 <div>
                   <label className="text-xs font-medium text-black-100 mb-1.5 block">Festivos</label>
                   <Select value={formData.festivos} onValueChange={v => handleInputChange("festivos", v)}>
-                    <SelectTrigger className="text-black border-blue-200 border h-10"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="text-black border-none h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="no_trabaja_dias_de_fiesta">No trabaja dias de fiesta</SelectItem>
                       <SelectItem value="trabaja_dias_de_fiesta">Trabaja dias de fiesta</SelectItem>
@@ -354,7 +350,7 @@ export default function UpdateTurnoForm({ data, onClose }) {
                     type="number"
                     value={formData.numeroCiclos}
                     onChange={e => handleInputChange("numeroCiclos", e.target.value)}
-                    className="text-black border-blue-200 border h-10"
+                    className="text-black border-none h-10"
                   />
                 </div>
 
@@ -362,7 +358,7 @@ export default function UpdateTurnoForm({ data, onClose }) {
                 <div>
                   <label className="text-xs font-medium text-black-100 mb-1.5 block">Estado</label>
                   <Select value={formData.estado} onValueChange={v => handleInputChange("estado", v)}>
-                    <SelectTrigger className="text-black border-blue-200 border h-10"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="text-black border-none h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="activo">Activo</SelectItem>
                       <SelectItem value="inactivo">Inactivo</SelectItem>
@@ -383,7 +379,7 @@ export default function UpdateTurnoForm({ data, onClose }) {
                   <div>
                     <label className="text-xs font-medium text-black-100 mb-1.5 block">Adicionar Tiempo Extra</label>
                     <Select value={formData.adicionarTiempoExtra?.toString()} onValueChange={v => handleInputChange("adicionarTiempoExtra", v)}>
-                      <SelectTrigger className="text-black border-blue-200 border h-10"><SelectValue placeholder="Seleccione..." /></SelectTrigger>
+                      <SelectTrigger className="text-black border-none h-10"><SelectValue placeholder="Seleccione..." /></SelectTrigger>
                       <SelectContent>
                         {[0, 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60].map(m => (
                           <SelectItem key={m} value={m.toString()}>{m}</SelectItem>
@@ -399,7 +395,7 @@ export default function UpdateTurnoForm({ data, onClose }) {
                       type="number"
                       value={formData.tiempoExtraMinimo}
                       onChange={e => handleInputChange("tiempoExtraMinimo", e.target.value)}
-                      className="text-black border-blue-200 border h-10"
+                      className="text-black border-none h-10"
                     />
                   </div>
                 </div>
@@ -680,11 +676,18 @@ export default function UpdateTurnoForm({ data, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t bg-white flex justify-end gap-3 shrink-0">
-          <Button variant="ghost" onClick={onClose} className="text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+        <div className="p-5 border-t bg-gray-50 flex justify-end gap-4 shrink-0">
+          <Button 
+            variant="outline" 
+            onClick={onClose} 
+            className="border-gray-300 text-gray-700 hover:bg-gray-100 px-8 h-11 font-medium rounded-lg"
+          >
             Cancelar
           </Button>
-          <Button onClick={handleGuardar} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 px-6">
+          <Button 
+            onClick={handleGuardar} 
+            className="bg-[#dc2626] hover:bg-[#b91c1c] text-white px-10 h-11 font-bold rounded-lg shadow-md transition-all active:scale-95"
+          >
             Guardar Cambios
           </Button>
         </div>

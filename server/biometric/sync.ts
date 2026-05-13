@@ -11,11 +11,7 @@ import { laborEngine } from "./engine";
  * 2. Conecta y descarga logs (Python para Legacy, Node nativo/ADMS para otros)
  * 3. Guarda en DB
  */
-import fs from 'fs';
-
 function logToDebugFile(message: string) {
-    // Registro desactivado para evitar archivos gigantes. 
-    // Los logs importantes se ven en la consola del servidor.
     if (process.env.NODE_ENV === 'development') {
         console.log(`[DEBUG] ${message}`);
     }

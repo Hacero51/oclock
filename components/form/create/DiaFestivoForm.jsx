@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Calendar,
   Plus,
@@ -20,30 +20,91 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
-export default function DiaFestivoForm({ onClose }) {
+export default function DiaFestivoForm({ data, onClose, refreshData }) {
+  const [isSaving, setIsSaving] = useState(false);
+
   const {
     register,
     handleSubmit,
     setValue,
     formState: { errors },
-    reset
+    reset,
+    watch
   } = useForm({
     defaultValues: {
       nombre: "",
       fecha: "",
-      estado: "activo"
+      estado: "Activo"
     }
   });
 
-  const onSubmit = async (data) => {
+  const estadoActual = watch("estado");
+
+  // Efecto para cargar datos si estamos en modo edición
+  useEffect(() => {
+    if (data) {
+      reset({
+        nombre: data.nombre || "",
+        fecha: data.fecha || "",
+        estado: data.estado || "Activo"
+      });
+    } else {
+      reset({
+        nombre: "",
+        fecha: "",
+        estado: "Activo"
+      });
+    }
+  }, [data, reset]);
+
+  const onSubmit = async (formData) => {
+    setIsSaving(true);
     try {
-      console.log("Creando día festivo:", data);
+      const isUpdate = !!data?.id;
+      const url = "/api/dias-festivos";
+      const method = isUpdate ? "PUT" : "POST";
+      
+      const payload = {
+        ...formData,
+        id: data?.id
+      };
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al ${isUpdate ? 'actualizar' : 'crear'} el día festivo`);
+      }
+
+      const event = new CustomEvent('showToast', {
+        detail: {
+          message: `✅ Día festivo ${isUpdate ? 'actualizado' : 'creado'} exitosamente`,
+          type: 'success'
+        }
+      });
+      window.dispatchEvent(event);
+
+      if (refreshData) refreshData();
       if (onClose) onClose();
-      alert("Día festivo creado exitosamente");
+      
     } catch (error) {
-      console.error("Error creando día festivo:", error);
+      console.error("Error en operación de día festivo:", error);
+      const event = new CustomEvent('showToast', {
+        detail: {
+          message: '❌ Error al procesar la solicitud',
+          type: 'error'
+        }
+      });
+      window.dispatchEvent(event);
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  const isEdit = !!data?.id;
 
   return (
     <div className="w-full h-full flex flex-col bg-white overflow-hidden font-sans">
@@ -54,7 +115,9 @@ export default function DiaFestivoForm({ onClose }) {
           <div className="p-2 bg-white/10 rounded-lg">
             <Calendar className="h-5 w-5 text-white" />
           </div>
-          <h2 className="text-xl font-semibold text-white tracking-tight">Nuevo Día Festivo</h2>
+          <h2 className="text-xl font-semibold text-white tracking-tight">
+            {isEdit ? "Editar Día Festivo" : "Nuevo Día Festivo"}
+          </h2>
         </div>
         <Button
           variant="ghost"
@@ -123,18 +186,18 @@ export default function DiaFestivoForm({ onClose }) {
                 <label className="text-[10px] font-bold uppercase text-gray-400 tracking-[0.2em] block ml-1">
                   Estado Operativo
                 </label>
-                <Select defaultValue="activo" onValueChange={(v) => setValue("estado", v)}>
+                <Select value={estadoActual} onValueChange={(v) => setValue("estado", v)}>
                   <SelectTrigger className="h-12 border-gray-200 bg-white shadow-sm focus:ring-blue-500 text-sm font-bold uppercase tracking-tight">
                     <SelectValue placeholder="Estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="activo">
+                    <SelectItem value="Activo">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500" />
                         <span className="text-green-700">Activo</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="inactivo">
+                    <SelectItem value="Inactivo">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-gray-400" />
                         <span className="text-gray-500">Inactivo</span>
@@ -154,16 +217,22 @@ export default function DiaFestivoForm({ onClose }) {
         <Button 
           variant="outline" 
           onClick={onClose} 
+          disabled={isSaving}
           className="border-gray-300 text-gray-700 hover:bg-gray-100 px-8 h-12 font-bold rounded-xl text-[10px] uppercase tracking-widest transition-all"
         >
           Cancelar
         </Button>
         <Button 
           onClick={handleSubmit(onSubmit)} 
-          className="bg-[#dc2626] hover:bg-[#b91c1c] text-white px-8 h-12 font-bold rounded-xl text-[10px] uppercase tracking-widest shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center gap-3"
+          disabled={isSaving}
+          className={`${isEdit ? 'bg-[#1e40af]' : 'bg-[#dc2626]'} hover:brightness-110 text-white px-8 h-12 font-bold rounded-xl text-[10px] uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center gap-3`}
         >
-          <CheckCircle2 className="w-4 h-4" />
-          Confirmar Día Festivo
+          {isSaving ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4" />
+          )}
+          {isEdit ? "Guardar Cambios" : "Confirmar Día Festivo"}
         </Button>
       </div>
     </div>

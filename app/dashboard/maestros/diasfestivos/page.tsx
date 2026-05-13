@@ -52,6 +52,8 @@ export default function DiasFestivosPage() {
     }
   };
 
+  const [refreshKeyLocal, setRefreshKeyLocal] = useState(0);
+
   useEffect(() => {
     const cargarDatos = async () => {
       setCargando(true);
@@ -66,7 +68,7 @@ export default function DiasFestivosPage() {
     };
 
     cargarDatos();
-  }, [filtroAnio, refreshTrigger]);
+  }, [filtroAnio, refreshTrigger, refreshKeyLocal]);
 
   const handleEliminarDiaFestivo = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este día festivo?')) return;
@@ -230,10 +232,12 @@ export default function DiasFestivosPage() {
       <Dialog open={mostrarFormulario} onOpenChange={setMostrarFormulario}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
           <DiaFestivoForm 
+            data={editando}
             onClose={() => {
               setMostrarFormulario(false);
               setEditando(null);
             }} 
+            refreshData={() => setRefreshKeyLocal(prev => prev + 1)}
           />
         </DialogContent>
       </Dialog>

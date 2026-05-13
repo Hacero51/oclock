@@ -1,0 +1,24 @@
+{
+  "Administradores": [
+    "empresa",
+    "turnos",
+    "asistencia",
+    "dispositivos",
+    "reportes",
+    "maestros",
+    "administracion"
+  ],
+  "Supervisor": [
+    "empresa",
+    "turnos",
+    "asistencia",
+    "dispositivos",
+    "reportes",
+    "maestros"
+  ],
+  "Usuario": [
+    "empresa",
+    "dispositivos",
+    "asistencia"
+  ]
+}

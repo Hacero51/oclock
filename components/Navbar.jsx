@@ -63,13 +63,13 @@ export default function Navbar({ onOpenCreate }) {
   };
 
   return (
-    <div className="relative flex flex-wrap items-center gap-4 justify-between bg-gradient-to-r from-blue-800 to-blue-700 border-b border-blue-600/50 px-6 py-3 shadow-lg">
+    <div className="relative flex flex-wrap items-center gap-4 justify-between bg-gradient-to-r from-red-900 to-red-800 border-b border-red-800/50 px-6 py-3 shadow-lg">
 
       {/* Botón Crear */}
       <div className="relative">
         <Button
           onClick={() => setMenuAbierto(!menuAbierto)}
-          className="bg-white text-blue-700 border border-blue-300 shadow-md px-2.5 sm:px-4"
+          className="bg-white text-red-900 border border-red-300 shadow-md px-2.5 sm:px-4"
         >
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline ml-2">Crear Nuevo</span>
@@ -84,9 +84,9 @@ export default function Navbar({ onOpenCreate }) {
                 <button
                   key={op.type}
                   onClick={() => handleOpcionClick(op.type)}
-                  className="flex items-center gap-3 w-full px-4 py-3 hover:bg-blue-50"
+                  className="flex items-center gap-3 w-full px-4 py-3 hover:bg-red-50"
                 >
-                  <Icon className="h-4 w-4 text-blue-600" />
+                  <Icon className="h-4 w-4 text-red-700" />
                   <span>{op.label}</span>
                 </button>
               );
@@ -133,7 +133,7 @@ export default function Navbar({ onOpenCreate }) {
             <span className="text-sm font-bold text-white tracking-wide leading-tight">
               {session?.user?.username || 'Usuario'}
             </span>
-            <span className="text-[10px] text-blue-100/60 font-bold uppercase tracking-wider">
+            <span className="text-[10px] text-red-100/60 font-bold uppercase tracking-wider">
               Administrador
             </span>
           </div>

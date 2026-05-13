@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Users, UserPlus, Save, Edit, Trash2, Search, Eye, EyeOff, RefreshCw, Shield, Key, UserCheck } from "lucide-react";
+import { Users, UserPlus, Save, Edit, Trash2, Search, Eye, EyeOff, RefreshCw, Shield, Key, UserCheck, ChevronRight, ChevronLeft, Layout, CheckCircle2 } from "lucide-react";
 import Tabla from "@/components/Table";
+import { ALL_SIDEBAR_ITEMS, getIcon } from "@/lib/sidebar-items";
 
 interface UsuarioForm {
   Oid?: string;
@@ -14,10 +15,16 @@ interface UsuarioForm {
   StoredPassword: string;
   confirmarStoredPassword: string;
   IsActive: boolean;
+  roles: string[];
 }
 
 interface Usuario extends UsuarioForm {
   Oid: string;
+}
+
+interface Role {
+  Oid: string;
+  Name: string;
 }
 
 interface UsuarioAPI {
@@ -26,6 +33,7 @@ interface UsuarioAPI {
   UserName: string | null;
   StoredPassword: string | null;
   IsActive: boolean | null;
+  roles: string[];
 }
 
 // Función para simular desencriptación (MD5 no es reversible, así que mostramos placeholder)
@@ -44,15 +52,23 @@ export default function CrearUsuario() {
     StoredPassword: '',
     confirmarStoredPassword: '',
     IsActive: true,
+    roles: []
   });
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [rolesDisponibles, setRolesDisponibles] = useState<Role[]>([]);
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [cargandoUsuarios, setCargandoUsuarios] = useState(true);
   const [busqueda, setBusqueda] = useState('');
+  const [activeTab, setActiveTab] = useState<'usuarios' | 'roles'>('usuarios');
+  
+  // Estado para gestión de roles
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState<Record<string, string[]>>({});
+  const [savingPermissions, setSavingPermissions] = useState(false);
 
   // Cargar usuarios desde la API
   const cargarUsuarios = async () => {
@@ -72,7 +88,8 @@ export default function CrearUsuario() {
         UserName: usuario.UserName || '',
         StoredPassword: obtenerPasswordLegible(usuario.StoredPassword),
         confirmarStoredPassword: obtenerPasswordLegible(usuario.StoredPassword),
-        IsActive: usuario.IsActive || false
+        IsActive: usuario.IsActive || false,
+        roles: usuario.roles || []
       }));
 
       setUsuarios(usuariosTransformados);
@@ -84,9 +101,65 @@ export default function CrearUsuario() {
     }
   };
 
+  // Cargar roles desde la API
+  const cargarRoles = async () => {
+    try {
+      const response = await fetch('/api/roles');
+      if (response.ok) {
+        const data = await response.json();
+        setRolesDisponibles(data);
+      }
+    } catch (error) {
+      console.error('Error cargando roles:', error);
+    }
+  };
+
   useEffect(() => {
     cargarUsuarios();
+    cargarRoles();
+    cargarPermisos();
   }, []);
+
+  const cargarPermisos = async () => {
+    try {
+      const response = await fetch('/api/roles/permissions');
+      if (response.ok) {
+        const data = await response.json();
+        setPermissions(data);
+      }
+    } catch (error) {
+      console.error('Error cargando permisos:', error);
+    }
+  };
+
+  const guardarPermisos = async (newPermissions: Record<string, string[]>) => {
+    setSavingPermissions(true);
+    try {
+      const response = await fetch('/api/roles/permissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPermissions)
+      });
+      if (response.ok) {
+        alert('✅ Permisos guardados exitosamente');
+      }
+    } catch (error) {
+      alert('❌ Error al guardar permisos');
+    } finally {
+      setSavingPermissions(false);
+    }
+  };
+
+  const togglePermission = (roleName: string, itemId: string) => {
+    const currentPerms = permissions[roleName] || [];
+    const newPerms = currentPerms.includes(itemId)
+      ? currentPerms.filter(id => id !== itemId)
+      : [...currentPerms, itemId];
+    
+    const updated = { ...permissions, [roleName]: newPerms };
+    setPermissions(updated);
+    guardarPermisos(updated);
+  };
 
   // Filtrar usuarios basado en la búsqueda
   const usuariosFiltrados = usuarios.filter(usuario =>
@@ -143,6 +216,7 @@ export default function CrearUsuario() {
           UserName: formData.UserName,
           StoredPassword: formData.StoredPassword,
           IsActive: formData.IsActive,
+          roles: formData.roles,
         }),
       });
 
@@ -164,6 +238,7 @@ export default function CrearUsuario() {
         StoredPassword: '',
         confirmarStoredPassword: '',
         IsActive: true,
+        roles: []
       });
 
     } catch (error) {
@@ -234,6 +309,7 @@ export default function CrearUsuario() {
         HiddenUserName: usuarioEditando.HiddenUserName,
         UserName: usuarioEditando.UserName,
         IsActive: usuarioEditando.IsActive,
+        roles: usuarioEditando.roles
       };
 
       if (usuarioEditando.StoredPassword && usuarioEditando.StoredPassword !== '********') {
@@ -305,7 +381,27 @@ export default function CrearUsuario() {
       StoredPassword: '',
       confirmarStoredPassword: '',
       IsActive: true,
+      roles: []
     });
+  };
+
+  const handleRoleToggle = (roleName: string, isEditing: boolean = false) => {
+    if (isEditing) {
+      setUsuarioEditando(prev => {
+        if (!prev) return null;
+        const roles = prev.roles.includes(roleName)
+          ? prev.roles.filter(r => r !== roleName)
+          : [...prev.roles, roleName];
+        return { ...prev, roles };
+      });
+    } else {
+      setFormData(prev => {
+        const roles = prev.roles.includes(roleName)
+          ? prev.roles.filter(r => r !== roleName)
+          : [...prev.roles, roleName];
+        return { ...prev, roles };
+      });
+    }
   };
 
   return (
@@ -317,22 +413,37 @@ export default function CrearUsuario() {
             <Users className="h-6 w-6 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Configuración de Accesos</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Crear y administrar usuarios del sistema
+              Administrar usuarios y sus permisos de acceso al sistema
             </p>
           </div>
         </div>
 
-        <Button
-          onClick={resetForm}
-          className="bg-gray-600 hover:bg-gray-700 text-white flex items-center gap-2 shadow-sm"
-        >
-          <UserPlus className="h-4 w-4" />
-          Nuevo Formulario
-        </Button>
+        <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200">
+          <button
+            onClick={() => setActiveTab('usuarios')}
+            className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'usuarios' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            Usuarios
+          </button>
+          <button
+            onClick={() => setActiveTab('roles')}
+            className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'roles' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100'
+            }`}
+          >
+            <Shield className="h-4 w-4" />
+            Roles
+          </button>
+        </div>
       </div>
 
+      {activeTab === 'usuarios' ? (
+        <>
       {/* Formulario de Creación */}
       <Card className="shadow-sm border border-gray-200 rounded-2xl">
         <CardHeader className="pb-4 border-b border-gray-200 bg-white">
@@ -448,6 +559,27 @@ export default function CrearUsuario() {
               </div>
             </div>
 
+            {/* Roles del Usuario */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Shield className="h-5 w-5 text-purple-600" />
+                Roles y Permisos
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                {rolesDisponibles.map(role => (
+                  <label key={role.Oid} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={formData.roles.includes(role.Name)}
+                      onChange={() => handleRoleToggle(role.Name)}
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">{role.Name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             {/* Estado del Usuario */}
             <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <input
@@ -540,10 +672,23 @@ export default function CrearUsuario() {
             </div>
           ) : (
             <Tabla 
-              columnas={["Usuario", "Nombre Real", "Estado", "Acciones"]}
+              columnas={["Usuario", "Nombre Real", "Roles", "Estado", "Acciones"]}
               datos={usuariosFiltrados.map(usuario => ({
                 "Usuario": <span className="font-bold text-gray-900">@{usuario.UserName}</span>,
                 "Nombre Real": <span className="text-gray-600">{usuario.HiddenUserName}</span>,
+                "Roles": (
+                  <div className="flex flex-wrap gap-1">
+                    {usuario.roles.length > 0 ? (
+                      usuario.roles.map(r => (
+                        <span key={r} className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-bold">
+                          {r}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[10px] text-gray-400 italic">Sin roles</span>
+                    )}
+                  </div>
+                ),
                 "Estado": getEstadoBadge(usuario.IsActive),
                 "Acciones": (
                   <div className="flex gap-2">
@@ -572,6 +717,125 @@ export default function CrearUsuario() {
           )}
         </CardContent>
       </Card>
+      </>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* Lista de Roles */}
+          <div className="md:col-span-4 space-y-4">
+            <Card className="shadow-sm border border-gray-200 rounded-2xl h-full">
+              <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+                <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-purple-600" />
+                  Roles Disponibles
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-2">
+                {rolesDisponibles.map(role => (
+                  <button
+                    key={role.Oid}
+                    onClick={() => setSelectedRole(role.Name)}
+                    className={`w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between group ${
+                      selectedRole === role.Name
+                        ? 'bg-purple-50 border-purple-200 shadow-sm ring-1 ring-purple-100'
+                        : 'bg-white border-gray-100 hover:border-purple-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${selectedRole === role.Name ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-purple-100 group-hover:text-purple-600'}`}>
+                        <Shield className="h-4 w-4" />
+                      </div>
+                      <span className={`font-bold ${selectedRole === role.Name ? 'text-purple-900' : 'text-gray-700'}`}>
+                        {role.Name}
+                      </span>
+                    </div>
+                    <ChevronRight className={`h-4 w-4 transition-transform ${selectedRole === role.Name ? 'text-purple-600 translate-x-1' : 'text-gray-300'}`} />
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Editor de Permisos */}
+          <div className="md:col-span-8">
+            <Card className="shadow-sm border border-gray-200 rounded-2xl min-h-[600px]">
+              <CardHeader className="pb-4 border-b border-gray-200 bg-white flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+                    <Layout className="h-5 w-5 text-blue-600" />
+                    Accesibilidad al Sidebar
+                  </CardTitle>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {selectedRole ? `Configurando permisos para: ${selectedRole}` : 'Seleccione un rol para configurar sus accesos'}
+                  </p>
+                </div>
+                {selectedRole && (
+                  <div className="flex items-center gap-2 text-xs font-medium text-gray-400">
+                    {savingPermissions ? <RefreshCw className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                    {savingPermissions ? 'Guardando...' : 'Cambios guardados'}
+                  </div>
+                )}
+              </CardHeader>
+              <CardContent className="p-6">
+                {!selectedRole ? (
+                  <div className="flex flex-col items-center justify-center py-24 text-center">
+                    <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mb-4 border border-dashed border-gray-200">
+                      <Shield className="h-10 w-10 text-gray-300" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">Ningún rol seleccionado</h3>
+                    <p className="text-sm text-gray-500 max-w-xs mx-auto">
+                      Selecciona un rol de la lista izquierda para gestionar qué partes del sidebar puede visualizar.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4">
+                      <p className="text-xs text-blue-800 leading-relaxed">
+                        Haz clic en las secciones para activarlas o desactivarlas para este rol. 
+                        Los cambios se guardan automáticamente.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {ALL_SIDEBAR_ITEMS.map(item => {
+                        const Icon = getIcon(item.icon);
+                        const isAllowed = (permissions[selectedRole] || []).includes(item.id);
+                        
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => togglePermission(selectedRole, item.id)}
+                            className={`flex flex-col items-start p-4 rounded-2xl border-2 transition-all text-left relative group ${
+                              isAllowed 
+                                ? 'border-blue-500 bg-white shadow-md' 
+                                : 'border-gray-100 bg-gray-50/50 hover:border-gray-200 opacity-60 grayscale-[0.5]'
+                            }`}
+                          >
+                            <div className={`p-2 rounded-xl mb-3 ${isAllowed ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-gray-400 shadow-sm'}`}>
+                              <Icon size={20} />
+                            </div>
+                            <span className={`text-sm font-black mb-1 ${isAllowed ? 'text-gray-900' : 'text-gray-500'}`}>
+                              {item.title}
+                            </span>
+                            <span className="text-[10px] text-gray-400 leading-tight">
+                              Sección principal
+                            </span>
+
+                            {isAllowed && (
+                              <div className="absolute top-4 right-4">
+                                <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Edición */}
       {mostrarModal && usuarioEditando && (
@@ -606,6 +870,26 @@ export default function CrearUsuario() {
                     value={usuarioEditando.UserName}
                     onChange={(e) => setUsuarioEditando(prev => prev ? { ...prev, UserName: e.target.value } : null)}
                   />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-purple-600" />
+                  Roles Asignados
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  {rolesDisponibles.map(role => (
+                    <label key={role.Oid} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={usuarioEditando.roles.includes(role.Name)}
+                        onChange={() => handleRoleToggle(role.Name, true)}
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                      />
+                      <span className="text-sm text-gray-700">{role.Name}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 

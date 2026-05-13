@@ -1,6 +1,6 @@
 "use client";
 
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -27,61 +27,7 @@ import {
   BadgeDollarSign
 } from "lucide-react";
 
-const menuItems = [
-  {
-    title: "Empresa",
-    icon: Building2,
-    subItems: [
-      { title: "Empleados", path: "/dashboard/empresa/empleados", icon: Users },
-      { title: "Departamentos", path: "/dashboard/empresa/departamentos", icon: FolderTree },
-      { title: "Centros de Costos", path: "/dashboard/empresa/centrocostos", icon: NotebookTabs },
-    ],
-  },
-  {
-    title: "Turnos",
-    icon: CalendarSync,
-    subItems: [
-      { title: "Turnos", path: "/dashboard/turnos/turnos", icon: Calendar },
-      { title: "Horarios", path: "/dashboard/turnos/horarios", icon: Clock },
-    ],
-  },
-  {
-    title: "Asistencia",
-    icon: CalendarCheck2,
-    subItems: [
-      { title: "Registros", path: "/dashboard/asistencia/registros", icon: FileText },
-      { title: "Marcaciones", path: "/dashboard/asistencia/marcaciones", icon: Fingerprint },
-      { title: "Permisos e Incapacidades", path: "/dashboard/asistencia/permisoseincapacidades", icon: FileText },
-    ],
-  },
-  {
-    title: "Dispositivos",
-    icon: Fingerprint,
-    path: "/dashboard/dispositivos",
-  },
-  {
-    title: "Reportes",
-    icon: FileText,
-    subItems: [{ title: "Informes", path: "/dashboard/reportes/informes", icon: FileText }],
-  },
-  {
-    title: "Maestros",
-    icon: Folders,
-    subItems: [
-      { title: "Asistencia", path: "/dashboard/maestros/asistencia", icon: CalendarCheck2 },
-      { title: "Días Festivos", path: "/dashboard/maestros/diasfestivos", icon: Calendar },
-    ],
-  },
-  {
-    title: "Administración",
-    icon: ShieldUser,
-    subItems: [
-      { title: "Configuración", path: "/dashboard/administracion/configuracion", icon: Settings },
-      { title: "Usuario", path: "/dashboard/administracion/usuario", icon: Users },
-      { title: "Logs de Auditoría", path: "/dashboard/administracion/logs", icon: FileText },
-    ],
-  },
-];
+import { ALL_SIDEBAR_ITEMS, getIcon } from "@/lib/sidebar-items";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -89,10 +35,34 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
+  const { data: session } = useSession();
   const [openItem, setOpenItem] = useState<string | null>(null);
   const [hoverExpand, setHoverExpand] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [permissions, setPermissions] = useState<Record<string, string[]>>({});
 
+  useEffect(() => {
+    fetch("/api/roles/permissions")
+      .then(res => res.json())
+      .then(data => setPermissions(data))
+      .catch(err => console.error("Error loading permissions:", err));
+  }, []);
+
+  const userRoles = (session?.user as any)?.roles || [];
+
+
+  // Obtener todos los IDs permitidos para los roles del usuario
+  const allowedIds = new Set<string>();
+  userRoles.forEach((role: string) => {
+    const rolePerms = permissions[role] || [];
+    rolePerms.forEach(id => allowedIds.add(id));
+  });
+
+  // Filtrar items según roles y permisos dinámicos
+  const filteredItems = ALL_SIDEBAR_ITEMS.filter(item => {
+
+    return allowedIds.has(item.id);
+  });
 
   // Detectar móvil para deshabilitar hover
   useEffect(() => {
@@ -123,11 +93,11 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
         onClick={() => {
           if (collapsed) setCollapsed(false);
         }}
-        className={`fixed left-0 top-0 h-screen bg-red-900 border-r border-red-800 shadow-2xl z-50 flex flex-col transition-all duration-300
+        className={`fixed left-0 top-0 h-screen bg-blue-800 border-r border-blue-700 shadow-2xl z-50 flex flex-col transition-all duration-300
         ${isExpanded ? "w-72" : "w-20"}`}
       >
         {/* Encabezado */}
-        <div className={`flex items-center justify-between p-4 border-b border-red-800 ${isExpanded ? "px-5" : "px-3"}`}>
+        <div className={`flex items-center justify-between p-4 border-b border-blue-700 ${isExpanded ? "px-5" : "px-3"}`}>
           {/* Logo y nombre */}
           <Link href="/dashboard" className="flex items-center gap-3 cursor-pointer group">
             <div className={`p-1 bg-white/10 rounded-xl shadow-lg group-hover:bg-white/20 transition-all border border-white/5`}>
@@ -143,7 +113,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             {isExpanded && (
               <div className="flex flex-col text-left">
                 <h1 className="text-xl font-black text-white tracking-tight leading-tight">En Punto</h1>
-                <h3 className="text-xs text-red-100 font-bold opacity-90">Sistema de Gestión</h3>
+                <h3 className="text-xs text-blue-100 font-bold opacity-90">Sistema de Gestión</h3>
               </div>
             )}
           </Link>
@@ -151,7 +121,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           {/* Botón colapsar */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="p-2 rounded-lg hover:bg-red-800 transition-all text-white hover:scale-105"
+            className="p-2 rounded-lg hover:bg-blue-700 transition-all text-white hover:scale-105"
           >
             {isExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
           </button>
@@ -162,39 +132,39 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           {/* Dashboard Home */}
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 w-full rounded-xl px-3 py-3 hover:bg-red-800 transition-all text-white group mb-2"
+            className="flex items-center gap-3 w-full rounded-xl px-3 py-3 hover:bg-blue-700 transition-all text-white group mb-2"
           >
-            <Home size={20} className="text-red-100 group-hover:text-white transition-colors" />
+            <Home size={20} className="text-blue-100 group-hover:text-white transition-colors" />
             {isExpanded && <span className="font-medium">Dashboard</span>}
           </Link>
 
-          {menuItems.map((item) => {
+          {filteredItems.map((item) => {
             const isOpen = openItem === item.title;
-            const Icon = item.icon;
+            const Icon = getIcon(item.icon);
 
             return (
-              <div key={item.title} className="mb-1">
+              <div key={item.id} className="mb-1">
                 {item.path ? (
                   <Link
                     href={item.path}
-                    className="flex items-center justify-between w-full rounded-xl px-3 py-3 hover:bg-red-800 transition-all text-white group"
+                    className="flex items-center justify-between w-full rounded-xl px-3 py-3 hover:bg-blue-700 transition-all text-white group"
                   >
                     <div className="flex items-center gap-3">
-                      <Icon size={20} className="text-red-100 group-hover:text-white transition-colors" />
+                      <Icon size={20} className="text-blue-100 group-hover:text-white transition-colors" />
                       {isExpanded && <span className="font-medium">{item.title}</span>}
                     </div>
                   </Link>
                 ) : (
                   <button
                     onClick={() => toggleItem(item.title)}
-                    className="flex items-center justify-between w-full rounded-xl px-3 py-3 hover:bg-red-800 transition-all text-white group"
+                    className="flex items-center justify-between w-full rounded-xl px-3 py-3 hover:bg-blue-700 transition-all text-white group"
                   >
                     <div className="flex items-center gap-3">
-                      <Icon size={20} className="text-red-100 group-hover:text-white transition-colors" />
+                      <Icon size={20} className="text-blue-100 group-hover:text-white transition-colors" />
                       {isExpanded && <span className="font-medium">{item.title}</span>}
                     </div>
                     {isExpanded && item.subItems && (
-                      <div className="text-red-100 group-hover:text-white transition-colors transform transition-transform">
+                      <div className="text-blue-100 group-hover:text-white transition-colors transform transition-transform">
                         {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </div>
                     )}
@@ -202,16 +172,16 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                 )}
 
                 {isExpanded && isOpen && item.subItems && (
-                  <div className="ml-4 mt-1 space-y-1 border-l-2 border-red-800 pl-4">
+                  <div className="ml-4 mt-1 space-y-1 border-l-2 border-blue-700 pl-4">
                     {item.subItems.map((sub) => {
-                      const SubIcon = sub.icon;
+                      const SubIcon = getIcon(sub.icon);
                       return (
                         <Link
-                          key={sub.title}
+                          key={sub.id}
                           href={sub.path}
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-100 hover:bg-red-800 hover:text-white transition-all group"
+                          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-blue-100 hover:bg-blue-700 hover:text-white transition-all group"
                         >
-                          <SubIcon size={16} className="text-red-200 group-hover:text-white transition-colors" />
+                          <SubIcon size={16} className="text-blue-200 group-hover:text-white transition-colors" />
                           <span>{sub.title}</span>
                         </Link>
                       );
@@ -224,12 +194,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
         </nav>
 
         {/* Botón salir */}
-        <div className="p-4 border-t border-red-800">
+        <div className="p-4 border-t border-blue-700">
 
 
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className={`w-full flex items-center gap-3 text-left px-3 py-3 rounded-xl hover:bg-red-800 text-red-100 hover:text-white transition-all group ${!isExpanded ? "justify-center" : ""
+            className={`w-full flex items-center gap-3 text-left px-3 py-3 rounded-xl hover:bg-blue-700 text-blue-100 hover:text-white transition-all group ${!isExpanded ? "justify-center" : ""
               }`}
           >
             <LogOut size={20} className="group-hover:scale-110 transition-transform" />

@@ -71,8 +71,20 @@ export const authOptions = {
       if (user) {
         token.id = user.id;
         token.username = user.username;
+
+        // 🛡️ Obtener roles del usuario desde la BD
+        const userRoles = await prisma.euserusers_eroleroles.findMany({
+          where: { Users: user.id }
+        });
+
+        const rolesOids = userRoles.map(ur => ur.Roles).filter(Boolean) as string[];
+        const rolesData = await prisma.rolebase.findMany({
+          where: { Oid: { in: rolesOids } },
+          select: { Name: true }
+        });
+
+        token.roles = rolesData.map(r => r.Name?.trim());
       }
-      //console.log("🔶 JWT token:", token);
       return token;
     },
 
@@ -80,8 +92,8 @@ export const authOptions = {
       session.user = {
         id: token.id,
         username: token.username,
+        roles: token.roles || [],
       };
-      //console.log("🟩 Sesión generada:", session);
       return session;
     },
   },

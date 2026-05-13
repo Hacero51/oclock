@@ -793,6 +793,112 @@ function AttendanceTab({ employeeOid, employeeDocument }) {
   const [registros, setRegistros] = useState([]);
   const [marcaciones, setMarcaciones] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Estados para edición inline
+  const [editandoId, setEditandoId] = useState(null);
+  const [editandoTipo, setEditandoTipo] = useState(null); // "entrada" o "salida"
+  const [valorEditado, setValorEditado] = useState("");
+  const [errorValidacion, setErrorValidacion] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // UTILIDADES DE FECHA
+  const parsearFechaHora = (fechaStr) => {
+    if (!fechaStr || fechaStr === "-" || fechaStr === "N/A" || fechaStr.includes("SIN SALIDA")) return "";
+    try {
+      // Formato esperado: DD/MM/YYYY HH:MM AM/PM
+      const [fechaPart, horaPart, ampm] = fechaStr.split(" ");
+      const [dia, mes, anio] = fechaPart.split("/").map(Number);
+      let [hora, min] = horaPart.split(":").map(Number);
+
+      if (ampm === "PM" && hora < 12) hora += 12;
+      if (ampm === "AM" && hora === 12) hora = 0;
+
+      const fecha = new Date(anio, mes - 1, dia, hora, min);
+      if (isNaN(fecha.getTime())) return "";
+
+      const lYear = fecha.getFullYear();
+      const lMonth = String(fecha.getMonth() + 1).padStart(2, '0');
+      const lDay = String(fecha.getDate()).padStart(2, '0');
+      const lHour = String(fecha.getHours()).padStart(2, '0');
+      const lMin = String(fecha.getMinutes()).padStart(2, '0');
+
+      return `${lYear}-${lMonth}-${lDay}T${lHour}:${lMin}`;
+    } catch (e) {
+      console.error("Error parseando fecha:", fechaStr, e);
+      return "";
+    }
+  };
+
+  const obtenerFechaActual = () => {
+    const ahora = new Date();
+    const offset = ahora.getTimezoneOffset() * 60000;
+    return new Date(ahora.getTime() - offset).toISOString().slice(0, 16);
+  };
+
+  const validarMarcacion = (tipo, valor, otraMarcacion) => {
+    if (!valor) return { valido: false, mensaje: "La fecha no puede estar vacía" };
+    const fechaActual = new Date(valor);
+    const ahora = new Date();
+
+    if (fechaActual > ahora) {
+      return { valido: false, mensaje: "No puede ser una fecha futura" };
+    }
+
+    if (otraMarcacion && otraMarcacion !== "-" && otraMarcacion !== "N/A") {
+      const parsedOtra = parsearFechaHora(otraMarcacion);
+      if (parsedOtra) {
+        const fechaOtra = new Date(parsedOtra);
+        if (tipo === "salida" && fechaActual < fechaOtra) {
+          return { valido: false, mensaje: "La salida no puede ser anterior a la entrada" };
+        }
+        if (tipo === "entrada" && fechaActual > fechaOtra) {
+          return { valido: false, mensaje: "La entrada no puede ser posterior a la salida" };
+        }
+      }
+    }
+    return { valido: true, mensaje: "" };
+  };
+
+  // HANDLERS
+  const iniciarEdicion = (m, tipo) => {
+    setEditandoId(m.id);
+    setEditandoTipo(tipo);
+    const actual = tipo === "entrada" ? m.entrada : m.salida;
+    const parsed = parsearFechaHora(actual);
+    setValorEditado(parsed || obtenerFechaActual());
+    setErrorValidacion("");
+  };
+
+  const guardarCambio = async (m) => {
+    const validacion = validarMarcacion(editandoTipo, valorEditado, editandoTipo === "entrada" ? m.salida : m.entrada);
+    if (!validacion.valido) {
+      setErrorValidacion(validacion.mensaje);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const body = { id: m.id };
+      body[editandoTipo] = valorEditado;
+
+      const res = await fetch('/api/marcaciones', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) throw new Error("Error guardando marcación");
+
+      setEditandoId(null);
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error(error);
+      setErrorValidacion("Error al guardar");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchAttendance() {
@@ -827,7 +933,7 @@ function AttendanceTab({ employeeOid, employeeDocument }) {
       }
     }
     fetchAttendance();
-  }, [employeeOid, employeeDocument, periodo]);
+  }, [employeeOid, employeeDocument, periodo, refreshKey]);
 
   return (
     <Card className="border border-indigo-100 md:border-2 shadow-sm md:shadow-lg overflow-hidden">
@@ -948,11 +1054,89 @@ function AttendanceTab({ employeeOid, employeeDocument }) {
                         <td className="px-4 py-2.5 text-[11px] font-medium whitespace-nowrap">
                           {m.fecha}
                         </td>
-                        <td className="px-4 py-2.5 text-[11px]">{m.entrada || "-"}</td>
-                        <td className="px-4 py-2.5 text-[11px]">{m.salida || "-"}</td>
+                        {/* CELDA ENTRADA */}
+                        <td className="px-4 py-2.5 text-[11px]">
+                          {editandoId === m.id && editandoTipo === "entrada" ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="datetime-local"
+                                value={valorEditado}
+                                onChange={(e) => setValorEditado(e.target.value)}
+                                className="h-7 text-[10px] w-32 p-1"
+                                autoFocus
+                              />
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-green-600"
+                                onClick={() => guardarCambio(m)}
+                                disabled={isSaving}
+                              >
+                                {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-red-600"
+                                onClick={() => setEditandoId(null)}
+                                disabled={isSaving}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                              {errorValidacion && <span className="absolute mt-14 bg-red-500 text-white text-[8px] p-1 rounded z-10">{errorValidacion}</span>}
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => iniciarEdicion(m, "entrada")}
+                              className={`cursor-pointer p-1 rounded hover:bg-indigo-50 transition-colors ${!m.entrada || m.entrada === "-" ? "text-red-400 italic bg-red-50/30" : ""}`}
+                            >
+                              {m.entrada || "-"}
+                            </div>
+                          )}
+                        </td>
+                        {/* CELDA SALIDA */}
+                        <td className="px-4 py-2.5 text-[11px]">
+                          {editandoId === m.id && editandoTipo === "salida" ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="datetime-local"
+                                value={valorEditado}
+                                onChange={(e) => setValorEditado(e.target.value)}
+                                className="h-7 text-[10px] w-32 p-1"
+                                autoFocus
+                              />
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-green-600"
+                                onClick={() => guardarCambio(m)}
+                                disabled={isSaving}
+                              >
+                                {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-red-600"
+                                onClick={() => setEditandoId(null)}
+                                disabled={isSaving}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                              {errorValidacion && <span className="absolute mt-14 bg-red-500 text-white text-[8px] p-1 rounded z-10">{errorValidacion}</span>}
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => iniciarEdicion(m, "salida")}
+                              className={`cursor-pointer p-1 rounded hover:bg-indigo-50 transition-colors ${!m.salida || m.salida === "-" ? "text-yellow-600 italic bg-yellow-50/30" : ""}`}
+                            >
+                              {m.salida || "-"}
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-2.5 text-[11px] text-gray-500">{m.turno || "N/A"}</td>
                         <td className="px-4 py-2.5">
-                          {m.entrada && m.salida ? (
+                          {m.entrada && m.salida && m.entrada !== "-" && m.salida !== "-" ? (
                             <CheckCircle2 className="h-4 w-4 text-green-500" />
                           ) : (
                             <div className="w-2 h-2 rounded-full bg-yellow-400" title="Incompleto" />

@@ -67,7 +67,7 @@ const validateUserInput = (data: Partial<UsuarioInput>, isCreate: boolean = fals
   };
 };
 
-// GET - Para listar usuarios
+// GET - Para listar usuarios con sus roles
 export async function GET() {
   try {
     const usuarios = await prisma.euser.findMany({
@@ -85,17 +85,29 @@ export async function GET() {
       }
     });
 
+    // Obtener todas las asociaciones de roles
+    const allAssociations = await prisma.euserusers_eroleroles.findMany();
+    const allRoles = await prisma.rolebase.findMany();
+    const roleMap = new Map(allRoles.map(r => [r.Oid, r.Name?.trim()]));
+
     // Transformar datos para respuesta
-    const usuariosTransformados = usuarios.map(usuario => ({
-      Oid: usuario.Oid,
-      UserName: usuario.UserName,
-      HiddenUserName: usuario.HiddenUserName,
-      IsActive: usuario.IsActive ?? true,
-      ChangePasswordOnFirstLogon: usuario.ChangePasswordOnFirstLogon ?? false,
-      // Enmascarar contraseña para seguridad
-      StoredPassword: CONFIG.PASSWORD_MASK,
-      OptimisticLockField: usuario.OptimisticLockField
-    }));
+    const usuariosTransformados = usuarios.map(usuario => {
+      const userRoles = allAssociations
+        .filter(a => a.Users === usuario.Oid)
+        .map(a => roleMap.get(a.Roles || ""))
+        .filter(Boolean);
+
+      return {
+        Oid: usuario.Oid,
+        UserName: usuario.UserName,
+        HiddenUserName: usuario.HiddenUserName,
+        IsActive: usuario.IsActive ?? true,
+        ChangePasswordOnFirstLogon: usuario.ChangePasswordOnFirstLogon ?? false,
+        StoredPassword: CONFIG.PASSWORD_MASK,
+        OptimisticLockField: usuario.OptimisticLockField,
+        roles: userRoles
+      };
+    });
 
     return NextResponse.json(usuariosTransformados);
 
@@ -280,10 +292,57 @@ export async function PUT(req: Request) {
       datosActualizacion.StoredPassword = generateHash(data.StoredPassword);
     }
 
-    // Actualizar usuario
-    const usuarioActualizado = await prisma.euser.update({
-      where: { Oid: data.Oid },
-      data: datosActualizacion
+    // Actualizar usuario y roles en una transacción
+    const usuarioActualizado = await prisma.$transaction(async (tx) => {
+      // 1. Actualizar datos básicos
+      const user = await tx.euser.update({
+        where: { Oid: data.Oid },
+        data: datosActualizacion
+      });
+
+      // 2. Actualizar roles si se proporcionan
+      if (data.roles && Array.isArray(data.roles)) {
+        // Eliminar roles actuales
+        await tx.euserusers_eroleroles.deleteMany({
+          where: { Users: data.Oid }
+        });
+
+        // Buscar OIDs de los nuevos roles
+        const rolesBase = await tx.rolebase.findMany({
+          where: {
+            Name: {
+              in: data.roles.map((r: string) => r + " ") // Algunos tienen espacio al final en la DB original
+            }
+          }
+        });
+
+        // O buscar por nombres exactos o recortados si fallan los espacios
+        const existingRoleNames = rolesBase.map(rb => rb.Name?.trim());
+        const missingRoles = data.roles.filter((r: string) => !existingRoleNames.includes(r));
+        
+        if (missingRoles.length > 0) {
+          const extraRoles = await tx.rolebase.findMany({
+            where: {
+              Name: { in: missingRoles }
+            }
+          });
+          rolesBase.push(...extraRoles);
+        }
+
+        // Crear nuevas asociaciones
+        for (const role of rolesBase) {
+          await tx.euserusers_eroleroles.create({
+            data: {
+              OID: crypto.randomUUID().toUpperCase(),
+              Users: data.Oid,
+              Roles: role.Oid,
+              OptimisticLockField: 0
+            }
+          });
+        }
+      }
+
+      return user;
     });
 
     // DETECTAR CAMBIOS PARA EL LOG

@@ -9,6 +9,7 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "50");
+        const isExport = searchParams.get("export") === "true";
         const skip = (page - 1) * limit;
 
         const empleado = searchParams.get("empleado");
@@ -80,17 +81,19 @@ export async function GET(request: Request) {
             }
         }
 
-        const [total, marcaciones] = await Promise.all([
-            prisma.marking.count({ where: whereClause }),
-            prisma.marking.findMany({
+        const total = await prisma.marking.count({ where: whereClause });
+
+        const marcaciones = isExport
+            ? await prisma.marking.findMany({
+                where: whereClause,
+                orderBy: { Day: 'desc' }
+            })
+            : await prisma.marking.findMany({
                 where: whereClause,
                 skip,
                 take: limit,
-                orderBy: {
-                    Day: 'desc'
-                }
-            })
-        ]);
+                orderBy: { Day: 'desc' }
+            });
 
         // --- RESOLUCIÓN DE IDENTIDAD OPTIMIZADA ---
         // 1. Recopilar todos los OIDs únicos necesarios en una sola pasada
@@ -387,10 +390,10 @@ export async function DELETE(request: Request) {
         }
 
         // 1. Buscar datos antes de borrar para el log
-        const oldMarking = await prisma.marking.findUnique({ 
+        const oldMarking = await prisma.marking.findUnique({
             where: { Oid: id }
         });
-        
+
         let empName = "Desconocido";
         // 2. Si existe la marcación, buscamos el nombre de la persona manualmente
         if (oldMarking?.Employee) {
@@ -400,7 +403,7 @@ export async function DELETE(request: Request) {
             });
             empName = persona?.FullName || "Desconocido";
         }
-        
+
         const dayStr = oldMarking?.Day ? new Date(oldMarking.Day).toLocaleDateString() : "";
 
         // 3. Borrar la marcación

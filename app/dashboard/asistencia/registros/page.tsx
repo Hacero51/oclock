@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, useContext } from "react";
+import { useState, useEffect, useMemo, useContext, useRef } from "react";
+import * as XLSX from "xlsx";
 import { DashboardContext } from "@/app/dashboard/layout";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -22,7 +23,9 @@ import {
   AlertCircle,
   FileText,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Upload,
+  FileSpreadsheet
 } from "lucide-react";
 import {
   Dialog,
@@ -170,6 +173,10 @@ export default function RegistroTiempoForm() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Modal Update
   const [selectedRegistro, setSelectedRegistro] = useState<Registro | null>(null);
@@ -307,10 +314,101 @@ export default function RegistroTiempoForm() {
   };
 
 
-  // Manejar cambio de items por página
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
+  };
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (filtros.empleado && filtros.empleado !== "all") params.append("empleado", filtros.empleado);
+      if (filtros.tipo && filtros.tipo !== "all") params.append("tipo", filtros.tipo);
+      
+      if (filtros.periodo === 'personalizado' && filtros.desde && filtros.hasta) {
+        params.append("desde", filtros.desde);
+        params.append("hasta", filtros.hasta);
+      } else if (filtros.periodo && filtros.periodo !== 'personalizado') {
+        const { desde, hasta } = calculateDateRange(filtros.periodo);
+        if (desde && hasta) {
+          params.append("desde", desde);
+          params.append("hasta", hasta);
+        }
+      }
+      params.append("export", "true");
+
+      const response = await fetch(`/api/registros?${params.toString()}`);
+      if (!response.ok) throw new Error("Error obteniendo datos para exportar");
+
+      const resData = await response.json();
+      const exportData = resData.data.map((r: any) => ({
+        "Empleado": r.empleado,
+        "Documento": r.documento || "", // Agregado en caso de existir, para la plantilla
+        "FechaHora": r.tiempo,
+        "Tipo": r.tipo,
+        "Dispositivo": r.lector
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Registros");
+      XLSX.writeFile(workbook, `registros_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (error) {
+      console.error("Error exportando a Excel:", error);
+      alert("Error al exportar los datos.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      { Documento: "123456789", Empleado: "Juan Perez", FechaHora: "2024-01-01 08:00", Tipo: "Entrada" },
+      { Documento: "987654321", Empleado: "Maria Gomez", FechaHora: "2024-01-01 17:00", Tipo: "Salida" }
+    ];
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Plantilla Registros");
+    XLSX.writeFile(workbook, "Plantilla_Importacion_Registros.xlsx");
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const workbook = XLSX.read(bstr, { type: 'binary' });
+        const wsname = workbook.SheetNames[0];
+        const ws = workbook.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        const response = await fetch('/api/importar/registros', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ registros: data })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          alert(result.mensaje + (result.errores.length ? "\nErrores (hasta 10):\n" + result.errores.join("\n") : ""));
+          setRefreshKey(prev => prev + 1);
+        } else {
+          alert("Error: " + result.error);
+        }
+      } catch (error) {
+        console.error("Error importando excel:", error);
+        alert("Hubo un error al procesar el archivo Excel.");
+      } finally {
+        setIsImporting(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsBinaryString(file);
   };
 
   const handleFiltroChange = (campo: string, valor: string) => {
@@ -433,12 +531,38 @@ export default function RegistroTiempoForm() {
             </Button>
           )}
 
+          <input
+            type="file"
+            accept=".xlsx, .xls"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleImportExcel}
+          />
           <Button
             variant="outline"
+            onClick={handleDownloadTemplate}
+            className="text-gray-600 border-gray-300 hover:bg-gray-50 flex items-center gap-2"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span className="hidden sm:inline">Plantilla</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+            className="text-blue-600 border-blue-300 hover:bg-blue-50 flex items-center gap-2"
+          >
+            {isImporting ? <Clock className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            <span className="hidden sm:inline">Importar</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExportExcel}
+            disabled={isExporting}
             className="border-green-500 text-green-600 hover:bg-green-50 flex items-center gap-2"
           >
-            <Download className="h-4 w-4" />
-            Exportar Excel
+            {isExporting ? <Clock className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            <span className="hidden sm:inline">Exportar Excel</span>
           </Button>
         </div>
       </div>

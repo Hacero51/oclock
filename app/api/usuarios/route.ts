@@ -13,6 +13,7 @@ interface UsuarioInput {
 
 interface UsuarioUpdateInput extends Partial<UsuarioInput> {
   Oid: string;
+  roles?: string[];
 }
 
 // Configuración
@@ -71,6 +72,9 @@ const validateUserInput = (data: Partial<UsuarioInput>, isCreate: boolean = fals
 export async function GET() {
   try {
     const usuarios = await prisma.euser.findMany({
+      where: {
+        GCRecord: null
+      },
       select: {
         Oid: true,
         UserName: true,
@@ -425,9 +429,13 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // Eliminar usuario
-    await prisma.euser.delete({
-      where: { Oid: oid }
+    // Soft Delete (DevExpress XPO Compatibility)
+    // Generar un entero aleatorio para GCRecord como hace XPO para evitar violaciones de clave única
+    const gcRecordValue = Math.floor(Math.random() * 2147483647);
+    
+    await prisma.euser.update({
+      where: { Oid: oid },
+      data: { GCRecord: gcRecordValue }
     });
 
     // REGISTRO DE ACTIVIDAD

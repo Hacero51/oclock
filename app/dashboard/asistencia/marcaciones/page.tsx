@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo, useContext } from "react";
+import { useState, useEffect, useMemo, useContext, useRef } from "react";
+import * as XLSX from "xlsx";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { DashboardContext } from "@/app/dashboard/layout";
@@ -13,8 +14,6 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import Tabla from "@/components/Table";
-import { AdvancedFilterDialog } from "@/components/advanced-filtrer";
-import type { FilterNode } from "@/components/advanced-filtrer";
 import MarcacionForm from "@/components/form/create/MarcacionForm";
 import { Dialog } from "@/components/ui/dialog";
 import {
@@ -37,7 +36,8 @@ import {
   FilePlus,
   ExternalLink,
   Download,
-  Upload
+  Upload,
+  FileSpreadsheet
 } from "lucide-react";
 import {
   ContextMenuItem,
@@ -325,28 +325,12 @@ export default function MarcacionesPage() {
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [advancedFilterRoot, setAdvancedFilterRoot] = useState<FilterNode | undefined>(undefined);
-  const [turnosOptions, setTurnosOptions] = useState<{ value: string; label: string }[]>([]);
-  const [empleadosOptions, setEmpleadosOptions] = useState<{ value: string; label: string }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-    fetch('/api/turnos')
-      .then(res => res.json())
-      .then(data => {
-        const turnoList = Array.isArray(data) ? data : (data.data || []);
-        const uniqueShifts = Array.from(new Set(turnoList.map((t: any) => t.Name))).filter(name => !!name);
-        setTurnosOptions(uniqueShifts.map(name => ({ value: name as string, label: name as string })));
-      }).catch(err => console.error(err));
-
-    fetch('/api/empleados')
-      .then(res => res.json())
-      .then(data => {
-        const empList = Array.isArray(data) ? data : (data.data || []);
-        const uniqueNames = Array.from(new Set(empList.map((e: any) => `${e.FirstName} ${e.LastName}`))).filter(name => !!name);
-        setEmpleadosOptions(uniqueNames.map(name => ({ value: name as string, label: name as string })));
-      }).catch(err => console.error(err));
   }, []);
 
   const calculateDateRange = (period: string) => {
@@ -408,10 +392,6 @@ export default function MarcacionesPage() {
   }, [isMounted, currentPage, itemsPerPage, filtros.periodo, filtros.desde, filtros.hasta, filtros.estado, refreshKey, refreshTrigger]);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [advancedFilterRoot]);
-
-  useEffect(() => {
     const timer = setTimeout(() => { if (isMounted) fetchMarcaciones(); }, 500);
     return () => clearTimeout(timer);
   }, [filtros.empleado]);
@@ -438,13 +418,109 @@ export default function MarcacionesPage() {
 
   const handleClearAllFilters = () => {
     setFiltros({ empleado: "", turno: "", estado: "", desde: "", hasta: "", periodo: "mes_actual" });
-    setAdvancedFilterRoot(undefined);
     setCurrentPage(1);
   };
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
+  };
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (filtros.empleado && filtros.empleado !== "all") params.append("empleado", filtros.empleado);
+      if (filtros.estado && filtros.estado !== "all") params.append("estado", filtros.estado);
+      if (filtros.periodo === 'personalizado' && filtros.desde && filtros.hasta) {
+        params.append("desde", filtros.desde);
+        params.append("hasta", filtros.hasta);
+      } else if (filtros.periodo && filtros.periodo !== 'personalizado') {
+        const { desde, hasta } = calculateDateRange(filtros.periodo);
+        if (desde && hasta) {
+          params.append("desde", desde);
+          params.append("hasta", hasta);
+        }
+      }
+      params.append("export", "true");
+
+      const response = await fetch(`/api/marcaciones?${params.toString()}`);
+      if (!response.ok) throw new Error("Error obteniendo datos para exportar");
+
+      const resData = await response.json();
+      const exportData = resData.data.map((m: any) => ({
+        "Documento": m.cedula,
+        "Empleado": m.empleado,
+        "Turno": m.turno,
+        "Fecha": m.fecha,
+        "Entrada": m.entrada,
+        "Salida": m.salida,
+        "Inicia Turno": m.iniciaTurno ? "Si" : "No",
+        "Extra Después": m.tiempoExtraDespues ? "Si" : "No",
+        "Extra Festivo": m.tiempoExtraFestivo ? "Si" : "No",
+        "Autorizar": m.autorizar ? "Si" : "No",
+        "Estado": m.estado
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Marcaciones");
+      XLSX.writeFile(workbook, `marcaciones_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (error) {
+      console.error("Error exportando a Excel:", error);
+      alert("Error al exportar los datos.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      { Documento: "123456789", Empleado: "Juan Perez", Fecha: "2024-01-01", Entrada: "2024-01-01 08:00", Salida: "2024-01-01 17:00" },
+      { Documento: "987654321", Empleado: "Maria Gomez", Fecha: "2024-01-01", Entrada: "2024-01-01 09:00", Salida: "2024-01-01 18:00" }
+    ];
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Plantilla Marcaciones");
+    XLSX.writeFile(workbook, "Plantilla_Importacion_Marcaciones.xlsx");
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const workbook = XLSX.read(bstr, { type: 'binary' });
+        const wsname = workbook.SheetNames[0];
+        const ws = workbook.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        const response = await fetch('/api/importar/marcaciones', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ marcaciones: data })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          alert(result.mensaje + (result.errores.length ? "\nErrores:\n" + result.errores.join("\n") : ""));
+          setRefreshKey(prev => prev + 1);
+        } else {
+          alert("Error: " + result.error);
+        }
+      } catch (error) {
+        console.error("Error importando excel:", error);
+        alert("Hubo un error al procesar el archivo Excel.");
+      } finally {
+        setIsImporting(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsBinaryString(file);
   };
 
   const iniciarEdicionSalida = (marcacion: Marcacion) => {
@@ -613,39 +689,8 @@ export default function MarcacionesPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const evaluateFilter = (marcacion: Marcacion, node: FilterNode): boolean => {
-    if (node.type === "group") {
-      if (!node.children || node.children.length === 0) return true;
-      const results = node.children.map(child => evaluateFilter(marcacion, child));
-      switch (node.logic) {
-        case "AND": return results.every(r => r);
-        case "OR": return results.some(r => r);
-        default: return true;
-      }
-    } else {
-      if (!node.field || !node.operator) return true;
-      const mapping: any = { "Nombre a mostrar": "empleado", "Turno Actual": "turno", "Fecha": "fecha", "Entrada": "entrada", "Salida": "salida" };
-      const field = mapping[node.field] || node.field;
-      let val: any = marcacion[field as keyof Marcacion] || "";
-      const valFiltro = node.value || "";
-      if (typeof val === "string") val = val.toLowerCase();
-      const valFiltroNorm = valFiltro.toLowerCase();
-      switch (node.operator) {
-        case "igual": return val === valFiltroNorm;
-        case "contiene": return val.includes(valFiltroNorm);
-        case "vacio": return !val;
-        default: return true;
-      }
-    }
-  };
-
-  const marcacionesFiltradas = useMemo(() => {
-    if (!advancedFilterRoot) return marcaciones;
-    return marcaciones.filter(m => evaluateFilter(m, advancedFilterRoot));
-  }, [marcaciones, advancedFilterRoot]);
-
   const datosParaTabla = useMemo(() => {
-    return marcacionesFiltradas.map((marcacion) => ({
+    return marcaciones.map((marcacion) => ({
       'Documento': <span className="text-[10px]">{marcacion.cedula}</span>,
       'Empleado': <span className="text-[10px] font-medium">{marcacion.empleado}</span>,
       'Turno': <span className="text-[9px] text-gray-500">{marcacion.turno}</span>,
@@ -741,7 +786,7 @@ export default function MarcacionesPage() {
       ),
       id: marcacion.id
     }));
-  }, [marcacionesFiltradas, editandoId, salidaEditada, errorValidacion, editandoEntradaId, entradaEditada]);
+  }, [marcaciones, editandoId, salidaEditada, errorValidacion, editandoEntradaId, entradaEditada]);
 
   if (!isMounted) return null;
 
@@ -766,8 +811,38 @@ export default function MarcacionesPage() {
               Limpiar Filtros
             </Button>
           )}
-          <Button variant="outline" onClick={() => setIsFilterOpen(true)}>
-            <Filter className="mr-2 h-4 w-4" /> Filtros Avanzados
+          <input
+            type="file"
+            accept=".xlsx, .xls"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleImportExcel}
+          />
+          <Button
+            variant="outline"
+            onClick={handleDownloadTemplate}
+            className="text-gray-600 border-gray-300 hover:bg-gray-50 flex items-center gap-2"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span className="hidden sm:inline">Plantilla</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+            className="text-blue-600 border-blue-300 hover:bg-blue-50 flex items-center gap-2"
+          >
+            {isImporting ? <Clock className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            <span className="hidden xl:inline">Importar</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="border-green-500 text-green-600 hover:bg-green-50 flex items-center gap-2"
+          >
+            {isExporting ? <Clock className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            <span className="hidden sm:inline">Exportar Excel</span>
           </Button>
         </div>
       </div>
@@ -928,14 +1003,6 @@ export default function MarcacionesPage() {
           onItemsPerPageChange={handleItemsPerPageChange}
         />
       </div>
-
-      <AdvancedFilterDialog
-        open={isFilterOpen}
-        onOpenChange={setIsFilterOpen}
-        onApply={setAdvancedFilterRoot}
-        initialFilter={advancedFilterRoot}
-        fieldOptions={{ "Turno Actual": turnosOptions, "Nombre a mostrar": empleadosOptions }}
-      />
 
       <Dialog open={openManual} onOpenChange={setOpenManual}>
         <MarcacionForm

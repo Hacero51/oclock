@@ -1,7 +1,10 @@
 export async function register() {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
-        console.log('[INSTRUMENTATION] Iniciando servicios de background...');
+        console.log('[INSTRUMENTATION] Validando entorno de ejecución...');
+        const { validateEnvironment } = await import('./lib/env');
+        validateEnvironment();
 
+        console.log('[INSTRUMENTATION] Iniciando servicios de background...');
         try {
             // Importación dinámica para evitar problemas de orden de carga
             const { rtSyncService } = await import('./server/biometric/realtime');

@@ -25,6 +25,9 @@ export default function PanelConfiguracionAdmin() {
   const [configuraciones, setConfiguraciones] = useState<ConfiguracionGrupo[]>([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [procesandoHistorico, setProcesandoHistorico] = useState(false);
+  const [rangoHistorico, setRangoHistorico] = useState({ desde: '', hasta: '' });
+
 
   // Cargar configuraciones iniciales
   useEffect(() => {
@@ -85,6 +88,31 @@ export default function PanelConfiguracionAdmin() {
       alert('Error al guardar las configuraciones');
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const handleRecalculoHistorico = async () => {
+    if (!confirm("¿Está seguro de iniciar el recálculo profundo? Este proceso puede tardar varios minutos y reconstruirá todas las marcaciones en el rango seleccionado.")) {
+      return;
+    }
+
+    setProcesandoHistorico(true);
+    try {
+      const response = await fetch('/api/recalculo/historico', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rangoHistorico),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Error en el proceso');
+      
+      alert(`¡Proceso completado exitosamente!\n\nResumen:\n- Registros procesados: ${data.resumen.logsProcesados}\n- Días calculados: ${data.resumen.diasCalculados}\n- Empleados afectados: ${data.resumen.empleadosAfectados}`);
+    } catch (error: any) {
+      console.error('Error en recálculo histórico:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setProcesandoHistorico(false);
     }
   };
 
@@ -200,7 +228,54 @@ export default function PanelConfiguracionAdmin() {
         ))}
       </div>
 
+
+      {/* Mantenimiento del Sistema */}
+      <Card className="shadow-sm border border-gray-200 rounded-2xl">
+        <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+          <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+            <RefreshCw className="h-5 w-5 text-orange-600" />
+            Mantenimiento y Recálculo Histórico
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-end gap-4">
+            <div className="space-y-2 flex-1">
+              <label className="text-sm font-medium text-gray-700">Desde</label>
+              <Input 
+                type="date" 
+                value={rangoHistorico.desde} 
+                onChange={(e) => setRangoHistorico(prev => ({...prev, desde: e.target.value}))}
+                className="bg-gray-50"
+              />
+            </div>
+            <div className="space-y-2 flex-1">
+              <label className="text-sm font-medium text-gray-700">Hasta</label>
+              <Input 
+                type="date" 
+                value={rangoHistorico.hasta} 
+                onChange={(e) => setRangoHistorico(prev => ({...prev, hasta: e.target.value}))}
+                className="bg-gray-50"
+              />
+            </div>
+            <Button
+              onClick={handleRecalculoHistorico}
+              disabled={procesandoHistorico || !rangoHistorico.desde || !rangoHistorico.hasta}
+              className="bg-orange-600 hover:bg-orange-700 text-white flex items-center gap-2"
+            >
+              {procesandoHistorico ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {procesandoHistorico ? 'Procesando...' : 'Iniciar Recálculo Profundo'}
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500 mt-4 bg-orange-50 p-3 rounded-lg border border-orange-100">
+            <strong>⚠️ Atención:</strong> El recálculo profundo reconstruye las marcaciones diarias a partir de los registros crudos del reloj. 
+            Úsalo cuando conectes el sistema a una base de datos nueva con historial sin procesar. 
+            Se recomienda procesar en bloques de máximo 60 días.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Información Adicional */}
+
       <Card className="shadow-sm border border-gray-200 rounded-2xl">
         <CardHeader className="pb-4 border-b border-gray-200 bg-white">
           <CardTitle className="text-lg text-gray-900 flex items-center gap-2">

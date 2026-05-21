@@ -683,3 +683,96 @@ export async function ensureEmployee(userIdStr: string, name: string, employeeCa
 }
 
 
+
+export async function reprocessHistory(desde: Date, hasta: Date) {
+    const affectedDays = new Map<string, Set<string>>(); // EmployeeOid -> Set of ISO Days
+    const employeeCache = new Map<string, any>();
+
+    try {
+        console.log(`[REPROCESS] Iniciando reprocesamiento desde ${desde.toISOString()} hasta ${hasta.toISOString()}...`);
+
+        // 1. Obtener registros crudos en el rango
+        const logsRaw = await prisma.checkinout.findMany({
+            where: {
+                CheckTime: {
+                    gte: desde,
+                    lte: hasta
+                }
+            },
+            orderBy: { CheckTime: 'asc' }
+        });
+
+        console.log(`[REPROCESS] Encontrados ${logsRaw.length} registros en checkinout.`);
+
+        // 2. Procesar cada registro para reconstruir 'marking'
+        for (const log of logsRaw) {
+            if (!log.CheckTime || !log.Employee) continue;
+
+            const biometricLog: any = {
+                uid: 0,
+                userSn: 0,
+                deviceUserId: "", // Lo buscaremos por el Oid del empleado si es necesario, 
+                // pero procesarRegistroDoble tiene una lógica para buscar empleado por Oid si le pasamos el contexto.
+                recordTime: log.CheckTime,
+                activity: log.CheckType ?? 0,
+                name: ""
+            };
+
+            // Necesitamos el AcNumber o el emp_code para que procesarRegistroDoble funcione bien.
+            // Vamos a optimizar: procesarRegistroDoble busca el empleado. 
+            // Si ya tenemos el Employee Oid del log de checkinout, podemos simplificar o adaptar.
+            
+            // Buscamos el empleado para obtener su AcNumber
+            const empKey = `EMP_OID_${log.Employee}`;
+            let emp;
+            if (employeeCache.has(empKey)) {
+                emp = employeeCache.get(empKey);
+            } else {
+                emp = await prisma.employee.findUnique({ where: { Oid: log.Employee } });
+                employeeCache.set(empKey, emp);
+            }
+
+            if (!emp) continue;
+
+            const result = await procesarRegistroDoble({
+                ...biometricLog,
+                deviceUserId: String(emp.AcNumber || ""),
+            }, log.Machine || "MIGRACION", employeeCache);
+
+            if (result.employeeOid && result.dayISO) {
+                if (!affectedDays.has(result.employeeOid)) {
+                    affectedDays.set(result.employeeOid, new Set());
+                }
+                affectedDays.get(result.employeeOid)!.add(result.dayISO);
+            }
+        }
+
+        // 3. Ejecutar el Engine para los días afectados
+        console.log(`[REPROCESS] Iniciando cálculo de motor para ${affectedDays.size} empleados...`);
+        let processedCount = 0;
+
+        for (const [empOid, days] of affectedDays.entries()) {
+            for (const dayISO of days) {
+                try {
+                    const date = new Date(dayISO);
+                    await laborEngine.processDay(empOid, date);
+                    processedCount++;
+                } catch (engErr) {
+                    console.error(`[REPROCESS-ERROR] Error en ${empOid} el ${dayISO}:`, engErr);
+                }
+            }
+        }
+
+        console.log(`[REPROCESS] Finalizado. Marcaciones procesadas: ${logsRaw.length}, Días calculados: ${processedCount}`);
+        return {
+            success: true,
+            logsProcesados: logsRaw.length,
+            diasCalculados: processedCount,
+            empleadosAfectados: affectedDays.size
+        };
+
+    } catch (error: any) {
+        console.error("[REPROCESS] Error global:", error);
+        throw error;
+    }
+}

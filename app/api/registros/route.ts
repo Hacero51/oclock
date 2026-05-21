@@ -6,6 +6,7 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "10");
+        const isExport = searchParams.get("export") === "true";
         const skip = (page - 1) * limit;
 
         const empleado = searchParams.get("empleado");
@@ -105,17 +106,19 @@ export async function GET(request: Request) {
             }
         }
 
-        const [total, logs] = await Promise.all([
-            prisma.checkinout.count({ where: whereClause }),
-            prisma.checkinout.findMany({
+        const total = await prisma.checkinout.count({ where: whereClause });
+        
+        const logs = isExport 
+            ? await prisma.checkinout.findMany({
+                where: whereClause,
+                orderBy: { CheckTime: 'desc' }
+            })
+            : await prisma.checkinout.findMany({
                 where: whereClause,
                 skip,
                 take: limit,
-                orderBy: {
-                    CheckTime: 'desc'
-                }
-            })
-        ]);
+                orderBy: { CheckTime: 'desc' }
+            });
 
         // Obtener datos relacionados manualmente
         const empOids = [...new Set(logs.map(l => l.Employee).filter(Boolean) as string[])];
@@ -142,7 +145,7 @@ export async function GET(request: Request) {
             if (!person) return null; // Filtro rápido
 
             const machine = log.Machine ? machineMap.get(log.Machine) : null;
-            const verifyTypeStr = MAP_VERIFY_TYPE[log.VerifyCode ?? -1] || 'Desconocido';
+            const verifyTypeStr = log.VerifyCode !== null ? (MAP_VERIFY_TYPE[log.VerifyCode] || '') : '';
 
             // Mapeo robusto de CheckType (Evitamos recrear strings)
             let tipoStr = 'Desconocido';
@@ -166,7 +169,7 @@ export async function GET(request: Request) {
                 año: log.CheckTime ? new Date(log.CheckTime).getUTCFullYear() : null,
                 mes: log.CheckTime ? new Date(log.CheckTime).getUTCMonth() + 1 : null,
                 metodoverificacion: verifyTypeStr,
-                lector: machine?.Name || 'Desconocido'
+                lector: machine?.Name || ''
             };
         }).filter((item): item is NonNullable<typeof item> => item !== null);
 

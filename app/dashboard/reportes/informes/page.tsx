@@ -1,14 +1,12 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Calendar, BarChart3, Building } from "lucide-react";
-import Tabla from "@/components/Table";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { FileText, Download, Building } from 'lucide-react';
+import Tabla from '@/components/Table';
 
 type TipoInforme = 'nominaofima' | 'asistencia';
 
@@ -30,122 +28,142 @@ interface RegistroOfima {
   FECHA: string;
 }
 
-interface RegistroAsistencia {
-  tercero: string;
-  nombre: string;
-  concepto: string;
-  descripcion: string;
-  horas: number;
-}
-
 export default function ExportacionInformes() {
-  const [filtros, setFiltros] = useState<FiltrosInforme>({
+  // State for ordinary hours
+  const [filtrosOrd, setFiltrosOrd] = useState<FiltrosInforme>({
     fechaInicio: '',
     fechaFin: '',
     tipoInforme: 'nominaofima',
   });
+  const [datosOrd, setDatosOrd] = useState<RegistroOfima[]>([]);
+
+  // State for extra hours
+  const [filtrosExt, setFiltrosExt] = useState<FiltrosInforme>({
+    fechaInicio: '',
+    fechaFin: '',
+    tipoInforme: 'nominaofima',
+  });
+  const [datosExt, setDatosExt] = useState<RegistroOfima[]>([]);
 
   const [cargando, setCargando] = useState(false);
-  const [datosOfima, setDatosOfima] = useState<RegistroOfima[]>([]);
-  const [datosAsistencia, setDatosAsistencia] = useState<RegistroAsistencia[]>([]);
 
-  // Inicializar fechas
+  // Initialize both filter sets to current month on mount
   useEffect(() => {
     const hoyObj = new Date();
-    // Primer día del mes actual
     const primerDia = new Date(hoyObj.getFullYear(), hoyObj.getMonth(), 1);
-    
-    // Formatear a YYYY-MM-DD restando offset para no tener desfase de mediodía en local
-    const hoy = new Date(hoyObj.getTime() - (hoyObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    const primerDiaStr = new Date(primerDia.getTime() - (primerDia.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    
-    setFiltros((prev) => ({ ...prev, fechaInicio: primerDiaStr, fechaFin: hoy }));
+    const hoy = new Date(hoyObj.getTime() - hoyObj.getTimezoneOffset() * 60000)
+      .toISOString()
+      .split('T')[0];
+    const primerDiaStr = new Date(primerDia.getTime() - primerDia.getTimezoneOffset() * 60000)
+      .toISOString()
+      .split('T')[0];
+    setFiltrosOrd(prev => ({ ...prev, fechaInicio: primerDiaStr, fechaFin: hoy }));
+    setFiltrosExt(prev => ({ ...prev, fechaInicio: primerDiaStr, fechaFin: hoy }));
   }, []);
 
-  // 🔄 Carga datos desde API
-  const cargarDatosInforme = async () => {
-    setCargando(true);
-    setDatosOfima([]);
-    setDatosAsistencia([]);
+  const cargarDatos = async (filtros: FiltrosInforme): Promise<RegistroOfima[]> => {
+    const res = await fetch(
+      `/api/reportes/nomina-ofima?startDate=${filtros.fechaInicio}&endDate=${filtros.fechaFin}`
+    );
+    if (!res.ok) throw new Error('Error al cargar datos');
+    const data = await res.json();
+    return data as RegistroOfima[];
+  };
 
+  const generarOrd = async () => {
+    if (!filtrosOrd.fechaInicio || !filtrosOrd.fechaFin) {
+      alert('Seleccione rango de fechas para Horas Ordinarias');
+      return;
+    }
+    setCargando(true);
     try {
-      if (filtros.tipoInforme === 'nominaofima') {
-        const res = await fetch(`/api/reportes/nomina-ofima?startDate=${filtros.fechaInicio}&endDate=${filtros.fechaFin}`);
-        if (!res.ok) throw new Error("Error al cargar datos de Ofima");
-        const data = await res.json();
-        setDatosOfima(data);
-      }
-      else if (filtros.tipoInforme === 'asistencia') {
-        // Mantener lógica simulada o futura implementación para asistencia
-        // Por ahora simulada como estaba o vacía si no hay backend
-        const dataAsistencia: RegistroAsistencia[] = [
-          { tercero: "35119", nombre: "EMPLEADO 1", concepto: "HOR", descripcion: "HORAS LABORADAS", horas: 8 },
-          { tercero: "1106889787", nombre: "EMPLEADO 2", concepto: "HOR", descripcion: "HORAS LABORADAS", horas: 7 },
-        ];
-        setDatosAsistencia(dataAsistencia);
-      }
+      const data = await cargarDatos(filtrosOrd);
+      const ordinarias = data.filter(d => d.CONCEP === 'A01');
+      setDatosOrd(ordinarias);
     } catch (e) {
-      console.error('Error al cargar datos:', e);
-      alert('Error al cargar los datos del informe');
+      console.error(e);
+      alert('Error al cargar datos de Horas Ordinarias');
     } finally {
       setCargando(false);
     }
   };
 
-  const handleFiltroChange = (campo: keyof FiltrosInforme, valor: string) => {
-    setFiltros((prev) => ({ ...prev, [campo]: valor }));
-  };
-
-  const handleGenerar = () => {
-    if (!filtros.fechaInicio || !filtros.fechaFin) {
-      alert("Seleccione fechas");
+  const generarExt = async () => {
+    if (!filtrosExt.fechaInicio || !filtrosExt.fechaFin) {
+      alert('Seleccione rango de fechas para Horas Extras');
       return;
     }
-    cargarDatosInforme();
+    setCargando(true);
+    try {
+      const data = await cargarDatos(filtrosExt);
+      const extras = data.filter(d => d.CONCEP !== 'A01');
+      setDatosExt(extras);
+    } catch (e) {
+      console.error(e);
+      alert('Error al cargar datos de Horas Extras');
+    } finally {
+      setCargando(false);
+    }
   };
 
-  // === Exportaciones OFIMA ===
-  const exportarExcelOfima = () => {
-    if (datosOfima.length === 0) return alert('No hay datos para exportar');
+  const exportarExcel = () => {
+  if (datosOrd.length === 0 && datosExt.length === 0) {
+    alert('No hay datos para exportar');
+    return;
+  }
+  const libro = XLSX.utils.book_new();
+  if (datosOrd.length > 0) {
+    const hojaOrd = XLSX.utils.json_to_sheet(datosOrd);
+    XLSX.utils.book_append_sheet(libro, hojaOrd, 'Horas Ordinarias');
+  }
+  if (datosExt.length > 0) {
+    const hojaExt = XLSX.utils.json_to_sheet(datosExt);
+    XLSX.utils.book_append_sheet(libro, hojaExt, 'Horas Extras');
+  }
+  const nombreArchivo = `Reporte_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(libro, nombreArchivo);
+};
 
-    // Formatear fechas si es necesario para Excel (aunque string funciona suele ser mejor Date)
-    // Para cumplir formato exacto, dejamos como string que viene del API
-    const hoja = XLSX.utils.json_to_sheet(datosOfima);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'MVNOVPER');
-    XLSX.writeFile(libro, `MVNOVPER_${filtros.fechaFin.replace(/-/g, '')}.xlsx`);
-  };
+// Exportar solo Horas Ordinarias a Excel
+const exportarOrdExcel = () => {
+  if (datosOrd.length === 0) {
+    alert('No hay datos de Horas Ordinarias para exportar');
+    return;
+  }
+  const libro = XLSX.utils.book_new();
+  const hojaOrd = XLSX.utils.json_to_sheet(datosOrd);
+  XLSX.utils.book_append_sheet(libro, hojaOrd, 'Horas Ordinarias');
+  const nombreArchivo = `Horas_Ordinarias_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(libro, nombreArchivo);
+};
 
-  const exportarPlanoOfima = () => {
-    if (datosOfima.length === 0) return alert('No hay datos para exportar');
-    const encabezado = Object.keys(datosOfima[0]).join('\t');
-    const lineas = datosOfima.map((r) => Object.values(r).join('\t'));
-    const contenido = [encabezado, ...lineas].join('\n');
-    const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `MVNOVPER_${filtros.fechaFin.replace(/-/g, '')}.txt`;
-    link.click();
-  };
+// Exportar solo Horas Extras a Excel
+const exportarExtExcel = () => {
+  if (datosExt.length === 0) {
+    alert('No hay datos de Horas Extras para exportar');
+    return;
+  }
+  const libro = XLSX.utils.book_new();
+  const hojaExt = XLSX.utils.json_to_sheet(datosExt);
+  XLSX.utils.book_append_sheet(libro, hojaExt, 'Horas Extras');
+  const nombreArchivo = `Horas_Extras_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(libro, nombreArchivo);
+};
 
-  // === Exportaciones ASISTENCIA ===
-  const exportarPlanoAsistencia = () => {
-    // ... lógica existente ...
-    if (datosAsistencia.length === 0) return alert("No hay datos para exportar");
-    // (Simplificado para brevedad, copiar lógica existente si es requerida intacta)
-    alert("Función básica mantenida");
-  };
 
   const getTipoColor = (tipo: TipoInforme) => {
     switch (tipo) {
-      case 'nominaofima': return 'text-green-600';
-      case 'asistencia': return 'text-purple-600';
-      default: return 'text-gray-600';
+      case 'nominaofima':
+        return 'text-green-600';
+      case 'asistencia':
+        return 'text-purple-600';
+      default:
+        return 'text-gray-600';
     }
   };
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
@@ -159,102 +177,131 @@ export default function ExportacionInformes() {
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Bloque Horas Ordinarias */}
       <Card className="shadow-sm border border-gray-200 rounded-2xl">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg text-gray-900">Configuración del Informe</CardTitle>
+          <CardTitle className="text-lg text-gray-900">Horas Ordinarias</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Informe</label>
-              <Select value={filtros.tipoInforme} onValueChange={(value: TipoInforme) => handleFiltroChange('tipoInforme', value)}>
-                <SelectTrigger className="bg-gray-50 border-gray-300 focus:bg-white">
-                  <SelectValue placeholder="Seleccionar tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nominaofima">
-                    <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4" /> Exportación Nómina Ofima ERP
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="asistencia">
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4" /> Resumen con Asistencia
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Inicio</label>
-              <Input type="date" value={filtros.fechaInicio} onChange={(e) => handleFiltroChange('fechaInicio', e.target.value)} className="bg-gray-50 border-gray-300 focus:bg-white" />
+              <Input
+                type="date"
+                value={filtrosOrd.fechaInicio}
+                onChange={e => setFiltrosOrd(p => ({ ...p, fechaInicio: e.target.value }))}
+              />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Fin</label>
-              <Input type="date" value={filtros.fechaFin} onChange={(e) => handleFiltroChange('fechaFin', e.target.value)} className="bg-gray-50 border-gray-300 focus:bg-white" />
+              <Input
+                type="date"
+                value={filtrosOrd.fechaFin}
+                onChange={e => setFiltrosOrd(p => ({ ...p, fechaFin: e.target.value }))}
+              />
             </div>
-
-            <Button onClick={handleGenerar} disabled={cargando} className="bg-blue-600 hover:bg-blue-700 text-white">
-              {cargando ? 'Generando...' : 'Generar Informe'}
-            </Button>
+            <div className="col-span-2 flex items-end">
+              <Button onClick={generarOrd} disabled={cargando} className="bg-blue-600 hover:bg-blue-700 text-white">
+                {cargando ? 'Generando...' : 'Generar Ordinarias'}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Resultados - Tabla Solo Lectura + Botones */}
-      {filtros.tipoInforme === 'nominaofima' && (
-        <Card className="shadow-sm border border-gray-200 rounded-2xl">
-          <CardHeader className="pb-4 flex flex-row justify-between items-center">
-            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
-              <Building className={`h-5 w-5 ${getTipoColor('nominaofima')}`} />
-              Vista Previa - Exportación Nómina Ofima ERP
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button onClick={exportarExcelOfima} disabled={datosOfima.length === 0} variant="outline" className="flex items-center gap-2">
-                <Download className="h-4 w-4" /> Excel
-              </Button>
-              <Button onClick={exportarPlanoOfima} disabled={datosOfima.length === 0} variant="outline" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" /> Plano
+      {/* Bloque Horas Extras */}
+      <Card className="shadow-sm border border-gray-200 rounded-2xl mt-8">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg text-gray-900">Horas Extras</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Inicio</label>
+              <Input
+                type="date"
+                value={filtrosExt.fechaInicio}
+                onChange={e => setFiltrosExt(p => ({ ...p, fechaInicio: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Fecha Fin</label>
+              <Input
+                type="date"
+                value={filtrosExt.fechaFin}
+                onChange={e => setFiltrosExt(p => ({ ...p, fechaFin: e.target.value }))}
+              />
+            </div>
+            <div className="col-span-2 flex items-end">
+              <Button onClick={generarExt} disabled={cargando} className="bg-blue-600 hover:bg-blue-700 text-white">
+                {cargando ? 'Generando...' : 'Generar Extras'}
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          </div>
+        </CardContent>
+      </Card>
 
-            <Tabla 
+      {/* Exportar opciones */}
+      <div className="flex justify-end gap-4">
+        <Button onClick={exportarExcel} disabled={cargando} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white">
+          <Download className="h-4 w-4" /> Exportar Todas
+        </Button>
+        <Button onClick={exportarOrdExcel} disabled={cargando} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+          <Download className="h-4 w-4" /> Exportar Ordinarias
+        </Button>
+        <Button onClick={exportarExtExcel} disabled={cargando} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white">
+          <Download className="h-4 w-4" /> Exportar Extras
+        </Button>
+      </div>
+
+      {/* Tabla Ordenarias */}
+      {datosOrd.length > 0 && (
+        <Card className="shadow-sm border border-gray-200 rounded-2xl mt-8">
+          <CardHeader className="pb-4 flex items-center justify-between">
+            <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
+              <Building className={`h-5 w-5 ${getTipoColor('nominaofima')}`} /> Horas Ordinarias
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabla
               columnas={["CODCC", "CODIGO", "CONCEP", "FECHA", "GRUPO", "NOTA", "NROHORAS", "VALOR"]}
-              datos={datosOfima.map(row => ({
-                "CODCC": row.CODCC,
-                "CODIGO": row.CODIGO,
-                "CONCEP": row.CONCEP,
-                "FECHA": row.FECHA,
-                "GRUPO": row.GRUPO,
-                "NOTA": row.NOTA,
-                "NROHORAS": <span className="font-bold">{row.NROHORAS.toFixed(2)}</span>,
-                "VALOR": row.VALOR
+              datos={datosOrd.map(row => ({
+                CODCC: row.CODCC,
+                CODIGO: row.CODIGO,
+                CONCEP: row.CONCEP,
+                FECHA: row.FECHA,
+                GRUPO: row.GRUPO,
+                NOTA: row.NOTA,
+                NROHORAS: <span className="font-bold">{row.NROHORAS.toFixed(2)}</span>,
+                VALOR: row.VALOR,
               }))}
             />
-
           </CardContent>
         </Card>
       )}
 
-      {filtros.tipoInforme === 'asistencia' && (
-        <Card className="shadow-sm border border-gray-200 rounded-2xl">
-          <CardHeader className="pb-4">
+      {/* Tabla Extras */}
+      {datosExt.length > 0 && (
+        <Card className="shadow-sm border border-gray-200 rounded-2xl mt-8">
+          <CardHeader className="pb-4 flex items-center justify-between">
             <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
-              <BarChart3 className={`h-5 w-5 ${getTipoColor('asistencia')}`} />
-              Resumen de Asistencia
+              <Building className={`h-5 w-5 ${getTipoColor('nominaofima')}`} /> Horas Extras
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-3">
-              <Button onClick={exportarPlanoAsistencia} className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-sm">
-                <Download className="h-4 w-4" /> Exportar Reporte
-              </Button>
-            </div>
+            <Tabla
+              columnas={["CODCC", "CODIGO", "CONCEP", "FECHA", "GRUPO", "NOTA", "NROHORAS", "VALOR"]}
+              datos={datosExt.map(row => ({
+                CODCC: row.CODCC,
+                CODIGO: row.CODIGO,
+                CONCEP: row.CONCEP,
+                FECHA: row.FECHA,
+                GRUPO: row.GRUPO,
+                NOTA: row.NOTA,
+                NROHORAS: <span className="font-bold">{row.NROHORAS.toFixed(2)}</span>,
+                VALOR: row.VALOR,
+              }))}
+            />
           </CardContent>
         </Card>
       )}

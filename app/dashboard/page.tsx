@@ -46,7 +46,7 @@ const datosEjemplo: DashboardData = {
 };
 
 export default function DashboardPage() {
-  const [datos, setDatos] = useState<DashboardData>(datosEjemplo);
+  const [datos, setDatos] = useState<DashboardData | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [periodo, setPeriodo] = useState('today');
@@ -97,14 +97,32 @@ export default function DashboardPage() {
     </div>
   );
 
-  if (cargando && !datos) {
+  if (cargando || !datos) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
           <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center mx-auto mb-4">
-            <BarChart3 className="h-8 w-8 text-gray-400 animate-pulse" />
+            <BarChart3 className="h-8 w-8 text-blue-600 animate-pulse" />
           </div>
-          <p className="text-gray-500">Cargando dashboard...</p>
+          <p className="text-gray-600 font-semibold text-sm">Cargando estadísticas en tiempo real...</p>
+          <p className="text-xs text-gray-400 mt-1">Conectando con el motor de base de datos de marcaciones</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !datos) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 p-6">
+        <div className="text-center max-w-sm w-full bg-white p-6 rounded-2xl border border-red-200 shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="h-6 w-6 text-red-500" />
+          </div>
+          <h2 className="text-base font-bold text-gray-900 mb-2">Error de Conexión</h2>
+          <p className="text-gray-500 text-xs mb-5">{error}</p>
+          <Button onClick={() => fetchStats(periodo)} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-6 py-2">
+            Reintentar Carga
+          </Button>
         </div>
       </div>
     );

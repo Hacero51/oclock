@@ -3,6 +3,6 @@ import { router, publicProcedure } from "../trpc";
 
 export const empleadosRouter = router({
   getAll: publicProcedure.query(async ({ ctx }) => {
-    return await ctx.prisma.empleado.findMany();
+    return await ctx.prisma.personnel_employee.findMany();
   }),
 });

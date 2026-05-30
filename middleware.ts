@@ -9,12 +9,20 @@ import { NextResponse } from "next/server";
  */
 export default withAuth(
   function middleware(req) {
-    // Lógica adicional opcional aquí
     return NextResponse.next();
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      authorized: ({ token, req }) => {
+        const { pathname } = req.nextUrl;
+        
+        // Excluir programáticamente las rutas de autenticación de next-auth
+        if (pathname.startsWith("/api/auth")) {
+          return true;
+        }
+        
+        return !!token;
+      },
     },
     pages: {
       signIn: "/login",
@@ -26,7 +34,7 @@ export default withAuth(
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    // Protege todas las APIs EXCEPTO las de autenticación
-    "/api/((?!auth).*)",
+    // Coincide con todas las rutas /api/:path* y se filtran en callback authorized
+    "/api/:path*",
   ],
 };

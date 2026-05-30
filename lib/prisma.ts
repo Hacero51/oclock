@@ -1,10 +1,18 @@
 // lib/prisma.ts
-import { PrismaClient } from "@/lib/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { validateEnvironment } from "./env";
 
 // Validar el entorno antes de inicializar Prisma
 validateEnvironment();
 
-const prisma = new PrismaClient();
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+const prisma = globalForPrisma.prisma || new PrismaClient({
+  log: ["query", "info", "warn", "error"],
+});
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
 
 export default prisma;

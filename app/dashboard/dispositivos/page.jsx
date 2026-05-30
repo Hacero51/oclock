@@ -354,13 +354,13 @@ export default function DispositivosPage({ params, searchParams }) {
           </Button>
 
           <Button
-            onClick={() => window.location.reload()}
-            disabled={cargando}
+            onClick={sincronizarDispositivos}
+            disabled={cargando || sincronizando}
             className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-sm"
-            title="Recargar página para ver nuevos registros"
+            title="Sincronizar y actualizar registros de dispositivos"
           >
-            <RefreshCcw size={18} className={cargando ? "animate-spin" : ""} />
-            Verificar Conexión
+            <RefreshCcw size={18} className={cargando || sincronizando ? "animate-spin" : ""} />
+            {sincronizando ? "Sincronizando..." : "Verificar Conexión"}
           </Button>
         </div>
       </div>

@@ -257,6 +257,47 @@ export async function PUT(
     }
 }
 
+export async function DELETE(
+    request: Request,
+    context: { params: Promise<{ Oid: string }> }
+) {
+    const { Oid } = await context.params;
+    if (!Oid) {
+        return NextResponse.json({ error: "Oid requerido" }, { status: 400 });
+    }
+
+    try {
+        const timetable = await prisma.timetable.findUnique({
+            where: { Oid },
+        });
+
+        if (!timetable) {
+            return NextResponse.json({ error: "Horario no encontrado" }, { status: 404 });
+        }
+
+        // Eliminar en transacción para asegurar integridad
+        await prisma.$transaction([
+            prisma.shifttimetable.deleteMany({ where: { Timetable: Oid } }),
+            prisma.timetablefixed.deleteMany({ where: { Oid } }),
+            prisma.timetablevariable.deleteMany({ where: { Oid } }),
+            prisma.timetable.delete({ where: { Oid } })
+        ]);
+
+        await recordActivity({
+            action: "DELETE",
+            targetModel: "timetable",
+            targetId: Oid,
+            targetName: timetable.Name || timetable.DisplayName || "",
+            description: `Eliminación de horario`,
+            req: request
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting horario:", error);
+        return NextResponse.json({ error: "Error eliminando horario" }, { status: 500 });
+    }
+}
 
 // Helpers
 function secondsToTime(val: number | null | undefined): string {

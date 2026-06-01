@@ -132,6 +132,7 @@ export default function CargoForm({ onClose }) {
                     </Label>
                     <Input
                       id="nombre"
+                      onlyLetters
                       {...register("nombre", { required: "Este campo es requerido" })}
                       placeholder="Ej: Vendedor Senior, Gerente de Marketing, Desarrollador Frontend"
                       className="w-full text-lg py-3 px-4"
@@ -148,6 +149,9 @@ export default function CargoForm({ onClose }) {
                     </Label>
                     <Input
                       id="codigo"
+                      alphanumeric
+                      uppercase
+                      noSpaces
                       {...register("codigo", { required: "Este campo es requerido" })}
                       placeholder="Ej: VEND-SENIOR, GER-MKT, DEV-FRONT"
                       className="w-full py-3 px-4"

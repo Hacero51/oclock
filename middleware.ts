@@ -34,7 +34,6 @@ export default withAuth(
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    // Coincide con todas las rutas /api/:path* y se filtran en callback authorized
-    "/api/:path*",
+    "/api/((?!auth).*)",
   ],
 };

@@ -285,3 +285,58 @@ export async function PUT(
         return NextResponse.json({ error: "Error actualizando turno" }, { status: 500 });
     }
 }
+
+export async function DELETE(
+    request: Request,
+    context: { params: Promise<{ Oid: string }> }
+) {
+    const { Oid } = await context.params;
+
+    if (!Oid) {
+        return NextResponse.json({ error: "Oid requerido" }, { status: 400 });
+    }
+
+    try {
+        const shift = await prisma.shift.findUnique({
+            where: { Oid },
+        });
+
+        if (!shift) {
+            return NextResponse.json({ error: "Turno no encontrado" }, { status: 404 });
+        }
+
+        // Eliminar en transacción para asegurar integridad referencial
+        await prisma.$transaction(async (tx) => {
+            // 1. Quitar el turno asignado a los empleados
+            await tx.employee.updateMany({
+                where: { CurrentShift: Oid },
+                data: { CurrentShift: null }
+            });
+
+            // 2. Eliminar las relaciones de horarios en shifttimetable
+            await tx.shifttimetable.deleteMany({
+                where: { Shift: Oid }
+            });
+
+            // 3. Eliminar el turno
+            await tx.shift.delete({
+                where: { Oid }
+            });
+        });
+
+        // REGISTRO DE ACTIVIDAD
+        await recordActivity({
+            action: "DELETE",
+            targetModel: "shift",
+            targetId: Oid,
+            targetName: shift.Name || "",
+            description: `Eliminación de turno`,
+            req: request
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting turno:", error);
+        return NextResponse.json({ error: "Error eliminando turno" }, { status: 500 });
+    }
+}

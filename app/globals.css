@@ -31,7 +31,7 @@
 }
 
 :root {
-  --background: #000000;
+  --background: #f6f7fb;
   --foreground: #1a202c;
   --primary: #2563eb;
   /* Azul vibrante */
@@ -49,25 +49,6 @@
   --error: #dc2626;
   --sidebar: #1e40af;
   /* Azul oscuro para sidebar */
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #f6f7fb;
-    --foreground: #00060c;
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
-    --secondary: #ef4444;
-    --secondary-dark: #dc2626;
-    --accent: #60a5fa;
-    --muted: #94a3b8;
-    --card: #1e293b;
-    --border: #334155;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --error: #f87171;
-    --sidebar: #1e3a8a;
-  }
 }
 
 body {

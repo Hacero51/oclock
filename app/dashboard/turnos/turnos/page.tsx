@@ -5,8 +5,13 @@ import { DashboardContext } from "@/app/dashboard/layout";
 import Tabla from "../../../../components/Table";
 import CreateModal from "@/components/CreateModal";
 import UpdateModal from "@/components/UpdateModal";
-import { CalendarSync, Plus, Calendar } from "lucide-react";
+import { CalendarSync, Plus, Calendar, Trash2, ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import {
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+} from "@/components/ui/context-menu";
 
 export default function TurnosPage() {
   const { refreshTrigger } = useContext(DashboardContext);
@@ -23,6 +28,8 @@ export default function TurnosPage() {
   const [openCreate, setOpenCreate] = useState(false);
   const [datos, setDatos] = useState<Turnos[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Evitar error de hidratación
   useEffect(() => {
@@ -37,17 +44,45 @@ export default function TurnosPage() {
         const res = await fetch("/api/turnos");
         if (!res.ok) throw new Error("Error al obtener turnos");
         const data = await res.json();
-        setDatos(data);
+        const turnosConId = data.map((t: any) => ({
+          ...t,
+          id: t.Oid
+        }));
+        setDatos(turnosConId);
       } catch (err) {
         console.error("Error:", err);
       }
     }
     fetchTurnos();
-  }, [isMounted, refreshTrigger]);
+  }, [isMounted, refreshTrigger, refreshKey]);
 
   const handleRowClick = (turnos: Turnos) => {
+    setSelectedRowId(turnos.Oid);
     setSelectedTurnos(turnos);
     setOpenUpdate(true);
+  };
+
+  const handleDeleteTurno = async (oid: string) => {
+    if (!confirm("¿Está seguro de que desea eliminar este turno? Esta acción no se puede deshacer y desvinculará a los empleados asignados.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/turnos/${oid}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setSelectedRowId(null);
+        setRefreshKey(prev => prev + 1); // Refrescar la lista de turnos
+      } else {
+        const data = await res.json();
+        alert(data.error || "Error al eliminar el turno");
+      }
+    } catch (error) {
+      console.error("Error al eliminar turno:", error);
+      alert("Error de conexión al eliminar el turno");
+    }
   };
 
   // Evitar render prematuro
@@ -87,7 +122,37 @@ export default function TurnosPage() {
 
         {/* Tabla */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <Tabla columnas={columnas} datos={datos} onRowClick={handleRowClick} />
+          <Tabla
+            columnas={columnas}
+            datos={datos}
+            selectedRowId={selectedRowId}
+            onRowClick={handleRowClick}
+            onRowRightClick={(fila: any) => setSelectedRowId(fila.id)}
+            renderContextMenu={(fila: any) => {
+              return (
+                <>
+                  <ContextMenuItem onClick={() => {
+                    setSelectedTurnos(fila);
+                    setOpenUpdate(true);
+                  }}>
+                    <ExternalLink className="mr-2 h-4 w-4 text-gray-500" />
+                    <span>Abrir el objeto</span>
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => setRefreshKey(prev => prev + 1)}>
+                    <RefreshCw className="mr-2 h-4 w-4 text-green-600" />
+                    <span>Actualizar</span>
+                    <ContextMenuShortcut>F5</ContextMenuShortcut>
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => { if (fila.id) handleDeleteTurno(fila.id); }}>
+                    <Trash2 className="mr-2 h-4 w-4 text-red-600" />
+                    <span>Suprimir</span>
+                    <ContextMenuShortcut>Ctrl+D</ContextMenuShortcut>
+                  </ContextMenuItem>
+                </>
+              );
+            }}
+          />
         </div>
       </div>
       {/* Update Modal */}

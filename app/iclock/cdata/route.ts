@@ -11,10 +11,23 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const sn = url.searchParams.get('SN') || '';
 
-    // El dispositivo espera "OK" plano para confirmar conexión
-    // Puede venir con argumentos como ?options=all
     console.log(`[ADMS-GET] Handshake desde ${sn}`);
-    return new NextResponse("OK", { status: 200 });
+
+    // Retornamos parámetros oficiales de ADMS para forzar sincronización cada 5 minutos (300s)
+    const responseText = [
+        "Registry=OK",
+        "Delay=300",
+        "TransInterval=5",
+        "ErrorDelay=300",
+        "Realtime=1"
+    ].join("\n");
+
+    return new NextResponse(responseText, { 
+        status: 200,
+        headers: {
+            "Content-Type": "text/plain"
+        }
+    });
 }
 
 export async function POST(req: NextRequest) {

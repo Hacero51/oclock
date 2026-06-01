@@ -26,13 +26,13 @@ interface TipoPermiso {
 }
 
 // Componente de controles de paginación mejorado
-function PaginationControls({ 
-  currentPage, 
-  totalPages, 
-  totalItems, 
-  itemsPerPage, 
+function PaginationControls({
+  currentPage,
+  totalPages,
+  totalItems,
+  itemsPerPage,
   onPageChange,
-  tableType 
+  tableType
 }: {
   currentPage: number;
   totalPages: number;
@@ -91,11 +91,10 @@ function PaginationControls({
               <button
                 key={pageNum}
                 onClick={() => onPageChange(pageNum)}
-                className={`w-8 h-8 text-sm rounded-lg transition-all duration-200 ${
-                  currentPage === pageNum
+                className={`w-8 h-8 text-sm rounded-lg transition-all duration-200 ${currentPage === pageNum
                     ? "bg-blue-600 text-white shadow-sm"
                     : "text-gray-600 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 {pageNum}
               </button>
@@ -127,15 +126,15 @@ export default function GestionConceptos() {
   const [conceptosAsistencia, setConceptosAsistencia] = useState<ConceptoAsistencia[]>([]);
   const [tiposPermisos, setTiposPermisos] = useState<TipoPermiso[]>([]);
   const [cargando, setCargando] = useState(true);
-  
+
   // Estados para paginación de asistencia
   const [currentPageAsistencia, setCurrentPageAsistencia] = useState(1);
   const [itemsPerPageAsistencia] = useState(10);
-  
+
   // Estados para paginación de permisos
   const [currentPagePermisos, setCurrentPagePermisos] = useState(1);
   const [itemsPerPagePermisos] = useState(5);
-  
+
   // Estados para modal
   const [selectedConcepto, setSelectedConcepto] = useState<any>(null);
   const [openUpdate, setOpenUpdate] = useState(false);
@@ -151,7 +150,6 @@ export default function GestionConceptos() {
       console.error('Error fetching conceptos asistencia:', error);
       // Datos de ejemplo como fallback
       return [
-        { id: '1', codigo: '00', codigoExportar: '', nombre: '00.TURNO', estado: 'Activo', factor: '0' },
         { id: '2', codigo: '01', codigoExportar: 'A01', nombre: '01.HORA ORDINARIA DIURNA', estado: 'Activo', factor: '1' },
         { id: '3', codigo: '02', codigoExportar: 'A49', nombre: '02.RECARGO NOCTURNO', estado: 'Activo', factor: '1.35' },
         { id: '4', codigo: '03.1', codigoExportar: 'R48', nombre: '03.DESCUENTOS EN TIEMPO LABORADO', estado: 'Activo', factor: '1' },
@@ -163,8 +161,6 @@ export default function GestionConceptos() {
         { id: '10', codigo: '06', codigoExportar: 'A50', nombre: '06.HORA FESTIVA NOCTURNA', estado: 'Activo', factor: '2.10' },
         { id: '11', codigo: '07', codigoExportar: 'A06', nombre: '07.HORAS EXTRAS FESTIVAS DIURNAS', estado: 'Activo', factor: '2.00' },
         { id: '12', codigo: '08', codigoExportar: 'A08', nombre: '08.HORAS EXTRAS FESTIVAS NOCTURNAS', estado: 'Activo', factor: '2.50' },
-        { id: '13', codigo: '98', codigoExportar: '', nombre: '98.RETARDO', estado: 'Activo', factor: '0' },
-        { id: '14', codigo: '99', codigoExportar: '', nombre: '99.AUSENCIA', estado: 'Activo', factor: '0' },
       ];
     }
   };
@@ -204,7 +200,7 @@ export default function GestionConceptos() {
           fetchConceptosAsistencia(),
           fetchTiposPermisos()
         ]);
-        
+
         setConceptosAsistencia(asistenciaData);
         setTiposPermisos(permisosData);
       } catch (error) {
@@ -239,9 +235,8 @@ export default function GestionConceptos() {
     'Nombre': concepto.nombre,
     'Factor': concepto.factor,
     'Estado': (
-      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${
-        concepto.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-      }`}>
+      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${concepto.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
         {concepto.estado}
       </span>
     )
@@ -252,16 +247,14 @@ export default function GestionConceptos() {
     'Código Exportar': permiso.codigoExportar || '-',
     'Nombre': permiso.nombre,
     'Pago': (
-      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${
-        permiso.pago ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-      }`}>
+      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${permiso.pago ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
         {permiso.pago ? 'Con pago' : 'Sin pago'}
       </span>
     ),
     'Estado': (
-      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${
-        permiso.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-      }`}>
+      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit ${permiso.estado === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
         {permiso.estado}
       </span>
     )
@@ -275,7 +268,7 @@ export default function GestionConceptos() {
     const conceptoOriginal = conceptosAsistenciaPaginados.find(
       concepto => concepto.codigo === fila['Código'] && concepto.nombre === fila['Nombre']
     );
-    
+
     if (conceptoOriginal) {
       setSelectedConcepto(conceptoOriginal);
       setModalType('asistencia');
@@ -287,7 +280,7 @@ export default function GestionConceptos() {
     const permisoOriginal = tiposPermisosPaginados.find(
       permiso => permiso.codigo === fila['Código'] && permiso.nombre === fila['Nombre']
     );
-    
+
     if (permisoOriginal) {
       setSelectedConcepto(permisoOriginal);
       setModalType('permiso');
@@ -326,28 +319,28 @@ export default function GestionConceptos() {
       </div>
 
       {/* CONTENEDOR DE LAS DOS TABLAS */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        
+      <div className="grid grid-cols-1 gap-6 w-full">
+
         {/* TABLA DE CONCEPTOS DE ASISTENCIA */}
-        <Card className="shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
+        <Card className="shadow-sm border border-gray-200 rounded-2xl overflow-hidden min-w-0 w-full">
           <CardHeader className="pb-4 border-b border-gray-200 bg-white">
             <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
               <Calendar className="h-5 w-5 text-blue-600" />
               Conceptos de Asistencia
             </CardTitle>
           </CardHeader>
-          
+
           <CardContent className="p-0 bg-white">
             {conceptosAsistencia.length > 0 ? (
               <>
                 <div className="overflow-x-auto">
-                  <Tabla 
+                  <Tabla
                     columnas={columnasAsistencia}
                     datos={datosParaTablaAsistencia}
                     onRowClick={handleRowClickAsistencia}
                   />
                 </div>
-                
+
                 <PaginationControls
                   currentPage={currentPageAsistencia}
                   totalPages={totalPagesAsistencia}
@@ -370,25 +363,25 @@ export default function GestionConceptos() {
         </Card>
 
         {/* TABLA DE TIPOS DE PERMISOS */}
-        <Card className="shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
+        <Card className="shadow-sm border border-gray-200 rounded-2xl overflow-hidden min-w-0 w-full">
           <CardHeader className="pb-4 border-b border-gray-200 bg-white">
             <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
               <Users className="h-5 w-5 text-green-600" />
               Tipos de Permisos
             </CardTitle>
           </CardHeader>
-          
+
           <CardContent className="p-0 bg-white">
             {tiposPermisos.length > 0 ? (
               <>
                 <div className="overflow-x-auto">
-                  <Tabla 
+                  <Tabla
                     columnas={columnasPermisos}
                     datos={datosParaTablaPermisos}
                     onRowClick={handleRowClickPermisos}
                   />
                 </div>
-                
+
                 <PaginationControls
                   currentPage={currentPagePermisos}
                   totalPages={totalPagesPermisos}

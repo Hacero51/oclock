@@ -7,8 +7,14 @@ validateEnvironment();
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
+const logLevels: ("query" | "info" | "warn" | "error")[] = ["warn", "error"];
+
+if (process.env.LOG_QUERIES === "true") {
+  logLevels.push("query", "info");
+}
+
 const prisma = globalForPrisma.prisma || new PrismaClient({
-  log: ["query", "info", "warn", "error"],
+  log: logLevels,
 });
 
 if (process.env.NODE_ENV !== "production") {

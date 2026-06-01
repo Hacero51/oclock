@@ -258,6 +258,9 @@ export default function CentroCostoForm({ data, onClose }) {
                 </Label>
                 <Input
                   name="codigo"
+                  alphanumeric
+                  uppercase
+                  noSpaces
                   value={form.codigo}
                   onChange={handleChange}
                   className="w-full py-3 px-4"
@@ -275,6 +278,7 @@ export default function CentroCostoForm({ data, onClose }) {
                 </Label>
                 <Input
                   name="nombre"
+                  onlyLetters
                   value={form.nombre}
                   onChange={handleChange}
                   className="w-full text-lg py-3 px-4"

@@ -61,8 +61,8 @@ export default function LoginPage() {
                   className="object-contain"
                 />
               </div>
-              <h1 className="text-2xl font-bold text-black mb-1">En Punto</h1>
-              <p className="text-black/90 text-sm">Sistema de gestión</p>
+              <h1 className="text-2xl font-bold text-white mb-1">En Punto</h1>
+              <p className="text-white/90 text-sm">Sistema de gestión</p>
             </div>
           </div>
 

@@ -43,3 +43,5 @@ next-env.d.ts
 /lib/generated/prisma
 sync_debug_log.txt
 sync_debug_log.txt
+
+certificates

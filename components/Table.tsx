@@ -7,11 +7,12 @@ interface TablaProps {
     datos: any[];
     className?: string;
     onRowClick?: (fila: any) => void;
+    onRowRightClick?: (fila: any) => void;
     selectedRowId?: string | null;
     renderContextMenu?: (fila: any) => React.ReactNode;
 }
 
-export default function Tabla({ columnas, datos, onRowClick, selectedRowId, renderContextMenu }: TablaProps) {
+export default function Tabla({ columnas, datos, onRowClick, onRowRightClick, selectedRowId, renderContextMenu }: TablaProps) {
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -71,7 +72,7 @@ export default function Tabla({ columnas, datos, onRowClick, selectedRowId, rend
             {/* Tabla Desktop - DISEÑO PREMIUM UNIFICADO */}
             <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200 shadow-sm bg-white">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full min-w-[600px] text-left border-collapse">
                         <thead className="bg-gray-50/80 border-b border-gray-200">
                             <tr>
                                 {columnas.map((col) => (
@@ -116,7 +117,12 @@ export default function Tabla({ columnas, datos, onRowClick, selectedRowId, rend
 
                                     if (renderContextMenu) {
                                         return (
-                                            <ContextMenu key={i} onOpenChange={(open) => { if (open && onRowClick) onRowClick(fila); }}>
+                                            <ContextMenu key={i} onOpenChange={(open) => {
+                                                if (open) {
+                                                    if (onRowRightClick) onRowRightClick(fila);
+                                                    else if (onRowClick) onRowClick(fila);
+                                                }
+                                            }}>
                                                 <ContextMenuTrigger asChild>
                                                     {rowContent}
                                                 </ContextMenuTrigger>

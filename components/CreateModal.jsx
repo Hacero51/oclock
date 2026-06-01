@@ -15,15 +15,15 @@ export default function CreateModal({ type, onClose }) {
   if (!type) return null;
 
   const sizes = {
-    Empleado: "max-w-6xl h-[90vh]",
-    Dispositivo: "max-w-5xl h-[80vh]",
-    Horarios: "max-w-4xl h-[70vh]",
-    Turno: "max-w-6xl h-[90vh]",
-    "Centro Costo": "max-w-2xl h-[50vh]",
-    Marcacion: "max-w-2xl h-[55vh]",
-    "Dia Festivo": "max-w-2xl h-[55vh]",
-    "Permisos E Incapacidades": "max-w-3xl h-[65vh]",
-    Cargo: "max-w-3xl h-[60vh]",
+    Empleado: "max-w-6xl md:h-[90vh] h-[95vh]", // Fijo grande por pestañas y tablas
+    Dispositivo: "max-w-4xl h-fit max-h-[95vh] md:max-h-[85vh]",
+    Horarios: "max-w-5xl h-fit max-h-[95vh] md:max-h-[90vh]",
+    Turno: "max-w-6xl h-fit max-h-[95vh] md:max-h-[90vh]",
+    "Centro Costo": "max-w-4xl h-fit max-h-[95vh] md:max-h-[90vh]",
+    Marcacion: "max-w-2xl h-fit max-h-[95vh] md:max-h-[80vh]",
+    "Dia Festivo": "max-w-4xl h-fit max-h-[95vh] md:max-h-[90vh]",
+    "Permisos E Incapacidades": "max-w-3xl h-fit max-h-[95vh] md:max-h-[85vh]",
+    Cargo: "max-w-2xl h-fit max-h-[95vh] md:max-h-[80vh]",
   };
 
 

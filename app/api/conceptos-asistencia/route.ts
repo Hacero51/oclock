@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { v4 as uuidv4 } from "uuid";
 
 export async function GET(request: Request) {
     try {
@@ -48,19 +49,6 @@ export async function GET(request: Request) {
             };
         });
 
-        // Solo incluir los obligatorios del sistema si no existen en la BD
-        if (!list.some(l => l.codigo === '00')) {
-            list.unshift({ id: 'builtin-00', codigo: '00', codigoExportar: '-', nombre: '00.TURNO', estado: 'Activo', factor: '0' });
-        }
-        
-        if (!list.some(l => l.codigo === '98')) {
-            list.push({ id: 'builtin-98', codigo: '98', codigoExportar: '-', nombre: '98.RETARDO', estado: 'Activo', factor: '0' });
-        }
-        
-        if (!list.some(l => l.codigo === '99')) {
-            list.push({ id: 'builtin-99', codigo: '99', codigoExportar: '-', nombre: '99.AUSENCIA', estado: 'Activo', factor: '0' });
-        }
-
         return NextResponse.json(list);
 
     } catch (error) {
@@ -73,37 +61,47 @@ export async function PUT(request: Request) {
     try {
         const body = await request.json();
         const { id, codigo, codigoExportar, nombre, estado, factor } = body;
-        
-        if (!id || id.startsWith('builtin-')) {
-             return NextResponse.json({ error: "No se puede editar conceptos internos" }, { status: 400 });
-        }
 
         const numericFactor = parseFloat(factor?.toString().replace(',', '.') || '0');
         const statusVal = estado === 'Activo' ? 0 : 1;
 
-        const updated = await prisma.attendancetype.update({
-             where: { Oid: id },
-             data: {
-                  CodeToExport: codigoExportar || codigo,
-                  Status: statusVal,
-                  Factor: numericFactor
-             }
-        });
+        let updated;
+        // Si no tiene ID o es un concepto virtual "builtin-", lo creamos en la base de datos
+        if (!id || id.startsWith('builtin-')) {
+            const newOid = uuidv4().toUpperCase();
+            updated = await prisma.attendancetype.create({
+                data: {
+                    Oid: newOid,
+                    CodeToExport: codigoExportar && codigoExportar !== '-' ? codigoExportar : codigo,
+                    Status: statusVal,
+                    Factor: numericFactor
+                }
+            });
+        } else {
+            updated = await prisma.attendancetype.update({
+                where: { Oid: id },
+                data: {
+                    CodeToExport: codigoExportar && codigoExportar !== '-' ? codigoExportar : codigo,
+                    Status: statusVal,
+                    Factor: numericFactor
+                }
+            });
+        }
 
         // Actualizar el nombre en la tabla de conceptos ADMS
-        const code = codigoExportar || codigo;
+        const code = codigoExportar && codigoExportar !== '-' ? codigoExportar : codigo;
         if (code) {
-             await prisma.personnel_payrollconcept.upsert({
-                 where: { pc_code: code },
-                 update: { pc_name: nombre },
-                 create: {
-                     pc_code: code,
-                     pc_name: nombre,
-                     pc_type: 1,
-                     type_value: "1",
-                     judgment_type: false,
-                 }
-             });
+            await prisma.personnel_payrollconcept.upsert({
+                where: { pc_code: code },
+                update: { pc_name: nombre },
+                create: {
+                    pc_code: code,
+                    pc_name: nombre,
+                    pc_type: 1,
+                    type_value: "1",
+                    judgment_type: false,
+                }
+            });
         }
 
         return NextResponse.json({ success: true, updated });

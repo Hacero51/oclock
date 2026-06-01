@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"npm run dev:next\" \"npm run start:python\" --names \"NEXT,PYTHON\" --prefix-colors \"bgBlue.bold,bgYellow.bold\"",
-    "dev:next": "next dev",
+    "dev:next": "next dev -H 0.0.0.0 -p 3001",
     "build": "next build",
-    "start": "next start",
+    "start": "concurrently \"npm run start:next\" \"npm run start:python\" --names \"NEXT,PYTHON\" --prefix-colors \"bgBlue.bold,bgYellow.bold\"",
+    "start:next": "next start -H 0.0.0.0 -p 3001",
     "start:python": "python python_service/main.py",
     "lint": "eslint",
     "postinstall": "prisma generate",

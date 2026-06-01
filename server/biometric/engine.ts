@@ -13,8 +13,8 @@ export class LaborEngine {
     private nightStartHour = 19; // 7 PM
     private nightEndHour = 6;    // 6 AM
     
-    // Límites legales de horas en la semana
-    private weeklyOrdinaryLimit = 44;
+    // Límites legales de horas en la semana (dinámico mediante variable de entorno para transición a 42h)
+    private weeklyOrdinaryLimit = process.env.WEEKLY_ORDINARY_LIMIT ? parseInt(process.env.WEEKLY_ORDINARY_LIMIT) : 44;
     private weeklyExtraLimit = 12;
     
     // Tiempo de almuerzo implícito (30 minutos)

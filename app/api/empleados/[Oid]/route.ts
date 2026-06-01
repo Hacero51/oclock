@@ -10,13 +10,20 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
   try {
     const { Oid } = await context.params;
 
-    const [persona, e] = await Promise.all([
+    const [persona, e, party] = await Promise.all([
       prisma.eperson.findUnique({ where: { Oid } }),
       prisma.employee.findUnique({ where: { Oid } }),
+      prisma.eparty.findUnique({ where: { Oid } }),
     ]);
 
     if (!persona) {
       return NextResponse.json({ error: "Empleado no encontrado" }, { status: 404 });
+    }
+
+    let photoUrl = "";
+    if (party?.Photo) {
+      const base64 = Buffer.from(party.Photo).toString("base64");
+      photoUrl = `data:image/jpeg;base64,${base64}`;
     }
 
     return NextResponse.json({
@@ -42,6 +49,7 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
       privilege: e?.Privilege || 0,
       cardNumber: e?.CardNumber || "",
       acPassword: e?.AcPassword || "",
+      photoUrl,
     });
 
   } catch (err) {
@@ -105,6 +113,23 @@ export async function PUT(request: Request, context: { params: Promise<{ Oid: st
         Birthday: data.Birthday ? new Date(data.Birthday) : null,
       },
     });
+
+    // ACTUALIZAR PHOTO EN EPARTY
+    if (data.PhotoUrl !== undefined) {
+      if (data.PhotoUrl && data.PhotoUrl.startsWith("data:image")) {
+        const base64Data = data.PhotoUrl.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, 'base64');
+        await prisma.eparty.update({
+          where: { Oid },
+          data: { Photo: buffer }
+        });
+      } else if (data.PhotoUrl === "") {
+        await prisma.eparty.update({
+          where: { Oid },
+          data: { Photo: null }
+        });
+      }
+    }
 
     // 4. ACTUALIZAR EMPLOYEE
     await prisma.employee.update({

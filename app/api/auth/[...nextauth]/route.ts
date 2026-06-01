@@ -14,9 +14,10 @@ export const authOptions = {
       },
 
       async authorize(credentials) {
-        //console.log("🔵 Recibiendo login:", credentials);
+        console.log("🔥 [NEXTAUTH] authorize called! Username:", credentials?.username);
 
         if (!credentials?.username || !credentials?.password) {
+          console.log("⚠️ [NEXTAUTH] Missing username or password");
           return null;
         }
 
@@ -68,6 +69,7 @@ export const authOptions = {
 
   callbacks: {
     async jwt({ token, user }: { token: any, user: any }) {
+      console.log("🔥 [NEXTAUTH] jwt callback. User:", user ? "yes" : "no");
       if (user) {
         token.id = user.id;
         token.username = user.username;
@@ -89,6 +91,7 @@ export const authOptions = {
     },
 
     async session({ session, token }: { session: any, token: any }) {
+      console.log("🔥 [NEXTAUTH] session callback. Token Username:", token?.username);
       session.user = {
         id: token.id,
         username: token.username,

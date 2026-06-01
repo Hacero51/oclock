@@ -5,12 +5,20 @@ import {
   Clock,
   Search,
   LayoutGrid,
-  CalendarClock
+  CalendarClock,
+  Trash2,
+  ExternalLink,
+  RefreshCw
 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import Tabla from "@/components/Table";
 import { Pagination } from "@/components/ui/Pagination";
 import UpdateModal from "@/components/UpdateModal";
+import {
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+} from "@/components/ui/context-menu";
 
 export default function HorariosPage() {
   const [horarios, setHorarios] = useState([]);
@@ -22,6 +30,7 @@ export default function HorariosPage() {
   // Estados para Modal de Edición
   const [selectedHorario, setSelectedHorario] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Cargar Horarios
@@ -47,8 +56,32 @@ export default function HorariosPage() {
     // La fila viene mapeada, pero guardamos 'original'
     console.log("Fila seleccionada:", fila);
     if (fila.original) {
+      setSelectedRowId(fila.original.Oid);
       setSelectedHorario(fila.original);
       setShowUpdateModal(true);
+    }
+  };
+
+  const handleDeleteHorario = async (oid: string) => {
+    if (!confirm("¿Está seguro de que desea eliminar este horario? Esta acción no se puede deshacer y puede afectar a los turnos vinculados.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/horarios/${oid}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setSelectedRowId(null);
+        setRefreshKey(prev => prev + 1); // Refrescar la lista de horarios
+      } else {
+        const data = await res.json();
+        alert(data.error || "Error al eliminar el horario");
+      }
+    } catch (error) {
+      console.error("Error al eliminar horario:", error);
+      alert("Error de conexión al eliminar el horario");
     }
   };
 
@@ -70,6 +103,7 @@ export default function HorariosPage() {
       "Nombre a mostrar": h.DisplayName || h.Name,
       "Tiempo Total": h.TotalTime,
       "Tipo": h.Type,
+      id: h.Oid,
       // Guardamos el original por si acaso (aunque la tabla solo mostrará lo que esté en columnas)
       original: h
     }));
@@ -137,7 +171,34 @@ export default function HorariosPage() {
                   <Tabla
                     columnas={columnas}
                     datos={paginatedData}
+                    selectedRowId={selectedRowId}
                     onRowClick={handleRowClick}
+                    onRowRightClick={(fila: any) => setSelectedRowId(fila.id)}
+                    renderContextMenu={(fila: any) => {
+                      const h = fila.original;
+                      return (
+                        <>
+                          <ContextMenuItem onClick={() => {
+                            setSelectedHorario(h);
+                            setShowUpdateModal(true);
+                          }}>
+                            <ExternalLink className="mr-2 h-4 w-4 text-gray-500" />
+                            <span>Abrir el objeto</span>
+                          </ContextMenuItem>
+                          <ContextMenuItem onClick={() => setRefreshKey(prev => prev + 1)}>
+                            <RefreshCw className="mr-2 h-4 w-4 text-green-600" />
+                            <span>Actualizar</span>
+                            <ContextMenuShortcut>F5</ContextMenuShortcut>
+                          </ContextMenuItem>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem onClick={() => { if (h) handleDeleteHorario(h.Oid); }}>
+                            <Trash2 className="mr-2 h-4 w-4 text-red-600" />
+                            <span>Suprimir</span>
+                            <ContextMenuShortcut>Ctrl+D</ContextMenuShortcut>
+                          </ContextMenuItem>
+                        </>
+                      );
+                    }}
                   />
                 </div>
                 <div className="border-t border-gray-100 bg-gray-50/50">

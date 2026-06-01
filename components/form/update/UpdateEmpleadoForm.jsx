@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/Label";
 import { Switch } from "@/components/ui/Switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import { Loader2, Save, X, User, Clock, Phone, Camera, Upload, Briefcase, Filter, Calendar, CheckCircle2, Cpu, Fingerprint, ShieldCheck } from "lucide-react";
+import { Pagination } from "@/components/ui/Pagination";
 
 export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
   const [form, setForm] = useState({
@@ -241,6 +242,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
                       <Label className="text-xs md:text-sm font-bold text-gray-700">Nombre a mostrar:</Label>
                       <Input
                         name="FullName"
+                        onlyLetters
                         value={form.FullName}
                         onChange={handleChange}
                         className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
@@ -264,6 +266,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
                       <Label className="text-xs md:text-sm font-bold text-gray-700">Nombre:</Label>
                       <Input
                         name="FirstName"
+                        onlyLetters
                         value={form.FirstName}
                         onChange={handleChange}
                         className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
@@ -274,6 +277,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
                       <Label className="text-xs md:text-sm font-bold text-gray-700">Nacionalidad:</Label>
                       <Input
                         name="Nacionalidad"
+                        onlyLetters
                         value={form.Nacionalidad}
                         onChange={handleChange}
                         className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
@@ -285,6 +289,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
                       <Label className="text-xs md:text-sm font-bold text-gray-700">Segundo nombre:</Label>
                       <Input
                         name="MiddleName"
+                        onlyLetters
                         value={form.MiddleName}
                         onChange={handleChange}
                         className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
@@ -308,6 +313,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
                       <Label className="text-xs md:text-sm font-bold text-gray-700">Apellido:</Label>
                       <Input
                         name="LastName"
+                        onlyLetters
                         value={form.LastName}
                         onChange={handleChange}
                         className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
@@ -329,6 +335,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
                       <Label className="text-xs md:text-sm font-bold text-gray-700">Segundo apellido:</Label>
                       <Input
                         name="MiddleLast"
+                        onlyLetters
                         value={form.MiddleLast}
                         onChange={handleChange}
                         className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
@@ -350,6 +357,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
                       <Label className="text-xs md:text-sm font-bold text-gray-700">Documento:</Label>
                       <Input
                         name="Document"
+                        onlyDocument
                         value={form.Document}
                         onChange={handleChange}
                         className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
@@ -469,6 +477,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
                         <Label className="text-xs md:text-sm font-bold text-gray-700">Cargo:</Label>
                         <Input
                           name="Cargo"
+                          onlyLetters
                           value={form.Cargo}
                           onChange={handleChange}
                           className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
@@ -563,6 +572,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
                           </Label>
                           <Input
                             name="AcNumber"
+                            onlyNumbers
                             type="number"
                             value={form.AcNumber}
                             onChange={handleChange}
@@ -595,6 +605,7 @@ export default function UpdateEmpleadoForm({ data, onClose, refreshData }) {
                           <Label className="text-xs md:text-sm font-bold text-gray-700">Número de Tarjeta (RFID):</Label>
                           <Input
                             name="CardNumber"
+                            onlyNumbers
                             value={form.CardNumber}
                             onChange={handleChange}
                             className="h-9 md:h-11 border border-gray-300 md:border-2 focus:border-indigo-500 bg-gray-50 focus:bg-white text-sm"
@@ -795,6 +806,20 @@ function AttendanceTab({ employeeOid, employeeDocument }) {
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const [regPage, setRegPage] = useState(1);
+  const [regLimit, setRegLimit] = useState(15);
+
+  const [marcPage, setMarcPage] = useState(1);
+  const [marcLimit, setMarcLimit] = useState(15);
+
+  useEffect(() => {
+    setRegPage(1);
+    setMarcPage(1);
+  }, [periodo, refreshKey]);
+
+  const paginatedRegistros = registros.slice((regPage - 1) * regLimit, regPage * regLimit);
+  const paginatedMarcaciones = marcaciones.slice((marcPage - 1) * marcLimit, marcPage * marcLimit);
+
   // Estados para edición inline
   const [editandoId, setEditandoId] = useState(null);
   const [editandoTipo, setEditandoTipo] = useState(null); // "entrada" o "salida"
@@ -990,8 +1015,8 @@ function AttendanceTab({ employeeOid, employeeDocument }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {registros.length > 0 ? (
-                    registros.map((r, i) => (
+                  {paginatedRegistros.length > 0 ? (
+                    paginatedRegistros.map((r, i) => (
                       <tr key={i} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-2.5 text-[11px] whitespace-nowrap">
                           {(() => {
@@ -1027,6 +1052,18 @@ function AttendanceTab({ employeeOid, employeeDocument }) {
               </table>
             )}
           </CardContent>
+          {!loading && (
+            <Pagination
+              currentPage={regPage}
+              totalPages={Math.ceil(registros.length / regLimit) || 1}
+              totalItems={registros.length}
+              itemsPerPage={regLimit}
+              onPageChange={setRegPage}
+              onItemsPerPageChange={setRegLimit}
+              pageSizeOptions={[15, 60, 100]}
+              label="registros"
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="marcacion" className="m-0 border-none">
@@ -1048,8 +1085,8 @@ function AttendanceTab({ employeeOid, employeeDocument }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {marcaciones.length > 0 ? (
-                    marcaciones.map((m, i) => (
+                  {paginatedMarcaciones.length > 0 ? (
+                    paginatedMarcaciones.map((m, i) => (
                       <tr key={i} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-2.5 text-[11px] font-medium whitespace-nowrap">
                           {m.fecha}
@@ -1155,6 +1192,18 @@ function AttendanceTab({ employeeOid, employeeDocument }) {
               </table>
             )}
           </CardContent>
+          {!loading && (
+            <Pagination
+              currentPage={marcPage}
+              totalPages={Math.ceil(marcaciones.length / marcLimit) || 1}
+              totalItems={marcaciones.length}
+              itemsPerPage={marcLimit}
+              onPageChange={setMarcPage}
+              onItemsPerPageChange={setMarcLimit}
+              pageSizeOptions={[15, 60, 100]}
+              label="marcaciones"
+            />
+          )}
         </TabsContent>
       </Tabs>
     </Card>

@@ -195,6 +195,12 @@ export async function POST(req: Request) {
     // -----------------------------
     // ZKTeco usa herencia: Employee -> Person -> Party.
     // Debemos crear la raíz primero.
+    let photoBuffer = null;
+    if (data.photoUrl && data.photoUrl.startsWith("data:image")) {
+      const base64Data = data.photoUrl.replace(/^data:image\/\w+;base64,/, "");
+      photoBuffer = Buffer.from(base64Data, 'base64');
+    }
+
     await prisma.eparty.create({
       data: {
         Oid: newOid,
@@ -203,6 +209,7 @@ export async function POST(req: Request) {
         ObjectType: 1,
         OptimisticLockField: 0,
         GCRecord: null,
+        Photo: photoBuffer,
       },
     });
 

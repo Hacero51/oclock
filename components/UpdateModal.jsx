@@ -17,17 +17,17 @@ export default function UpdateModal({ type, data, onClose }) {
   if (!type) return null;
 
   const sizes = {
-    Empleado: "max-w-6xl h-[95vh]",
-    dispositivo: "max-w-5xl h-[80vh]",
-    Horarios: "max-w-4xl h-[90vh]",
-    turno: "max-w-5xl h-[90vh]",
-    "Centro de Costo": "max-w-7xl h-[90vh]",
-    marcacion: "max-w-2xl h-[55vh]",
-    diafestivo: "max-w-2xl h-[55vh]",
-    permisoseinca: "max-w-3xl h-[75vh]",
-    cargo: "max-w-3xl h-[60vh]",
-    conceptosasistencia: "max-w-2xl h-[60vh]",
-    tipopermiso: "max-w-2xl h-[60vh]",
+    Empleado: "max-w-6xl md:h-[95vh] h-[95vh]", // Fijo grande por pestañas y tablas de asistencia
+    dispositivo: "max-w-4xl h-fit max-h-[95vh] md:max-h-[85vh]",
+    Horarios: "max-w-5xl h-fit max-h-[95vh] md:max-h-[90vh]",
+    turno: "max-w-5xl h-fit max-h-[95vh] md:max-h-[90vh]",
+    "Centro de Costo": "max-w-4xl h-fit max-h-[95vh] md:max-h-[90vh]",
+    marcacion: "max-w-2xl h-fit max-h-[95vh] md:max-h-[80vh]",
+    diafestivo: "max-w-4xl h-fit max-h-[95vh] md:max-h-[90vh]",
+    permisoseinca: "max-w-3xl h-fit max-h-[95vh] md:max-h-[85vh]",
+    cargo: "max-w-2xl h-fit max-h-[95vh] md:max-h-[80vh]",
+    conceptosasistencia: "max-w-2xl h-fit max-h-[95vh] md:max-h-[80vh]",
+    tipopermiso: "max-w-2xl h-fit max-h-[95vh] md:max-h-[80vh]",
   };
 
   const forms = {

@@ -13,13 +13,13 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get("limit") || "1000"); // Aumentamos default para compatibilidad
     const skip = (page - 1) * limit;
 
-    const whereClause: any = {};
+    const whereConditions: any[] = [];
 
     // Filtro por estado
     if (status === "activo" || status === "activos") {
-      whereClause.Status = 0;
+      whereConditions.push({ Status: 0 });
     } else if (status === "inactivo" || status === "inactivos") {
-      whereClause.Status = 1;
+      whereConditions.push({ Status: 1 });
     }
 
     // Filtro para excluir registros "fantasmas" (sin nombre o documento)
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
       select: { Oid: true }
     });
     const realOids = realPersons.map(p => p.Oid);
-    whereClause.Oid = { in: realOids };
+    whereConditions.push({ Oid: { in: realOids } });
 
     // Filtro por nombre/documento (Database level)
     if (query) {
@@ -62,11 +62,60 @@ export async function GET(request: Request) {
       
       // Combinar con búsqueda por AcNumber (lector)
       const acNum = parseInt(q);
-      whereClause.OR = [
-        { Oid: { in: matchedOids } },
-        ...(isNaN(acNum) ? [] : [{ AcNumber: acNum }])
-      ];
+      whereConditions.push({
+        OR: [
+          { Oid: { in: matchedOids } },
+          ...(isNaN(acNum) ? [] : [{ AcNumber: acNum }])
+        ]
+      });
     }
+
+    // Filtro por departamento
+    const deptFilter = searchParams.get("department");
+    if (deptFilter && deptFilter !== "all" && deptFilter !== "undefined") {
+      if (deptFilter === "none") {
+        whereConditions.push({
+          OR: [
+            { Department: null },
+            { Department: "" }
+          ]
+        });
+      } else {
+        // En caso de que recibamos un Oid de departamento directamente (ej: UUID de 36 o 38 caracteres)
+        const isUuid = /^[a-fA-F0-9-]{36,38}$/i.test(deptFilter.trim());
+        if (isUuid) {
+          const trimmedOid = deptFilter.trim();
+          whereConditions.push({
+            OR: [
+              { Department: trimmedOid },
+              { Department: ` ${trimmedOid} ` },
+              { Department: trimmedOid.toLowerCase() }
+            ]
+          });
+        } else {
+          // Fallback por si acaso recibimos un nombre (retrocompatibilidad)
+          const matchedDepts = await prisma.department.findMany({
+            where: {
+              OR: [
+                { Name: { contains: deptFilter } },
+                { FullName: { contains: deptFilter } }
+              ]
+            },
+            select: { Oid: true }
+          });
+          const matchedOids = matchedDepts.map(d => d.Oid.trim());
+          whereConditions.push({
+            OR: matchedOids.flatMap(oid => [
+              { Department: oid },
+              { Department: ` ${oid} ` },
+              { Department: oid.toLowerCase() }
+            ])
+          });
+        }
+      }
+    }
+
+    const whereClause = whereConditions.length > 0 ? { AND: whereConditions } : {};
 
     const [total, empleados] = await Promise.all([
       prisma.employee.count({ where: whereClause }),

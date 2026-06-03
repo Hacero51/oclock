@@ -35,12 +35,16 @@ export async function GET() {
             if (c.Department) conteoMap.set(c.Department, c._count.Oid);
         });
 
-        const data = departamentos.map(d => ({
-            id: d.Oid,
-            name: d.Name || d.FullName || "Departamento Sin Nombre", // Fallback robusto
-            parentId: d.Parent,
-            count: conteoMap.get(d.Oid) || 0
-        }));
+        const data = departamentos.map(d => {
+            let name = d.FullName || d.Name || "Departamento Sin Nombre";
+            name = name.replace(/^(7 DE AGOSTO|CALLE 4|CALLE 4TA)\//i, "");
+            return {
+                id: d.Oid,
+                name: name,
+                parentId: d.Parent,
+                count: conteoMap.get(d.Oid) || 0
+            };
+        });
 
         return NextResponse.json(data);
     } catch (error) {

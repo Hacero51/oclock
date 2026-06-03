@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { recordActivity } from "@/lib/activity-log";
+import crypto from "crypto";
 
 export async function GET(
     request: Request,
@@ -219,10 +220,8 @@ export async function PUT(
                 where: { Timetable: Oid }
             });
 
-            const { v4: uuidv4 } = require('uuid');
-
             const newLinks = turnos.map((t: any) => ({
-                Oid: uuidv4(),
+                Oid: crypto.randomUUID(),
                 Timetable: Oid,
                 Shift: t.Shift, // ID del turno
                 Day: t.Day,

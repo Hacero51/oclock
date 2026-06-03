@@ -1,24 +1,89 @@
 {
-  "Administradores": [
-    "empresa",
-    "turnos",
-    "asistencia",
-    "dispositivos",
-    "reportes",
-    "maestros",
-    "administracion"
-  ],
-  "Supervisor": [
-    "empresa",
-    "turnos",
-    "asistencia",
-    "dispositivos",
-    "reportes",
-    "maestros"
-  ],
-  "Usuario": [
-    "empresa",
-    "dispositivos",
-    "asistencia"
-  ]
+  "Administradores": {
+    "turnos": [
+      "ver",
+      "crear",
+      "editar",
+      "eliminar"
+    ],
+    "asistencia": [
+      "ver",
+      "crear",
+      "editar",
+      "eliminar"
+    ],
+    "dispositivos": [
+      "ver",
+      "crear",
+      "editar",
+      "eliminar"
+    ],
+    "reportes": [
+      "ver",
+      "crear",
+      "editar",
+      "eliminar"
+    ],
+    "maestros": [
+      "ver",
+      "crear",
+      "editar",
+      "eliminar"
+    ],
+    "administracion": [
+      "ver",
+      "crear",
+      "editar",
+      "eliminar"
+    ],
+    "empresa": [
+      "ver",
+      "crear",
+      "editar",
+      "eliminar"
+    ]
+  },
+  "Supervisor": {
+    "empresa": [
+      "ver",
+      "crear",
+      "editar",
+      "eliminar"
+    ],
+    "turnos": [
+      "ver"
+    ],
+    "asistencia": [
+      "ver"
+    ],
+    "dispositivos": [
+      "ver",
+      "crear",
+      "editar",
+      "eliminar"
+    ],
+    "reportes": [
+      "ver",
+      "crear",
+      "editar",
+      "eliminar"
+    ],
+    "maestros": [
+      "ver",
+      "crear",
+      "editar",
+      "eliminar"
+    ]
+  },
+  "Usuario": {
+    "empresa": [
+      "ver"
+    ],
+    "dispositivos": [
+      "ver"
+    ],
+    "asistencia": [
+      "ver"
+    ]
+  }
 }

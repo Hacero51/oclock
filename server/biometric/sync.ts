@@ -74,18 +74,22 @@ export async function sincronizarRelojes(devicesToSync?: string[]) {
 
                     // FILTRADO INTELIGENTE: Ignorar logs muy antiguos ya procesados
                     let logsAProcesar = pyResult.logs;
-                    if (machine.LastDownload) {
-                        const cutoffDate = new Date(machine.LastDownload);
-                        cutoffDate.setDate(cutoffDate.getDate() - 7); // 7 días atrás por seguridad
+                    
+                    // FALLBACK DE SEGURIDAD: Si no hay LastDownload (ej: reset de DB), usar 30 días atrás como base
+                    const baseDate = machine.LastDownload 
+                        ? new Date(machine.LastDownload) 
+                        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-                        logsAProcesar = pyResult.logs.filter((l: any) => {
-                            const t = new Date(l.timestamp);
-                            return t > cutoffDate;
-                        });
+                    const cutoffDate = new Date(baseDate);
+                    cutoffDate.setHours(cutoffDate.getHours() - 6); // 6 horas atrás por seguridad (optimización clave para evitar saturación)
 
-                        if (logsAProcesar.length < pyResult.logs.length) {
-                            logToDebugFile(`[SYNC-PY] Filtrados ${pyResult.logs.length - logsAProcesar.length} logs antiguos. Procesando ${logsAProcesar.length} recientes.`);
-                        }
+                    logsAProcesar = pyResult.logs.filter((l: any) => {
+                        const t = new Date(l.timestamp);
+                        return t > cutoffDate;
+                    });
+
+                    if (logsAProcesar.length < pyResult.logs.length) {
+                        logToDebugFile(`[SYNC-PY] Filtrados ${pyResult.logs.length - logsAProcesar.length} logs antiguos. Procesando ${logsAProcesar.length} recientes.`);
                     }
 
                     // ORDENAR CRONOLÓGICAMENTE: Priorizar los registros más antiguos primero para que la lógica "Primer Golpe = Entrada" funcione.

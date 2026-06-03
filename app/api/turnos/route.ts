@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { recordActivity } from "@/lib/activity-log";
+import crypto from "crypto";
 
 export async function GET() {
 // ... (rest of the file remains same until POST)
@@ -52,8 +53,6 @@ export async function POST(req: Request) {
       adicionarTiempoExtra
     } = body;
 
-    const { v4: uuidv4 } = require('uuid');
-
     let shiftCycle = 1; // Default Semana
     if (rotacion === 'Dia') shiftCycle = 0;
     if (rotacion === 'Semana') shiftCycle = 1;
@@ -67,9 +66,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "El nombre es obligatorio" }, { status: 400 });
     }
 
-    const newShiftOid = uuidv4().toUpperCase();
+    const newShiftOid = crypto.randomUUID().toUpperCase();
 
-    // Use a transaction to ensure all related data is saved correctly
     const result = await prisma.$transaction(async (tx) => {
       // 1. Create the Shift
       const newShift = await tx.shift.create({
@@ -96,7 +94,7 @@ export async function POST(req: Request) {
           if (h.timetableId) {
             await tx.shifttimetable.create({
               data: {
-                Oid: uuidv4().toUpperCase(),
+                Oid: crypto.randomUUID().toUpperCase(),
                 Shift: newShiftOid,
                 Timetable: h.timetableId,
                 NumberDay: h.day,
@@ -123,6 +121,8 @@ export async function POST(req: Request) {
       }
 
       return newShift;
+    }, {
+      timeout: 30000
     });
 
     // REGISTRO DE ACTIVIDAD

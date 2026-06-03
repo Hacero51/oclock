@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { recordActivity } from "@/lib/activity-log";
+import crypto from "crypto";
 
 // Rebuild trigger
 
@@ -193,8 +194,6 @@ export async function PUT(
             adicionarTiempoExtra
         } = body;
 
-        const { v4: uuidv4 } = require('uuid');
-
         let shiftCycle = 1; // Default Semana
         if (rotacion === 'Dia') shiftCycle = 0;
         if (rotacion === 'Semana') shiftCycle = 1;
@@ -232,7 +231,7 @@ export async function PUT(
                     if (h.timetableId) {
                         await tx.shifttimetable.create({
                             data: {
-                                Oid: uuidv4().toUpperCase(),
+                                Oid: crypto.randomUUID().toUpperCase(),
                                 Shift: Oid,
                                 Timetable: h.timetableId,
                                 NumberDay: h.day,
@@ -248,17 +247,23 @@ export async function PUT(
 
             // Update Employees
             if (empleados && Array.isArray(empleados)) {
-                // 1. Remove from this shift those who are NOT in the new list
-                await tx.employee.updateMany({
-                    where: {
-                        CurrentShift: Oid,
-                        Oid: { notIn: empleados }
-                    },
-                    data: { CurrentShift: null }
-                });
+                if (empleados.length === 0) {
+                    // 1. Remove from this shift all employees
+                    await tx.employee.updateMany({
+                        where: { CurrentShift: Oid },
+                        data: { CurrentShift: null }
+                    });
+                } else {
+                    // 1. Remove from this shift those who are NOT in the new list
+                    await tx.employee.updateMany({
+                        where: {
+                            CurrentShift: Oid,
+                            Oid: { notIn: empleados }
+                        },
+                        data: { CurrentShift: null }
+                    });
 
-                // 2. Assign selected ones to this shift
-                if (empleados.length > 0) {
+                    // 2. Assign selected ones to this shift
                     await tx.employee.updateMany({
                         where: { Oid: { in: empleados } },
                         data: { CurrentShift: Oid }
@@ -267,6 +272,8 @@ export async function PUT(
             }
 
             return updatedShift;
+        }, {
+            timeout: 30000
         });
 
         // REGISTRO DE ACTIVIDAD

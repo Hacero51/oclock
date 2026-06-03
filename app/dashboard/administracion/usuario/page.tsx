@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Users, UserPlus, Save, Edit, Trash2, Search, Eye, EyeOff, RefreshCw, Shield, Key, UserCheck, ChevronRight, ChevronLeft, Layout, CheckCircle2 } from "lucide-react";
+import { Users, UserPlus, Save, Edit, Trash2, Search, Eye, EyeOff, RefreshCw, Shield, Key, UserCheck, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Layout, CheckCircle2 } from "lucide-react";
 import Tabla from "@/components/Table";
 import { ALL_SIDEBAR_ITEMS, getIcon } from "@/lib/sidebar-items";
 
@@ -67,8 +67,9 @@ export default function CrearUsuario() {
   
   // Estado para gestión de roles
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
-  const [permissions, setPermissions] = useState<Record<string, string[]>>({});
+  const [permissions, setPermissions] = useState<Record<string, any>>({});
   const [savingPermissions, setSavingPermissions] = useState(false);
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
   // Cargar usuarios desde la API
   const cargarUsuarios = async () => {
@@ -132,7 +133,7 @@ export default function CrearUsuario() {
     }
   };
 
-  const guardarPermisos = async (newPermissions: Record<string, string[]>) => {
+  const guardarPermisos = async (newPermissions: Record<string, any>) => {
     setSavingPermissions(true);
     try {
       const response = await fetch('/api/roles/permissions', {
@@ -150,13 +151,40 @@ export default function CrearUsuario() {
     }
   };
 
-  const togglePermission = (roleName: string, itemId: string) => {
-    const currentPerms = permissions[roleName] || [];
-    const newPerms = currentPerms.includes(itemId)
-      ? currentPerms.filter(id => id !== itemId)
-      : [...currentPerms, itemId];
+  const toggleActionPermission = (roleName: string, sectionId: string, action: string) => {
+    const rolePerms = permissions[roleName] || {};
+    const sectionPerms = rolePerms[sectionId] || [];
     
-    const updated = { ...permissions, [roleName]: newPerms };
+    const newSectionPerms = sectionPerms.includes(action)
+      ? sectionPerms.filter((a: string) => a !== action)
+      : [...sectionPerms, action];
+      
+    const updated = {
+      ...permissions,
+      [roleName]: {
+        ...rolePerms,
+        [sectionId]: newSectionPerms
+      }
+    };
+    setPermissions(updated);
+    guardarPermisos(updated);
+  };
+
+  const toggleWholeSection = (roleName: string, sectionId: string) => {
+    const rolePerms = permissions[roleName] || {};
+    const sectionPerms = rolePerms[sectionId] || [];
+    
+    const newSectionPerms = sectionPerms.length > 0
+      ? []
+      : ["ver", "crear", "editar", "eliminar"];
+      
+    const updated = {
+      ...permissions,
+      [roleName]: {
+        ...rolePerms,
+        [sectionId]: newSectionPerms
+      }
+    };
     setPermissions(updated);
     guardarPermisos(updated);
   };
@@ -798,34 +826,97 @@ export default function CrearUsuario() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {ALL_SIDEBAR_ITEMS.map(item => {
                         const Icon = getIcon(item.icon);
-                        const isAllowed = (permissions[selectedRole] || []).includes(item.id);
+                        const rolePerms = permissions[selectedRole] || {};
+                        const sectionPerms = rolePerms[item.id] || [];
+                        const hasAny = sectionPerms.length > 0;
+                        const isExpanded = expandedItem === item.id;
                         
                         return (
-                          <button
+                          <div
                             key={item.id}
-                            onClick={() => togglePermission(selectedRole, item.id)}
-                            className={`flex flex-col items-start p-4 rounded-2xl border-2 transition-all text-left relative group ${
-                              isAllowed 
+                            className={`flex flex-col rounded-2xl border-2 transition-all p-4 relative ${
+                              hasAny 
                                 ? 'border-blue-500 bg-white shadow-md' 
-                                : 'border-gray-100 bg-gray-50/50 hover:border-gray-200 opacity-60 grayscale-[0.5]'
+                                : 'border-gray-200 bg-gray-50/50'
                             }`}
                           >
-                            <div className={`p-2 rounded-xl mb-3 ${isAllowed ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-gray-400 shadow-sm'}`}>
-                              <Icon size={20} />
+                            {/* Card Header (Clickable to Expand/Collapse) */}
+                            <div 
+                              onClick={() => setExpandedItem(isExpanded ? null : item.id)}
+                              className="flex items-center justify-between cursor-pointer select-none"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-xl ${hasAny ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-200'}`}>
+                                  <Icon size={18} />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className={`text-sm font-bold ${hasAny ? 'text-gray-900' : 'text-gray-500'}`}>
+                                    {item.title}
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 leading-tight">
+                                    {sectionPerms.length > 0 ? `${sectionPerms.length} acciones activas` : 'Sin accesos'}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleWholeSection(selectedRole, item.id);
+                                  }}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                                    hasAny 
+                                      ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' 
+                                      : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'
+                                  }`}
+                                >
+                                  {hasAny ? 'Quitar todo' : 'Activar todo'}
+                                </button>
+                                <div className="text-gray-400 hover:text-gray-600 transition-colors">
+                                  {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </div>
+                              </div>
                             </div>
-                            <span className={`text-sm font-black mb-1 ${isAllowed ? 'text-gray-900' : 'text-gray-500'}`}>
-                              {item.title}
-                            </span>
-                            <span className="text-[10px] text-gray-400 leading-tight">
-                              Sección principal
-                            </span>
 
-                            {isAllowed && (
-                              <div className="absolute top-4 right-4">
-                                <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                            {/* Granular Actions Panel (Accordion) */}
+                            {isExpanded && (
+                              <div className="mt-4 pt-3 border-t border-gray-100 space-y-2">
+                                {[
+                                  { id: 'ver', label: 'Ver / Visualizar', desc: 'Permiso para listar y ver' },
+                                  { id: 'crear', label: 'Crear / Adicionar', desc: 'Permiso para agregar registros' },
+                                  { id: 'editar', label: 'Editar / Actualizar', desc: 'Permiso para modificar registros' },
+                                  { id: 'eliminar', label: 'Eliminar / Suprimir', desc: 'Permiso para borrar registros' }
+                                ].map(action => {
+                                  const isActive = sectionPerms.includes(action.id);
+                                  return (
+                                    <label 
+                                      key={action.id} 
+                                      className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-colors ${
+                                        isActive ? 'bg-blue-50/40 hover:bg-blue-50' : 'hover:bg-gray-100'
+                                      }`}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={isActive}
+                                        onChange={() => toggleActionPermission(selectedRole, item.id, action.id)}
+                                        className="mt-0.5 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                      />
+                                      <div className="flex flex-col">
+                                        <span className={`text-xs font-bold ${isActive ? 'text-blue-900' : 'text-gray-700'}`}>
+                                          {action.label}
+                                        </span>
+                                        <span className="text-[9px] text-gray-400">
+                                          {action.desc}
+                                        </span>
+                                      </div>
+                                    </label>
+                                  );
+                                })}
                               </div>
                             )}
-                          </button>
+                          </div>
                         );
                       })}
                     </div>

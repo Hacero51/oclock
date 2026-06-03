@@ -39,7 +39,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   const [openItem, setOpenItem] = useState<string | null>(null);
   const [hoverExpand, setHoverExpand] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [permissions, setPermissions] = useState<Record<string, string[]>>({});
+  const [permissions, setPermissions] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetch("/api/roles/permissions")
@@ -54,8 +54,17 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   // Obtener todos los IDs permitidos para los roles del usuario
   const allowedIds = new Set<string>();
   userRoles.forEach((role: string) => {
-    const rolePerms = permissions[role] || [];
-    rolePerms.forEach(id => allowedIds.add(id));
+    const rolePerms = permissions[role];
+    if (rolePerms && typeof rolePerms === "object" && !Array.isArray(rolePerms)) {
+      Object.keys(rolePerms).forEach(sectionId => {
+        const actions = rolePerms[sectionId] || [];
+        if (actions.includes("ver") || actions.length > 0) {
+          allowedIds.add(sectionId);
+        }
+      });
+    } else if (Array.isArray(rolePerms)) {
+      rolePerms.forEach(id => allowedIds.add(id));
+    }
   });
 
   // Filtrar items según roles y permisos dinámicos
@@ -104,8 +113,8 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
               <img
                 src="/logo.png"
                 alt="Logo"
-                width="75"
-                height="75"
+                width="500"
+                height="500"
                 className="rounded-lg shadow-inner object-contain"
               />
             </div>

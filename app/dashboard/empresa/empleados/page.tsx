@@ -97,9 +97,8 @@ export default function EmpleadosPage() {
         });
 
         if (busqueda) queryParams.set("query", busqueda);
-        if (departamento && departamento !== "all" && departamento !== "none") {
-            // Nota: El filtro de departamento sigue siendo un reto si no se hace en DB.
-            // Por ahora, el query del backend busca en eperson (Nombre/Doc).
+        if (departamento && departamento !== "all") {
+          queryParams.set("department", departamento);
         }
 
         const res = await fetch(`/api/empleados?${queryParams.toString()}`);
@@ -133,13 +132,13 @@ export default function EmpleadosPage() {
   }, [isMounted, refreshKey, refreshTrigger, currentPage, itemsPerPage, busqueda, estadoEmpleados, departamento]);
 
   // Departamentos (Para el filtro, idealmente vendrían de otra API)
-  const [departamentos, setDepartamentos] = useState<string[]>([]);
+  const [departamentos, setDepartamentos] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => {
     fetch('/api/departamentos')
       .then(res => res.json())
       .then(data => {
-        const uniqueDepts = Array.from(new Set(data.map((d: any) => d.name).filter(Boolean))) as string[];
-        setDepartamentos(uniqueDepts.sort());
+        const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name));
+        setDepartamentos(sorted);
       })
       .catch(err => console.error("Error loading depts:", err));
   }, []);
@@ -216,13 +215,13 @@ export default function EmpleadosPage() {
               <SelectContent className="rounded-xl border-gray-100 shadow-lg">
                 <SelectItem value="all" className="font-medium text-gray-600">Todos</SelectItem>
                 <SelectItem value="none" className="font-medium text-amber-600 italic">
-                    Sin asignar
+                  Sin asignar
                 </SelectItem>
                 {departamentos.map((d) => (
-                  <SelectItem key={d} value={d}>
+                  <SelectItem key={d.id} value={d.id}>
                     <div className="flex items-center gap-2">
                       <Building className="h-4 w-4 text-gray-400" />
-                      {d}
+                      {d.name}
                     </div>
                   </SelectItem>
                 ))}
@@ -267,6 +266,7 @@ export default function EmpleadosPage() {
           onPageChange={setCurrentPage}
           onItemsPerPageChange={setItemsPerPage}
           label="empleados"
+          pageSizeOptions={[15, 50, 100, 200]}
         />
       </div>
 

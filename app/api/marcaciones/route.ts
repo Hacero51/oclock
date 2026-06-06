@@ -6,6 +6,22 @@ import { recordActivity } from "@/lib/activity-log";
 // Forzar recompilacion - v5 (LEGACY IDENTITY RESTORATION)
 export async function GET(request: Request) {
     try {
+        // Migrate existing records that were initialized to false instead of null
+        await prisma.marking.updateMany({
+            where: {
+                StartShiftMarkingIn: false,
+                OverTimeBeforeEntry: false,
+                OverTimeAfterExit: false,
+                OverTimeInHoliday: false
+            },
+            data: {
+                StartShiftMarkingIn: null,
+                OverTimeBeforeEntry: null,
+                OverTimeAfterExit: null,
+                OverTimeInHoliday: null
+            }
+        });
+
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "50");
@@ -114,7 +130,7 @@ export async function GET(request: Request) {
         const [employeesLegacy, personsLegacy] = await Promise.all([
             prisma.employee.findMany({
                 where: { Oid: { in: relevantEmpOids } },
-                select: { Oid: true, AcNumber: true, CurrentShift: true, CardNumber: true }
+                select: { Oid: true, AcNumber: true, CurrentShift: true, CardNumber: true, Department: true }
             }),
             prisma.eperson.findMany({
                 where: { Oid: { in: relevantEmpOids } },
@@ -122,21 +138,46 @@ export async function GET(request: Request) {
             })
         ]);
 
-        // 3. Agregar los CurrentShift de los empleados a la lista de turnos a buscar
+        // 3. Agregar los CurrentShift de los empleados a la lista de turnos a buscar y recopilar departamentos
+        const departmentOidsSet = new Set<string>();
         employeesLegacy.forEach(e => {
             const csOid = e.CurrentShift?.trim();
             if (csOid && csOid.length > 10) shiftOidsSet.add(csOid);
+
+            const deptOid = e.Department?.trim();
+            if (deptOid && deptOid.length > 10) departmentOidsSet.add(deptOid);
         });
 
-        // 4. Fetch de turnos y construcción de mapas finales
-        const shiftsLegacy = await prisma.shift.findMany({
-            where: { Oid: { in: Array.from(shiftOidsSet) } },
-            select: { Oid: true, Name: true }
-        });
+        // 4. Fetch de turnos, departamentos y construcción de mapas finales
+        const [shiftsLegacy, shifttimetablesLegacy, departmentsLegacy] = await Promise.all([
+            prisma.shift.findMany({
+                where: { Oid: { in: Array.from(shiftOidsSet) } },
+                select: {
+                    Oid: true,
+                    Name: true,
+                    OverTimeBeforeEntry: true,
+                    OverTimeAfterExit: true,
+                    OverTimeInLunch: true,
+                    OverTimeInHoliday: true
+                }
+            }),
+            prisma.shifttimetable.findMany({
+                where: { Shift: { in: Array.from(shiftOidsSet) } },
+                select: { Shift: true, NumberDay: true, StartShiftMarkingIn: true }
+            }),
+            prisma.department.findMany({
+                where: { Oid: { in: Array.from(departmentOidsSet) } },
+                select: { Oid: true, FullName: true, Name: true }
+            })
+        ]);
 
         const empMap = new Map(employeesLegacy.map(e => [e.Oid.trim(), e]));
         const personMap = new Map(personsLegacy.map(p => [p.Oid.trim(), p]));
-        const shiftMap = new Map(shiftsLegacy.map(s => [s.Oid.trim(), s.Name || 'Turno Sin Nombre']));
+        const shiftMap = new Map(shiftsLegacy.map(s => [s.Oid.trim(), s]));
+        const shifttimetableMap = new Map(
+            shifttimetablesLegacy.map(st => [`${st.Shift?.trim()}_${st.NumberDay}`, st])
+        );
+        const deptMap = new Map(departmentsLegacy.map(d => [d.Oid.trim(), d]));
 
         // --- FUNCIONES HELPER FUERA DEL LOOP PARA VELOCIDAD ---
         const formatLocale = (d: Date | null) => {
@@ -182,14 +223,17 @@ export async function GET(request: Request) {
             let turnoNombre = 'Sin Turno';
             const markShiftId = m.Shift?.trim();
             const empShiftId = empData?.CurrentShift?.trim();
+            let activeShiftId: string | null = null;
 
             // Prioridad 1: Turno explícito en la marcación
             if (markShiftId && shiftMap.has(markShiftId)) {
-                turnoNombre = shiftMap.get(markShiftId)!;
+                activeShiftId = markShiftId;
+                turnoNombre = shiftMap.get(markShiftId)!.Name || 'Turno Sin Nombre';
             }
             // Prioridad 2: Turno asignado al empleado (CurrentShift)
             else if (empShiftId && shiftMap.has(empShiftId)) {
-                turnoNombre = shiftMap.get(empShiftId)!;
+                activeShiftId = empShiftId;
+                turnoNombre = shiftMap.get(empShiftId)!.Name || 'Turno Sin Nombre';
             }
 
             // Validar que el nombre sea un nombre real y no un ID o fallback
@@ -207,17 +251,55 @@ export async function GET(request: Request) {
 
             if (!esNombreValido) return null;
 
+            // C. Resolver valores de configuración para checkboxes
+            const shiftObj = activeShiftId ? shiftMap.get(activeShiftId) : null;
+
+            // Day of the week for shifttimetable lookup (Lunes=1, Domingo=7)
+            const dayOfWeek = m.Day ? new Date(m.Day).getUTCDay() : 1;
+            const numberDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+            
+            const shifttimetableObj = activeShiftId 
+                ? shifttimetableMap.get(`${activeShiftId}_${numberDay}`) 
+                : null;
+
+            // Fallback a la configuración si el valor es null en la base de datos
+            let iniciaTurnoVal = m.StartShiftMarkingIn;
+            if (iniciaTurnoVal === null) {
+                iniciaTurnoVal = shifttimetableObj ? !!shifttimetableObj.StartShiftMarkingIn : false;
+            }
+
+            let extraDespuesVal = m.OverTimeAfterExit;
+            if (extraDespuesVal === null) {
+                extraDespuesVal = shiftObj ? !!shiftObj.OverTimeAfterExit : false;
+            }
+
+            let extraFestivoVal = m.OverTimeInHoliday;
+            if (extraFestivoVal === null) {
+                extraFestivoVal = shiftObj ? !!shiftObj.OverTimeInHoliday : false;
+            }
+
+            // D. Resolver DEPARTAMENTO
+            let departamentoNombre = 'Sin Departamento';
+            const deptOid = empData?.Department?.trim();
+            if (deptOid && deptMap.has(deptOid)) {
+                const deptObj = deptMap.get(deptOid)!;
+                let name = deptObj.FullName || deptObj.Name || '';
+                name = name.replace(/^(7 DE AGOSTO|CALLE 4|CALLE 4TA)\//i, "");
+                departamentoNombre = name;
+            }
+
             return {
                 id: m.Oid,
                 cedula: documento,
                 empleado: cleanName,
+                departamento: departamentoNombre,
                 turno: turnoNombre,
                 fecha: formatDateOnly(m.Day),
                 entrada: formatLocale(m.MarkingIn),
                 salida: formatLocale(m.MarkingOut),
-                iniciaTurno: !!m.StartShiftMarkingIn,
-                tiempoExtraDespues: !!m.OverTimeAfterExit,
-                tiempoExtraFestivo: !!m.OverTimeInHoliday,
+                iniciaTurno: !!iniciaTurnoVal,
+                tiempoExtraDespues: !!extraDespuesVal,
+                tiempoExtraFestivo: !!extraFestivoVal,
                 autorizar: !!m.Approve,
                 estado: (m.MarkingIn && m.MarkingOut) ? "OK" : "Incompleto"
             };

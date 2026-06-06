@@ -132,8 +132,11 @@ export default function TurnosForm({ onClose }) {
   };
 
   const filteredEmp = (Array.isArray(employees) ? employees : []).filter(e => {
-    const matchesSearch = e["Nombre a mostrar"]?.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-      e["Número Lector"]?.toString().includes(employeeSearch);
+    const searchTerms = employeeSearch.toLowerCase().split(/\s+/).filter(Boolean);
+    const matchesSearch = searchTerms.every(term => 
+      e["Nombre a mostrar"]?.toLowerCase().includes(term) ||
+      e["Número Lector"]?.toString().includes(term)
+    );
 
     let matchesStatus = true;
     if (estadoEmpleados === "activos") matchesStatus = e.Status === 0;

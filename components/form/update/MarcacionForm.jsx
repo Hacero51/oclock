@@ -75,8 +75,13 @@ export default function MarcacionForm({ onClose }) {
     if (busquedaEmpleado.trim() === "") {
       setEmpleadosFiltrados([]);
     } else {
+      const searchTerms = busquedaEmpleado.toLowerCase().split(/\s+/).filter(Boolean);
       const resultado = empleados.filter((emp) =>
-        emp.nombreCompleto.toLowerCase().includes(busquedaEmpleado.toLowerCase())
+        searchTerms.every(term => 
+          emp.nombreCompleto.toLowerCase().includes(term) ||
+          emp.documento?.includes(term) ||
+          emp.numeroLector?.includes(term)
+        )
       );
       setEmpleadosFiltrados(resultado);
     }

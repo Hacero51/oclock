@@ -285,6 +285,7 @@ type Marcacion = {
   id: string;
   cedula: string;
   empleado: string;
+  departamento: string;
   turno: string;
   fecha: string;
   entrada: string;
@@ -294,6 +295,21 @@ type Marcacion = {
   tiempoExtraFestivo: boolean;
   autorizar: boolean;
   estado: string;
+};
+
+const columnWidths = {
+  'Documento': 'w-[100px] min-w-[100px]',
+  'Empleado': 'w-[180px] min-w-[180px]',
+  'Departamento': 'w-[150px] min-w-[150px]',
+  'Turno': 'w-[120px] min-w-[120px]',
+  'Fecha': 'w-[80px] min-w-[80px]',
+  'Entrada': 'w-[280px] min-w-[280px]',
+  'Salida': 'w-[280px] min-w-[280px]',
+  'Inicia Turno': 'w-[75px] min-w-[75px]',
+  'Extra Después': 'w-[75px] min-w-[75px]',
+  'Extra Festivo': 'w-[75px] min-w-[75px]',
+  'Autorizar': 'w-[75px] min-w-[75px]',
+  'Estado': 'w-[90px] min-w-[90px]'
 };
 
 export default function MarcacionesPage() {
@@ -451,6 +467,7 @@ export default function MarcacionesPage() {
       const exportData = resData.data.map((m: any) => ({
         "Documento": m.cedula,
         "Empleado": m.empleado,
+        "Departamento": m.departamento,
         "Turno": m.turno,
         "Fecha": m.fecha,
         "Entrada": m.entrada,
@@ -693,11 +710,12 @@ export default function MarcacionesPage() {
     return marcaciones.map((marcacion) => ({
       'Documento': <span className="text-[10px]">{marcacion.cedula}</span>,
       'Empleado': <span className="text-[10px] font-medium">{marcacion.empleado}</span>,
+      'Departamento': <span className="text-[10px] text-gray-500">{marcacion.departamento}</span>,
       'Turno': <span className="text-[9px] text-gray-500">{marcacion.turno}</span>,
       'Fecha': <span className="text-[10px]">{marcacion.fecha}</span>,
       'Entrada': (
         <div
-          className="min-w-[170px] cursor-pointer"
+          className="min-w-[280px] cursor-pointer"
           onClick={() => { if (editandoEntradaId !== marcacion.id) iniciarEdicionEntrada(marcacion); }}
         >
           {editandoEntradaId === marcacion.id ? (
@@ -708,7 +726,7 @@ export default function MarcacionesPage() {
                   type="datetime-local"
                   value={entradaEditada}
                   onChange={(e) => handleEntradaChange(e.target.value, marcacion)}
-                  className="w-36 text-[10px] h-7"
+                  className="w-44 text-[10px] h-8"
                 />
                 <Button size="sm" onClick={() => guardarEntrada(marcacion)} className="bg-green-600 h-8 w-8 p-0"><CheckCircle2 className="h-3.5 w-3.5" /></Button>
                 <Button size="sm" variant="outline" onClick={() => setEditandoEntradaId(null)} className="h-8 w-8 p-0"><X className="h-3.5 w-3.5" /></Button>
@@ -730,7 +748,7 @@ export default function MarcacionesPage() {
       ),
       'Salida': (
         <div
-          className="min-w-[170px] cursor-pointer"
+          className="min-w-[280px] cursor-pointer"
           onClick={() => { if (editandoId !== marcacion.id) iniciarEdicionSalida(marcacion); }}
         >
           {editandoId === marcacion.id ? (
@@ -741,7 +759,7 @@ export default function MarcacionesPage() {
                   type="datetime-local"
                   value={salidaEditada}
                   onChange={(e) => handleSalidaChange(e.target.value, marcacion)}
-                  className="w-36 text-[10px] h-7"
+                  className="w-44 text-[10px] h-8"
                 />
                 <Button size="sm" onClick={() => guardarSalida(marcacion)} className="bg-green-600 h-8 w-8 p-0"><CheckCircle2 className="h-3.5 w-3.5" /></Button>
                 <Button size="sm" variant="outline" onClick={() => setEditandoId(null)} className="h-8 w-8 p-0"><X className="h-3.5 w-3.5" /></Button>
@@ -936,8 +954,9 @@ export default function MarcacionesPage() {
           </div>
         )}
         <Tabla
-          columnas={['Documento', 'Empleado', 'Turno', 'Fecha', 'Entrada', 'Salida', 'Inicia Turno', 'Extra Después', 'Extra Festivo', 'Autorizar', 'Estado']}
+          columnas={['Documento', 'Empleado', 'Departamento', 'Turno', 'Fecha', 'Entrada', 'Salida', 'Inicia Turno', 'Extra Después', 'Extra Festivo', 'Autorizar', 'Estado']}
           datos={datosParaTabla}
+          columnWidths={columnWidths}
           selectedRowId={selectedRowId}
           onRowClick={(fila: any) => setSelectedRowId(fila.id)}
           renderContextMenu={(fila: any) => {

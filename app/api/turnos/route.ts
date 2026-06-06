@@ -90,13 +90,13 @@ export async function POST(req: Request) {
       // 2. Create ShiftTimetable entries (The Grid)
       if (horarios && Array.isArray(horarios)) {
         for (const h of horarios) {
-          // Verify that timetableId is present before creating
-          if (h.timetableId) {
+          // Verify that timetableId is present or any of the flags are true before creating
+          if (h.timetableId || h.mustMarkOut || h.startShiftMarkingIn || h.markingOptional) {
             await tx.shifttimetable.create({
               data: {
                 Oid: crypto.randomUUID().toUpperCase(),
                 Shift: newShiftOid,
-                Timetable: h.timetableId,
+                Timetable: h.timetableId || null,
                 NumberDay: h.day,
                 Day: h.day.toString(), // Storing the day number as string for now if needed
                 MustMarkingOut: h.mustMarkOut || false,

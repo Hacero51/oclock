@@ -41,18 +41,23 @@ export async function GET(request: Request) {
     // Filtro por nombre/documento (Database level)
     if (query) {
       const q = query.trim();
+      const terms = q.split(/\s+/).filter(Boolean);
       // Refinar la búsqueda dentro de los ya filtrados como reales
       const matchedPersons = await prisma.eperson.findMany({
         where: {
           AND: [
             { Oid: { in: realOids } },
             {
-              OR: [
-                { FirstName: { contains: q } },
-                { LastName: { contains: q } },
-                { FullName: { contains: q } },
-                { Document: { contains: q } },
-              ]
+              AND: terms.map(term => ({
+                OR: [
+                  { FirstName: { contains: term } },
+                  { LastName: { contains: term } },
+                  { MiddleName: { contains: term } },
+                  { MiddleLast: { contains: term } },
+                  { FullName: { contains: term } },
+                  { Document: { contains: term } },
+                ]
+              }))
             }
           ]
         },

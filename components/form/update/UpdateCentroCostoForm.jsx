@@ -227,6 +227,7 @@ export default function CentroCostoForm({ data, onClose }) {
 
   // Columnas para la tabla de empleados
   const employeeColumns = [
+    "Código Lector",
     "Documento",
     "Nombre a mostrar",
     "Cargo",
@@ -367,7 +368,7 @@ export default function CentroCostoForm({ data, onClose }) {
       {/* MODAL EMPLEADO */}
       <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen} size="6xl" zIndex={10000}>
         {selectedEmployee && (
-          <DialogContent className="max-h-[95vh] h-[95vh] overflow-hidden p-0 rounded-xl flex flex-col bg-gray-50">
+          <DialogContent className="max-h-[85vh] h-[85vh] overflow-hidden p-0 rounded-xl flex flex-col bg-gray-50">
             <div className="h-full overflow-y-auto pb-12">
               <UpdateEmpleadoForm
                 data={selectedEmployee}

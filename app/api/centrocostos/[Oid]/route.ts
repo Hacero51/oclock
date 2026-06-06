@@ -70,6 +70,7 @@ export async function GET(request: Request, context: { params: Promise<{ Oid: st
 
             return {
                 Oid: emp.Oid,
+                "Código Lector": emp.AcNumber || '',
                 Documento: person?.Document || '',
                 "Nombre a mostrar": `${person?.FirstName || ''} ${person?.MiddleName || ''} ${person?.LastName || ''} ${person?.MiddleLast || ''}`.trim().replace(/\s+/g, ' '),
                 Cargo: pos?.Name || emp.Position || '',

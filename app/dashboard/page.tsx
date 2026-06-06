@@ -6,50 +6,43 @@ import { Users, Clock, Calendar, Target, TrendingUp, AlertTriangle, CheckCircle,
 import { useState, useEffect } from "react";
 
 // ---------------- INTERFACES ---------------- //
+interface TrendData {
+  label: string;
+  valor: number;
+}
+
+interface EmployeeDetail {
+  nombre: string;
+  departamento: string;
+  turno: string;
+}
+
 interface DashboardData {
   cumplimientoPorDepartamento: { departamento: string; cumplimiento: number; empleados: number; }[];
   retrasosPorTurno: { turno: string; retrasos: number; total: number; tasa?: number; }[];
   marcacionesHoy: { puntuales: number; retrasos: number; ausentes: number; total: number; };
   metricasGenerales: { totalEmpleados: number; activosHoy: number; promedioCumplimiento: number; incidenciasMes: number; };
-  tendencia?: { label: string; valor: number; }[];
+  tendencia?: {
+    semana: TrendData[];
+    quincena: TrendData[];
+    mes: TrendData[];
+  };
   alertas?: { tipo: 'warning' | 'info' | 'success'; titulo: string; mensaje: string; }[];
+  detallesHoy?: {
+    puntuales: EmployeeDetail[];
+    retrasos: EmployeeDetail[];
+    ausentes: EmployeeDetail[];
+  };
 }
 
-// Datos de ejemplo para las gráficas
-const datosEjemplo: DashboardData = {
-  cumplimientoPorDepartamento: [
-    { departamento: 'Administración', cumplimiento: 95, empleados: 12 },
-    { departamento: 'Producción', cumplimiento: 78, empleados: 45 },
-    { departamento: 'Ventas', cumplimiento: 88, empleados: 18 },
-    { departamento: 'TI', cumplimiento: 92, empleados: 8 },
-    { departamento: 'RH', cumplimiento: 96, empleados: 6 },
-  ],
-  retrasosPorTurno: [
-    { turno: 'Mañana (6AM-2PM)', retrasos: 12, total: 45 },
-    { turno: 'Tarde (2PM-10PM)', retrasos: 8, total: 38 },
-    { turno: 'Noche (10PM-6AM)', retrasos: 5, total: 22 },
-  ],
-  marcacionesHoy: {
-    puntuales: 89,
-    retrasos: 15,
-    ausentes: 6,
-    total: 110
-  },
-  metricasGenerales: {
-    totalEmpleados: 125,
-    activosHoy: 104,
-    promedioCumplimiento: 87,
-    incidenciasMes: 42
-  },
-  tendencia: [],
-  alertas: []
-};
 
 export default function DashboardPage() {
   const [datos, setDatos] = useState<DashboardData | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [periodo, setPeriodo] = useState('today');
+  const [periodoTendencia, setPeriodoTendencia] = useState<'semana' | 'quincena' | 'mes'>('semana');
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<'puntuales' | 'retrasos' | 'ausentes'>('puntuales');
 
   const fetchStats = async (p: string) => {
     try {
@@ -81,21 +74,203 @@ export default function DashboardPage() {
     </div>
   );
 
-  // Componente de gráfica de barras simple
-  const GraficaBarras = ({ datos, color = "bg-blue-500" }: { datos: any[]; color?: string }) => (
-    <div className="flex items-end justify-between h-32 gap-1 pt-4">
-      {datos.map((item, index) => (
-        <div key={index} className="flex flex-col items-center flex-1">
-          <div className="text-xs text-gray-500 mb-1 text-center">{item.label}</div>
-          <div
-            className={`w-full ${color} rounded-t transition-all duration-500`}
-            style={{ height: `${item.valor}%` }}
-          />
-          <div className="text-xs font-medium mt-1">{item.valor}%</div>
+  // Componente de gráfica de línea SVG premium e interactiva
+  const GraficaLinea = ({ datos }: { datos: TrendData[] }) => {
+    const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+    if (!datos || datos.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-48 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 text-gray-400 italic text-xs">
+          No hay datos de tendencia disponibles
         </div>
-      ))}
-    </div>
-  );
+      );
+    }
+
+    const width = 600;
+    const height = 220;
+    const paddingTop = 20;
+    const paddingBottom = 30;
+    const paddingLeft = 35;
+    const paddingRight = 15;
+
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom;
+
+    const N = datos.length;
+
+    const points = datos.map((item, i) => {
+      const x = paddingLeft + (N > 1 ? (i * chartWidth) / (N - 1) : chartWidth / 2);
+      const y = paddingTop + chartHeight - (item.valor / 100) * chartHeight;
+      return { x, y };
+    });
+
+    const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    const areaD = N > 0 ? `${pathD} L ${points[N - 1].x} ${paddingTop + chartHeight} L ${points[0].x} ${paddingTop + chartHeight} Z` : '';
+
+    const labelStep = N <= 7 ? 1 : N <= 15 ? 2 : 5;
+
+    return (
+      <div className="relative w-full">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          width="100%"
+          height="100%"
+          className="overflow-visible select-none"
+        >
+          <defs>
+            <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          {/* Grilla horizontal y etiquetas del eje Y */}
+          {[0, 25, 50, 75, 100].map((val) => {
+            const y = paddingTop + chartHeight - (val / 100) * chartHeight;
+            return (
+              <g key={val} className="opacity-60">
+                <line
+                  x1={paddingLeft}
+                  y1={y}
+                  x2={width - paddingRight}
+                  y2={y}
+                  stroke="#E5E7EB"
+                  strokeWidth="1"
+                  strokeDasharray="4 4"
+                />
+                <text
+                  x={paddingLeft - 8}
+                  y={y + 3}
+                  textAnchor="end"
+                  className="text-[9px] fill-gray-400 font-medium font-sans"
+                >
+                  {val}%
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Área con gradiente debajo de la línea */}
+          {N > 0 && (
+            <path
+              d={areaD}
+              fill="url(#chartGradient)"
+              className="transition-all duration-500 ease-in-out"
+            />
+          )}
+
+          {/* Línea de tendencia */}
+          {N > 0 && (
+            <path
+              d={pathD}
+              fill="none"
+              stroke="#8B5CF6"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="transition-all duration-500 ease-in-out"
+            />
+          )}
+
+          {/* Círculos de datos e interacción */}
+          {points.map((p, i) => (
+            <g key={i}>
+              {(N <= 15 || hoveredIndex === i) && (
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={hoveredIndex === i ? 5 : 3.5}
+                  className={`fill-white stroke-purple-600 transition-all duration-200 ${
+                    hoveredIndex === i ? 'stroke-[2.5px] scale-125' : 'stroke-[2px]'
+                  }`}
+                />
+              )}
+
+              {/* Área interactiva vertical */}
+              <rect
+                x={p.x - (chartWidth / (N - 1 || 1)) / 2}
+                y={paddingTop}
+                width={chartWidth / (N - 1 || 1)}
+                height={chartHeight}
+                fill="transparent"
+                className="cursor-pointer"
+                onMouseEnter={() => setHoveredIndex(i)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              />
+            </g>
+          ))}
+
+          {/* Etiquetas del eje X */}
+          {datos.map((item, i) => {
+            const p = points[i];
+            const shouldShowLabel = i === 0 || i === N - 1 || i % labelStep === 0;
+            if (!shouldShowLabel) return null;
+
+            return (
+              <text
+                key={i}
+                x={p.x}
+                y={height - 10}
+                textAnchor="middle"
+                className="text-[9px] fill-gray-400 font-medium font-sans"
+              >
+                {item.label}
+              </text>
+            );
+          })}
+
+          {/* Overlay del Tooltip */}
+          {hoveredIndex !== null && points[hoveredIndex] && (
+            <g className="pointer-events-none">
+              {/* Línea guía vertical */}
+              <line
+                x1={points[hoveredIndex].x}
+                y1={paddingTop}
+                x2={points[hoveredIndex].x}
+                y2={paddingTop + chartHeight}
+                stroke="#D8B4FE"
+                strokeWidth="1"
+                strokeDasharray="2 2"
+              />
+              {/* Ripple de foco */}
+              <circle
+                cx={points[hoveredIndex].x}
+                cy={points[hoveredIndex].y}
+                r="8"
+                className="fill-purple-200 stroke-purple-600 stroke-[1.5px] opacity-60 animate-pulse"
+              />
+              {/* Punto activo */}
+              <circle
+                cx={points[hoveredIndex].x}
+                cy={points[hoveredIndex].y}
+                r="5.5"
+                className="fill-purple-600 stroke-white stroke-[2px] shadow-md"
+              />
+              {/* Contenedor del Tooltip */}
+              <g transform={`translate(${Math.max(50, Math.min(width - 50, points[hoveredIndex].x))}, ${points[hoveredIndex].y - 32})`}>
+                <rect
+                  x="-40"
+                  y="-10"
+                  width="80"
+                  height="22"
+                  rx="6"
+                  className="fill-gray-900 filter drop-shadow-sm opacity-95"
+                />
+                <text
+                  x="0"
+                  y="4"
+                  textAnchor="middle"
+                  className="text-[9px] font-semibold fill-white font-sans"
+                >
+                  {datos[hoveredIndex].valor}%
+                </text>
+              </g>
+            </g>
+          )}
+        </svg>
+      </div>
+    );
+  };
 
   if (cargando || !datos) {
     return (
@@ -329,30 +504,97 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Puntuales</span>
-                <span className="font-bold text-green-600">
+              <div 
+                onClick={() => setCategoriaSeleccionada('puntuales')}
+                className={`flex justify-between items-center p-2 rounded-lg cursor-pointer transition-all ${
+                  categoriaSeleccionada === 'puntuales' 
+                    ? 'bg-green-50 text-green-700 font-semibold border-l-4 border-green-500 shadow-sm' 
+                    : 'hover:bg-gray-50 text-gray-600'
+                }`}
+              >
+                <span className="text-sm">Puntuales</span>
+                <span className={`font-bold ${categoriaSeleccionada === 'puntuales' ? 'text-green-700' : 'text-green-600'}`}>
                   {datos.marcacionesHoy.puntuales}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Retrasos</span>
-                <span className="font-bold text-yellow-600">
+              <div 
+                onClick={() => setCategoriaSeleccionada('retrasos')}
+                className={`flex justify-between items-center p-2 rounded-lg cursor-pointer transition-all ${
+                  categoriaSeleccionada === 'retrasos' 
+                    ? 'bg-yellow-50 text-yellow-800 font-semibold border-l-4 border-yellow-500 shadow-sm' 
+                    : 'hover:bg-gray-50 text-gray-600'
+                }`}
+              >
+                <span className="text-sm">Retrasos</span>
+                <span className={`font-bold ${categoriaSeleccionada === 'retrasos' ? 'text-yellow-800' : 'text-yellow-600'}`}>
                   {datos.marcacionesHoy.retrasos}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Ausentes</span>
-                <span className="font-bold text-red-600">
+              <div 
+                onClick={() => setCategoriaSeleccionada('ausentes')}
+                className={`flex justify-between items-center p-2 rounded-lg cursor-pointer transition-all ${
+                  categoriaSeleccionada === 'ausentes' 
+                    ? 'bg-red-50 text-red-700 font-semibold border-l-4 border-red-500 shadow-sm' 
+                    : 'hover:bg-gray-50 text-gray-600'
+                }`}
+              >
+                <span className="text-sm">Ausentes</span>
+                <span className={`font-bold ${categoriaSeleccionada === 'ausentes' ? 'text-red-700' : 'text-red-600'}`}>
                   {datos.marcacionesHoy.ausentes}
                 </span>
               </div>
-              <div className="pt-3 border-t border-gray-200">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">Total</span>
+              <div className="pt-2 border-t border-gray-200">
+                <div className="flex justify-between items-center p-2 text-gray-700 font-medium">
+                  <span className="text-sm">Total</span>
                   <span className="font-bold text-gray-900">
                     {datos.marcacionesHoy.total}
                   </span>
+                </div>
+              </div>
+
+              {/* Listado de Empleados según Selección */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                    Listado: {categoriaSeleccionada === 'puntuales' ? 'Puntuales' : categoriaSeleccionada === 'retrasos' ? 'Retrasos' : 'Ausentes'}
+                  </h4>
+                  <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-semibold">
+                    {(datos.detallesHoy?.[categoriaSeleccionada] || []).length} registros
+                  </span>
+                </div>
+                <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-10 border-b border-gray-200">
+                      <tr>
+                        <th className="px-3 py-2 font-bold">Nombre</th>
+                        <th className="px-3 py-2 font-bold">Depto</th>
+                        <th className="px-3 py-2 font-bold">Turno</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {(datos.detallesHoy?.[categoriaSeleccionada] || []).length > 0 ? (
+                        (datos.detallesHoy?.[categoriaSeleccionada] || []).map((emp, i) => (
+                          <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-3 py-1.5 font-medium text-gray-900 max-w-[120px] truncate" title={emp.nombre}>
+                              {emp.nombre}
+                            </td>
+                            <td className="px-3 py-1.5 text-gray-500 truncate max-w-[100px]" title={emp.departamento}>
+                              {emp.departamento}
+                            </td>
+                            <td className="px-3 py-1.5 text-gray-500 truncate max-w-[90px]" title={emp.turno}>
+                              {emp.turno}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="px-3 py-8 text-center text-gray-400 italic text-[11px]">
+                            No hay empleados en esta categoría
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -361,16 +603,34 @@ export default function DashboardPage() {
 
         {/* Gráfica de Cumplimiento Mensual */}
         <Card className="shadow-sm border border-gray-200 rounded-2xl lg:col-span-2">
-          <CardHeader className="pb-4 border-b border-gray-200 bg-white">
+          <CardHeader className="pb-4 border-b border-gray-200 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <CardTitle className="text-lg text-gray-900 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-purple-600" />
+              <TrendingUp className="h-5 w-5 text-purple-600" />
               Tendencia de Cumplimiento
             </CardTitle>
+            <div className="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200">
+              {[
+                { id: 'semana', label: 'Esta Semana' },
+                { id: 'quincena', label: 'Esta Quincena' },
+                { id: 'mes', label: 'Este Mes' }
+              ].map((btn) => (
+                <button
+                  key={btn.id}
+                  onClick={() => setPeriodoTendencia(btn.id as any)}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                    periodoTendencia === btn.id
+                      ? 'bg-white text-purple-700 shadow-sm border border-gray-200/50'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
           </CardHeader>
           <CardContent className="p-6">
-            <GraficaBarras
-              datos={(datos as any).tendencia || []}
-              color="bg-purple-500"
+            <GraficaLinea
+              datos={datos.tendencia?.[periodoTendencia] || []}
             />
           </CardContent>
         </Card>

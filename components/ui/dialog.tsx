@@ -70,7 +70,7 @@ export const Dialog: React.FC<DialogProps> = ({
       style={{ zIndex }}
       onClick={handleBackdropClick}
     >
-      <div className={`bg-white rounded-2xl shadow-xl w-full max-h-[90vh] overflow-hidden ${sizeClasses[size]} ${className || ''}`}>
+      <div className={`bg-white rounded-2xl shadow-xl w-full max-h-[95vh] overflow-hidden flex flex-col ${sizeClasses[size]} ${className || ''}`}>
         {children}
       </div>
     </div>,

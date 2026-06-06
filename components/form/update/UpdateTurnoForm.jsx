@@ -246,15 +246,18 @@ export default function UpdateTurnoForm({ data, onClose }) {
       if (!res.ok) throw new Error("Error");
       if (onClose) onClose();
       window.location.reload();
-    } catch (err) { 
+    } catch (err) {
       console.error(err);
-      alert("Error actualizando"); 
+      alert("Error actualizando");
     }
   };
 
   const filteredEmp = employees.filter(e => {
-    const matchesSearch = e["Nombre a mostrar"]?.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-      e["Número Lector"]?.toString().includes(employeeSearch);
+    const searchTerms = employeeSearch.toLowerCase().split(/\s+/).filter(Boolean);
+    const matchesSearch = searchTerms.every(term => 
+      e["Nombre a mostrar"]?.toLowerCase().includes(term) ||
+      e["Número Lector"]?.toString().includes(term)
+    );
 
     // Check if Status is available. Note: API/turnos/[id] returns minimal employee info.
     // If Status is missing, we might not be able to filter. 
@@ -276,28 +279,17 @@ export default function UpdateTurnoForm({ data, onClose }) {
   );
 
   return (
-    <div className="w-full h-full flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
-      <div className="bg-indigo rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col font-sans overflow-hidden">
-
-        {/* Header */}
-        <div className="bg-[#1e40af] px-6 py-5 flex items-center justify-between border-b border-blue-800/20">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-white/10 rounded-lg">
-              <CalendarSync className="h-5 w-5 text-white" />
-            </div>
-            <h2 className="text-xl font-semibold text-white tracking-tight">Actualizar Turno</h2>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-white hover:bg-white/10 hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </Button>
+    <div className="space-y-6 font-sans">
+      {/* Title */}
+      <div className="flex items-center gap-3">
+        <div className="p-3 bg-blue-600 rounded-2xl shadow-sm border border-blue-500">
+          <CalendarSync className="h-6 w-6 text-white" />
         </div>
-
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 space-y-6 custom-scrollbar">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Actualizar Turno: {formData.nombre}</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Modifica los detalles y configuración de horarios</p>
+        </div>
+      </div>
 
           {/* TOP SECTION: Blue Banner */}
           <div className="bg-blue-600 rounded-xl p-6 shadow-lg text-white space-y-6">
@@ -467,9 +459,9 @@ export default function UpdateTurnoForm({ data, onClose }) {
                           <tr>
                             <th className="px-6 py-4 w-[120px]">Día</th>
                             <th className="px-6 py-4 min-w-[300px]">Horario Asignado</th>
-                            <th className="px-6 py-4 text-center w-[120px]">Salida</th>
-                            <th className="px-6 py-4 text-center w-[120px]">Inicio Auto</th>
-                            <th className="px-6 py-4 text-center w-[120px]">Opcional</th>
+                            <th className="px-6 py-4 text-center w-[120px]">Debe Marcar Salida</th>
+                            <th className="px-6 py-4 text-center w-[120px]">Inicia el Turno al Marcar</th>
+                            <th className="px-6 py-4 text-center w-[120px]">Marcación Opcional</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -673,26 +665,22 @@ export default function UpdateTurnoForm({ data, onClose }) {
             </div>
           </div>
 
-        </div>
-
         {/* Footer */}
-        <div className="p-5 border-t bg-gray-50 flex justify-end gap-4 shrink-0">
-          <Button 
-            variant="outline" 
-            onClick={onClose} 
+        <div className="flex justify-end gap-4 pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={onClose}
             className="border-gray-300 text-gray-700 hover:bg-gray-100 px-8 h-11 font-medium rounded-lg"
           >
             Cancelar
           </Button>
-          <Button 
-            onClick={handleGuardar} 
+          <Button
+            onClick={handleGuardar}
             className="bg-[#dc2626] hover:bg-[#b91c1c] text-white px-10 h-11 font-bold rounded-lg shadow-md transition-all active:scale-95"
           >
             Guardar Cambios
           </Button>
         </div>
-
       </div>
-    </div>
-  );
-}
+    );
+  }

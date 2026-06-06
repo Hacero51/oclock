@@ -159,7 +159,11 @@ export default function DepartamentosPage() {
         const res = await fetch("/api/departamentos/empleados");
         if (res.ok) {
           const data = await res.json();
-          setEmpleados(data);
+          const mappedData = data.map((e: any) => ({
+            ...e,
+            "Código Lector": e["Número Lector"] || ""
+          }));
+          setEmpleados(mappedData);
         }
       } catch (error) {
         console.error("Error empleados", error);
@@ -235,10 +239,12 @@ export default function DepartamentosPage() {
     }
 
     if (busqueda) {
-      const lower = busqueda.toLowerCase();
+      const searchTerms = busqueda.toLowerCase().split(/\s+/).filter(Boolean);
       return filtered.filter(e =>
-        e["Nombre a mostrar"]?.toLowerCase().includes(lower) ||
-        e.Documento?.includes(lower)
+        searchTerms.every(term =>
+          e["Nombre a mostrar"]?.toLowerCase().includes(term) ||
+          e.Documento?.includes(term)
+        )
       );
     }
     return filtered;
@@ -259,7 +265,7 @@ export default function DepartamentosPage() {
     return parent ? parent.name : "Desconocido";
   }, [selectedDept, departamentos]);
 
-  const columnasTabla = ["Documento", "Nombre a mostrar", "Cargo", "Contrato Actual", "Jefe", "Turno Actual", "Valor Hora"];
+  const columnasTabla = ["Código Lector", "Documento", "Nombre a mostrar", "Cargo", "Contrato Actual", "Jefe", "Turno Actual", "Valor Hora"];
 
   return (
     <div className="p-6 md:p-8 bg-grey-700/50 font-sans">
@@ -304,7 +310,7 @@ export default function DepartamentosPage() {
         size="7xl" // Tamaño ampliado para mostrar toda la tabla de empleados
       >
         {selectedDept && (
-          <DialogContent className="max-h-[95vh] h-auto flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogContent className="max-h-[85vh] h-auto flex flex-col p-0 gap-0 overflow-hidden">
 
             {/* Header Modal */}
             <DialogHeader className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 px-6 py-5 border-b border-indigo-800  flex-shrink-0 flex flex-row items-center justify-between">
@@ -335,14 +341,6 @@ export default function DepartamentosPage() {
                     <Input
                       readOnly
                       value={selectedDept.name}
-                      className="bg-gray-50 border-gray-200 text-black-700 font-medium focus-visible:ring-0"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs text-black-400 uppercase font-bold tracking-wider">Departamento Padre</Label>
-                    <Input
-                      readOnly
-                      value={parentName}
                       className="bg-gray-50 border-gray-200 text-black-700 font-medium focus-visible:ring-0"
                     />
                   </div>
@@ -413,7 +411,7 @@ export default function DepartamentosPage() {
       {/* Modal empleados */}
       <Dialog open={isEmpleadoModalOpen} onOpenChange={setIsEmpleadoModalOpen} size="4xl">
         {selectedEmpleado && (
-          <DialogContent className="max-w-5xl w-full max-h-[95vh] overflow-hidden p-0 rounded-xl">
+          <DialogContent className="max-w-5xl w-full max-h-[85vh] overflow-hidden p-0 rounded-xl">
             <div className="h-full overflow-y-auto px-2 pb-12">
               <UpdateEmpleadoForm
                 data={selectedEmpleado}

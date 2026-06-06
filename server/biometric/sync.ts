@@ -501,10 +501,10 @@ export async function procesarRegistroDoble(log: BiometricLog & { name?: string 
                     Status: 1, // Default Normal
                     Shift: shiftOid,
                     Cycle: cycle,
-                    StartShiftMarkingIn: false,
-                    OverTimeBeforeEntry: false,
-                    OverTimeAfterExit: false,
-                    OverTimeInHoliday: false,
+                    StartShiftMarkingIn: null,
+                    OverTimeBeforeEntry: null,
+                    OverTimeAfterExit: null,
+                    OverTimeInHoliday: null,
                     Approve: false
                 }
             });

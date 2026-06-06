@@ -228,12 +228,12 @@ export async function PUT(
 
             if (horarios && Array.isArray(horarios)) {
                 for (const h of horarios) {
-                    if (h.timetableId) {
+                    if (h.timetableId || h.mustMarkOut || h.startShiftMarkingIn || h.markingOptional) {
                         await tx.shifttimetable.create({
                             data: {
                                 Oid: crypto.randomUUID().toUpperCase(),
                                 Shift: Oid,
-                                Timetable: h.timetableId,
+                                Timetable: h.timetableId || null,
                                 NumberDay: h.day,
                                 Day: h.day.toString(),
                                 MustMarkingOut: h.mustMarkOut || false,

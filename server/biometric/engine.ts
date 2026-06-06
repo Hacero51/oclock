@@ -109,16 +109,35 @@ export class LaborEngine {
         // 10. Si el empleado SÍ tiene un horario hoy (Lunes a Viernes, usualmente)
         const remainingA01 = Math.max(0, this.weeklyOrdinaryLimit - weekA01);
 
+        // Obtener configuraciones de checkbox con fallback
+        const startsShiftMarkingIn = marking.StartShiftMarkingIn !== null 
+            ? marking.StartShiftMarkingIn 
+            : (shiftLink ? !!shiftLink.StartShiftMarkingIn : false);
+
+        const extraBeforeEntryAllowed = marking.OverTimeBeforeEntry !== null 
+            ? marking.OverTimeBeforeEntry 
+            : (currentShiftObj ? !!currentShiftObj.OverTimeBeforeEntry : false);
+
+        const extraAfterExitAllowed = marking.OverTimeAfterExit !== null 
+            ? marking.OverTimeAfterExit 
+            : (currentShiftObj ? !!currentShiftObj.OverTimeAfterExit : false);
+
+        const extraInHolidayAllowed = marking.OverTimeInHoliday !== null 
+            ? marking.OverTimeInHoliday 
+            : (currentShiftObj ? !!currentShiftObj.OverTimeInHoliday : false);
+
         if (timetable) {
-            const shiftInSecs = timetable.MarkingIn || 0;
-            if (shiftInSecs > 0) {
+            let shiftInSecs = timetable.MarkingIn || 0;
+            if (startsShiftMarkingIn) {
+                expectedIn = actualIn;
+            } else if (shiftInSecs > 0) {
                 expectedIn = createTimeFromSeconds(calcReference, shiftInSecs);
             } else {
                 expectedIn = actualIn;
             }
             
             // ¿Cuántas horas ordinarias debería trabajar hoy según el turno? (ej. 9 horas)
-            targetA01Secs = baseTimetable?.TotalTime || ((timetable.MarkingOut || 0) - (shiftInSecs));
+            targetA01Secs = baseTimetable?.TotalTime || ((timetable.MarkingOut || 0) - (timetable.MarkingIn || 0));
             
             // Las horas ordinarias EFECTIVAS de hoy no pueden superar el turno ni las que le quedan en la semana
             const effectiveA01Secs = Math.min(targetA01Secs, remainingA01 * 3600);
@@ -135,8 +154,8 @@ export class LaborEngine {
             expectedOut = new Date(expectedIn.getTime() + (effectiveA01Secs + lunchDurationSecs) * 1000);
             canHaveOrdinary = effectiveA01Secs > 0;
 
-            // Tolerancia de 1 hora en la entrada: Si llega tarde pero dentro de 1 hr, no le penalizamos el inicio del bloque
-            if (expectedIn.getTime() - actualIn.getTime() > 0 && expectedIn.getTime() - actualIn.getTime() <= 3600000) {
+            // Tolerancia de 1 hora en la entrada: Si llega tarde pero dentro de 1 hr, no le penalizamos el inicio del bloque (solo si no es "inicia turno al marcar")
+            if (!startsShiftMarkingIn && expectedIn.getTime() - actualIn.getTime() > 0 && expectedIn.getTime() - actualIn.getTime() <= 3600000) {
                 actualIn = expectedIn;
             }
 
@@ -155,26 +174,35 @@ export class LaborEngine {
         
         // A. EXTRAS ANTES DE LA ENTRADA
         if (actualIn < expectedIn) {
-            let rawExtraBeforeMs = expectedIn.getTime() - actualIn.getTime();
-            const minBeforeMin = currentShiftObj?.MinimumOverTime || 30;
+            if (!extraBeforeEntryAllowed) {
+                actualIn = expectedIn;
+            } else {
+                let rawExtraBeforeMs = expectedIn.getTime() - actualIn.getTime();
+                const minBeforeMin = currentShiftObj?.MinimumOverTime || 30;
 
-            if (rawExtraBeforeMs < minBeforeMin * 60 * 1000) {
-                actualIn = expectedIn; // Ignorar si es inferior al mínimo (ej. 15 min)
+                if (rawExtraBeforeMs < minBeforeMin * 60 * 1000) {
+                    actualIn = expectedIn; // Ignorar si es inferior al mínimo (ej. 15 min)
+                }
             }
-            // Se toma el tiempo exacto sin redondeo
         }
 
         // B. EXTRAS DESPUÉS DE LA SALIDA
         let rawExtraMs = actualOut.getTime() - expectedOut.getTime();
         if (rawExtraMs > 0) {
-            const minExtraMinutes = currentShiftObj?.MinimumOverTime || 30;
-            const minExtraMs = minExtraMinutes * 60 * 1000;
-            
-            if (rawExtraMs < minExtraMs) {
-                rawExtraMs = 0; // Si es menor al mínimo (30 min), no cuenta nada
+            if (!extraAfterExitAllowed) {
+                rawExtraMs = 0;
+                actualOut = expectedOut;
+            } else {
+                const minExtraMinutes = currentShiftObj?.MinimumOverTime || 30;
+                const minExtraMs = minExtraMinutes * 60 * 1000;
+                
+                if (rawExtraMs < minExtraMs) {
+                    rawExtraMs = 0; // Si es menor al mínimo (30 min), no cuenta nada
+                } else {
+                    // Se toma el tiempo exacto sin redondeo
+                    actualOut = new Date(expectedOut.getTime() + rawExtraMs);
+                }
             }
-            // Se toma el tiempo exacto sin redondeo
-            actualOut = new Date(expectedOut.getTime() + rawExtraMs);
         }
 
         // 12. Construir los "segmentos" o pedazos de tiempo trabajado
@@ -250,34 +278,38 @@ export class LaborEngine {
                 const extraHours = Math.max(0, totalHours - ordinaryHours);
 
                 if (extraHours > 0) {
-                    let extraStart = new Date(sub.start.getTime() + ordinaryHours * 3600000);
-                    let remainingExtra = extraHours;
-                    
-                    while (remainingExtra > 0) {
-                        // Revisar cuántas horas extras puede hacer en la semana (Límite 12)
-                        const remainingWeeklyA02 = Math.max(0, this.weeklyExtraLimit - weeklyA02Tracker);
-                        // Limitar a máximo 2 horas extras por día, y no exceder las 12 semanales
-                        const canTakeA02 = Math.min(remainingExtra, Math.max(0, 2 - dailyExtrasCount), remainingWeeklyA02);
+                    if (isSundayOrHoliday && !extraInHolidayAllowed) {
+                        // Si es domingo/festivo y no se permite extra festivo, no se añaden extras
+                    } else {
+                        let extraStart = new Date(sub.start.getTime() + ordinaryHours * 3600000);
+                        let remainingExtra = extraHours;
+                        
+                        while (remainingExtra > 0) {
+                            // Revisar cuántas horas extras puede hacer en la semana (Límite 12)
+                            const remainingWeeklyA02 = Math.max(0, this.weeklyExtraLimit - weeklyA02Tracker);
+                            // Limitar a máximo 2 horas extras por día, y no exceder las 12 semanales
+                            const canTakeA02 = Math.min(remainingExtra, Math.max(0, 2 - dailyExtrasCount), remainingWeeklyA02);
 
-                        if (canTakeA02 > 0) {
-                            // Cae dentro del límite: se vuelve Extra real (A02, A04, A06, A08)
-                            const concept = this.getExtraConcept(isSundayOrHoliday, isNight);
-                            const segmentEnd = new Date(extraStart.getTime() + canTakeA02 * 3600000);
-                            results.push({ conceptCode: concept, hours: canTakeA02, startDate: new Date(extraStart), endDate: segmentEnd });
-                            
-                            dailyExtrasCount += canTakeA02;
-                            weeklyA02Tracker += canTakeA02;
-                            remainingExtra -= canTakeA02;
-                            extraStart = segmentEnd;
-                        } else {
-                            // ⚠️ AQUÍ ESTÁ EL PROBLEMA DE LOS DOMINGOS (A36)
-                            // Si se pasan de las 2 horas diarias o 12 semanales, el exceso cae como "Bonificación"
-                            // Actualmente getBonificacionConcept devuelve 'A36' siempre.
-                            // Modifiqué esta función abajo para que los domingos devuelva A50 o A05 en lugar de A36.
-                            const concept = this.getBonificacionConcept(isSundayOrHoliday, isNight);
-                            const bonusEnd = new Date(extraStart.getTime() + remainingExtra * 3600000);
-                            results.push({ conceptCode: concept, hours: remainingExtra, startDate: new Date(extraStart), endDate: bonusEnd });
-                            remainingExtra = 0;
+                            if (canTakeA02 > 0) {
+                                // Cae dentro del límite: se vuelve Extra real (A02, A04, A06, A08)
+                                const concept = this.getExtraConcept(isSundayOrHoliday, isNight);
+                                const segmentEnd = new Date(extraStart.getTime() + canTakeA02 * 3600000);
+                                results.push({ conceptCode: concept, hours: canTakeA02, startDate: new Date(extraStart), endDate: segmentEnd });
+                                
+                                dailyExtrasCount += canTakeA02;
+                                weeklyA02Tracker += canTakeA02;
+                                remainingExtra -= canTakeA02;
+                                extraStart = segmentEnd;
+                            } else {
+                                // ⚠️ AQUÍ ESTÁ EL PROBLEMA DE LOS DOMINGOS (A36)
+                                // Si se pasan de las 2 horas diarias o 12 semanales, el exceso cae como "Bonificación"
+                                // Actualmente getBonificacionConcept devuelve 'A36' siempre.
+                                // Modifiqué esta función abajo para que los domingos devuelva A50 o A05 en lugar de A36.
+                                const concept = this.getBonificacionConcept(isSundayOrHoliday, isNight);
+                                const bonusEnd = new Date(extraStart.getTime() + remainingExtra * 3600000);
+                                results.push({ conceptCode: concept, hours: remainingExtra, startDate: new Date(extraStart), endDate: bonusEnd });
+                                remainingExtra = 0;
+                            }
                         }
                     }
                 }

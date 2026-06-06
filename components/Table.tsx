@@ -10,9 +10,10 @@ interface TablaProps {
     onRowRightClick?: (fila: any) => void;
     selectedRowId?: string | null;
     renderContextMenu?: (fila: any) => React.ReactNode;
+    columnWidths?: Record<string, string>;
 }
 
-export default function Tabla({ columnas, datos, onRowClick, onRowRightClick, selectedRowId, renderContextMenu }: TablaProps) {
+export default function Tabla({ columnas, datos, onRowClick, onRowRightClick, selectedRowId, renderContextMenu, columnWidths }: TablaProps) {
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -79,7 +80,7 @@ export default function Tabla({ columnas, datos, onRowClick, onRowRightClick, se
                                     <th
                                         key={col}
                                         onClick={() => handleSort(col)}
-                                        className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group select-none"
+                                        className={`px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group select-none ${columnWidths?.[col] || ""}`}
                                     >
                                         <div className="flex items-center gap-2">
                                             <span>{col}</span>
@@ -102,7 +103,7 @@ export default function Tabla({ columnas, datos, onRowClick, onRowRightClick, se
                                             {columnas.map((col) => (
                                                 <td
                                                     key={col}
-                                                    className="px-4 py-2.5 text-[11px] text-gray-600 font-medium whitespace-nowrap"
+                                                    className={`px-4 py-2.5 text-[11px] text-gray-600 font-medium whitespace-nowrap ${columnWidths?.[col] || ""}`}
                                                 >
                                                     {fila[col] || "-"}
                                                 </td>

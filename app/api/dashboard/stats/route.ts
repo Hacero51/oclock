@@ -76,7 +76,7 @@ export async function GET(request: Request) {
             const fixedDetails = timetableOid ? timetableFixedMap.get(timetableOid) : null;
 
             if (fixedDetails && fixedDetails.markingIn > 0) {
-                const limitSeconds = fixedDetails.markingIn + 600; // 10 minutos de tolerancia (600 segundos)
+                const limitSeconds = fixedDetails.markingIn; // Sin margen de llegada tarde (0 tolerancia)
                 return arrivalSeconds > limitSeconds;
             }
 

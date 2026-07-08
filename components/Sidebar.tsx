@@ -113,8 +113,8 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
               <img
                 src="/logo.png"
                 alt="Logo"
-                width="500"
-                height="500"
+                width="900"
+                height="900"
                 className="rounded-lg shadow-inner object-contain"
               />
             </div>

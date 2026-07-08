@@ -24,9 +24,26 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Máximo 40 días por solicitud." }, { status: 400 });
         }
 
-        // Obtener todos los empleados activos (con turno asignado)
+        // Obtener OIDs de personas reales (no fantasma)
+        const realPersons = await prisma.eperson.findMany({
+            where: {
+                AND: [
+                    { FullName: { not: "" } },
+                    { Document: { not: "" } },
+                    { FullName: { not: null } },
+                    { Document: { not: null } }
+                ]
+            },
+            select: { Oid: true }
+        });
+        const realOids = realPersons.map(p => p.Oid);
+
+        // Obtener todos los empleados activos reales (Status: 0)
         const employees = await prisma.employee.findMany({
-            where: { CurrentShift: { not: null } },
+            where: {
+                Status: 0,
+                Oid: { in: realOids }
+            },
             select: { Oid: true }
         });
 

@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
 
         console.log(`[OFIMA] Reporte de ${startDate.toISOString()} a ${endDateInclusive.toISOString()}`);
 
-        // Conceptos excluidos del reporte (R48 = datos legados, no generados por el motor nuevo)
-        const EXCLUDED_CODES = ['R48'];
+        // Conceptos excluidos del reporte
+        const EXCLUDED_CODES: string[] = [];
 
         // 1. OIDs de conceptos excluidos
         const excludedTypes = await prisma.attendancetype.findMany({

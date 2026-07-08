@@ -15,36 +15,6 @@ export default function DispositivosPage({ params, searchParams }) {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const menuRefs = useRef({});
 
-  // Datos de ejemplo
-  const datosEjemplo = [
-    {
-      id: 3,
-      nombre: "PRESADOS INR",
-      ultimaDescarga: "LUNES, 10 DE NOVIEMBRE DE 2025 4:11 P. M.",
-      estado: "Desconectado",
-      ip: "192.168.1.100",
-      puerto: 4370,
-      ultimaSincronizacion: "2025-11-10T16:11:00Z"
-    },
-    {
-      id: 9,
-      nombre: "MOSQUERA NUEVO",
-      ultimaDescarga: "MIÉRCOLES, 24 DE ENERO DE 2024 7:02 A. M.",
-      estado: "Desconectado",
-      ip: "192.168.1.101",
-      puerto: 4370,
-      ultimaSincronizacion: "2024-01-24T07:02:00Z"
-    },
-    {
-      id: 89,
-      nombre: "MOSQUERA",
-      ultimaDescarga: "LUNES, 10 DE NOVIEMBRE DE 2025 4:07 P. M.",
-      estado: "Desconectado",
-      ip: "192.168.1.102",
-      puerto: 4370,
-      ultimaSincronizacion: "2025-11-10T16:07:00Z"
-    },
-  ];
 
   // Cerrar menú al hacer click fuera
   useEffect(() => {

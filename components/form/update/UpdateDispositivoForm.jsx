@@ -25,51 +25,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
-// Datos de ejemplo - sin campo fechaRegistro
-const empleadosEjemplo = [
-  {
-    id: 1,
-    nombre: "SANDRA MILENA BERNAL P...",
-    tiempo: "SÁBADO, 1 enero del 2025 08:00 AM",
-    tipo: "Entrada",
-    metodo: "Huella"
-  },
-  {
-    id: 2,
-    nombre: "MAURICIO VERA RINCON",
-    tiempo: "MIERCOLES, 5 febrero del 2025 17:00 PM",
-    tipo: "Salida",
-    metodo: "Huella"
-  },
-  {
-    id: 3,
-    nombre: "ALBA ROCIO SOTO SUAREZ",
-    tiempo: "DOMINGO, 9 marzo del 2025  09:00 AM",
-    tipo: "Entrada",
-    metodo: "Huella"
-  },
-  {
-    id: 4,
-    nombre: "ANILSON RODRIGUEZ CAR...",
-    tiempo: "MARTES, 15 abril del 2025 18:00 PM",
-    tipo: "Salida",
-    metodo: "Huella"
-  },
-  {
-    id: 5,
-    nombre: "JUAN PÉREZ",
-    tiempo: "MIERCOLES, 5 noviembre del 2025 08:00 AM    ",
-    tipo: "Entrada",
-    metodo: "Huella Digital"
-  },
-  {
-    id: 6,
-    nombre: "MARÍA GARCÍA",
-    tiempo: "SÁBADO, 1 novimebre del 2025 05:00 PM",
-    tipo: "Salida",
-    metodo: "Tarjeta RFID"
-  }
-];
+
 
 export default function DispositivoForm({ data, onClose }) {
   const [activeTab, setActiveTab] = useState("informacion");
@@ -78,7 +34,7 @@ export default function DispositivoForm({ data, onClose }) {
 
   // Estados para el filtro de tiempo
   const [filtroTiempo, setFiltroTiempo] = useState("todos");
-  const [empleadosFiltrados, setEmpleadosFiltrados] = useState(empleadosEjemplo);
+
 
   const {
     register,
@@ -301,16 +257,6 @@ export default function DispositivoForm({ data, onClose }) {
               </CardHeader>
               <CardContent className="p-6 space-y-6">
                 {/* Número de Dispositivos */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Número de Dispositivos: </Label>
-                  <Input
-                    className="bg-white text-black"
-                    id="nuneroDispositivos"
-                    {...register("nomeroDispositivos")}
-                    placeholder="Numero del dispositivo"
-                  />
-                </div>
-
                 {/* Primera fila */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">

@@ -56,6 +56,9 @@ export default function ExportacionInformes() {
   const [detallarPorDia, setDetallarPorDia] = useState<boolean>(true);
   const [consolidarPorConcepto, setConsolidarPorConcepto] = useState<boolean>(false);
 
+  const [recalcularAntes, setRecalcularAntes] = useState<boolean>(false);
+  const [mensajeBoton, setMensajeBoton] = useState<string>("Generar Informe");
+
   const [cargando, setCargando] = useState(false);
   const [datosOfima, setDatosOfima] = useState<RegistroOfima[]>([]);
   const [datosOfima2, setDatosOfima2] = useState<RegistroOfima[]>([]);
@@ -65,7 +68,7 @@ export default function ExportacionInformes() {
   const [bloqueVistaPrevia, setBloqueVistaPrevia] = useState<1 | 2>(1);
 
   // Conceptos de horas ordinarias
-  const CODIGOS_ORDINARIOS = ['A01', 'A49', 'A05', 'A50'];
+  const CODIGOS_ORDINARIOS = ['A01', 'A49', 'A50'];
 
   const esOrdinaria = (concepto: string) => CODIGOS_ORDINARIOS.includes(concepto);
 
@@ -81,41 +84,18 @@ export default function ExportacionInformes() {
     const primerDiaStr = new Date(primerDia.getTime() - (primerDia.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     
     setFiltros((prev) => ({ ...prev, fechaInicio: primerDiaStr, fechaFin: hoy }));
-
-    // Extras por defecto (ej. 13 al 27 del mes actual según el ejemplo de corte)
-    const extInicio = `${year}-${String(month + 1).padStart(2, '0')}-13`;
-    const extFin = `${year}-${String(month + 1).padStart(2, '0')}-27`;
-    setRango2({ fechaInicio: extInicio, fechaFin: extFin });
+    setRango2({ fechaInicio: primerDiaStr, fechaFin: hoy });
   }, []);
 
-  // Manejar el cambio de modo de fechas y sugerir periodos automáticos desfasados
+  // Manejar el cambio de modo de fechas sin sobreescribir rangos fijos
   const handleCambioModoFechas = (modo: 'unico' | 'doble') => {
     setModoFechas(modo);
-    const hoyObj = new Date();
-    const year = hoyObj.getFullYear();
-    const month = hoyObj.getMonth();
-
     if (modo === 'doble') {
-      // Ajustar fechas por defecto con el ejemplo exacto del usuario:
-      // Ordinarias: 15 al último día del mes actual (ej. 15 al 30 de mayo)
-      const ordInicio = `${year}-${String(month + 1).padStart(2, '0')}-15`;
-      const ultimoDia = new Date(year, month + 1, 0).getDate();
-      const ordFin = `${year}-${String(month + 1).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`;
-
-      // Extras: 13 al 27 del mes actual
-      const extInicio = `${year}-${String(month + 1).padStart(2, '0')}-13`;
-      const extFin = `${year}-${String(month + 1).padStart(2, '0')}-27`;
-
-      setFiltros(prev => ({ ...prev, fechaInicio: ordInicio, fechaFin: ordFin }));
-      setRango2({ fechaInicio: extInicio, fechaFin: extFin });
-    } else {
-      const primerDia = new Date(year, month, 1);
-      const hoy = new Date(hoyObj.getTime() - (hoyObj.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-      const primerDiaStr = new Date(primerDia.getTime() - (primerDia.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-      setFiltros(prev => ({ ...prev, fechaInicio: primerDiaStr, fechaFin: hoy }));
+      if (!rango2.fechaInicio || !rango2.fechaFin) {
+        setRango2({ fechaInicio: filtros.fechaInicio, fechaFin: filtros.fechaFin });
+      }
     }
   };
-
   // Mutua exclusión de checkboxes
   const handleToggleDetallar = (checked: boolean) => {
     if (checked) {
@@ -147,11 +127,41 @@ export default function ExportacionInformes() {
   // 🔄 Carga datos desde API
   const cargarDatosInforme = async () => {
     setCargando(true);
+    setMensajeBoton(recalcularAntes ? "Recalculando Rango 1..." : "Generando...");
     setDatosOfima([]);
     setDatosOfima2([]);
     setDatosAsistencia([]);
 
     try {
+      if (recalcularAntes) {
+        // 1. Recalcular Rango 1
+        const resRecalc1 = await fetch('/api/recalculo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ desde: filtros.fechaInicio, hasta: filtros.fechaFin })
+        });
+        if (!resRecalc1.ok) {
+          const err = await resRecalc1.json();
+          throw new Error(`Error en recálculo Rango 1: ${err.error || 'Error desconocido'}`);
+        }
+
+        // 2. Recalcular Rango 2 si aplica (modo doble)
+        if (modoFechas === 'doble') {
+          setMensajeBoton("Recalculando Rango 2...");
+          const resRecalc2 = await fetch('/api/recalculo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ desde: rango2.fechaInicio, hasta: rango2.fechaFin })
+          });
+          if (!resRecalc2.ok) {
+            const err = await resRecalc2.json();
+            throw new Error(`Error en recálculo Rango 2: ${err.error || 'Error desconocido'}`);
+          }
+        }
+      }
+
+      setMensajeBoton("Generando informe...");
+
       if (filtros.tipoInforme === 'nominaofima') {
         if (modoFechas === 'unico') {
           const res = await fetch(`/api/reportes/nomina-ofima?startDate=${filtros.fechaInicio}&endDate=${filtros.fechaFin}`);
@@ -188,11 +198,12 @@ export default function ExportacionInformes() {
         ];
         setDatosAsistencia(dataAsistencia);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error al cargar datos:', e);
-      alert('Error al cargar los datos del informe');
+      alert(e.message || 'Error al cargar los datos del informe');
     } finally {
       setCargando(false);
+      setMensajeBoton("Generar Informe");
     }
   };
 
@@ -600,7 +611,7 @@ export default function ExportacionInformes() {
             )}
 
             <Button onClick={handleGenerar} disabled={cargando} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold h-11 shadow-sm w-full md:w-auto px-6">
-              {cargando ? 'Generando...' : 'Generar Informe'}
+              {cargando ? mensajeBoton : 'Generar Informe'}
             </Button>
           </div>
 
@@ -633,6 +644,26 @@ export default function ExportacionInformes() {
               </div>
             </div>
           )}
+
+          {/* Opción de Recálculo antes de generar */}
+          <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-6 bg-blue-50/25 p-4 rounded-xl border border-blue-100/30">
+            <span className="text-sm font-semibold text-blue-900 flex items-center gap-1.5">
+              <Info className="h-4 w-4 text-blue-600" />
+              Procesamiento de horas:
+            </span>
+            <div className="flex flex-wrap items-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer group select-none">
+                <CheckboxComponent 
+                  checked={recalcularAntes} 
+                  onCheckedChange={(checked: any) => setRecalcularAntes(!!checked)} 
+                  className="border-blue-300 focus:ring-blue-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                />
+                <span className="text-xs font-semibold text-blue-800 group-hover:text-blue-900 transition-colors">
+                  Recalcular horas de los períodos seleccionados antes de generar
+                </span>
+              </label>
+            </div>
+          </div>
 
           {/* Sección Dinámica de Selección de Fechas */}
           {filtros.tipoInforme === 'nominaofima' && modoFechas === 'doble' ? (
